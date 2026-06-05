@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build Tracker | Client Portal</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+</head>
+<body>
+
+  <!-- AUTH AREA -->
+  <div class="auth-container" id="authSection">
+    <div class="auth-box">
+      <h2 id="authTitle">Sign In</h2>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="you@example.com">
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="••••••••">
+      </div>
+
+      <div class="form-group" id="nameField" style="display: none;">
+        <label>Full Name</label>
+        <input type="text" id="full_name" placeholder="Your full name">
+      </div>
+
+      <button class="btn btn-primary full-width" id="authBtn" onclick="doSignIn()">Sign In</button>
+      <div class="toggle-text" onclick="toggleAuth()">Don't have an account? Sign Up</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD AREA -->
+  <div class="dashboard-container" id="dashboardSection" style="display: none;">
+    <div class="dashboard-header">
+      <h2>Welcome, <span id="userName"></span></h2>
+      <button class="btn btn-danger" onclick="signOut()">Sign Out</button>
+    </div>
+
+    <div class="dashboard-content">
+      <h3>Your Projects</h3>
+      <p>Project tracking, cost logs, and reports will appear here.</p>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/stripe.js"></script>
+
+</body>
+</html>
