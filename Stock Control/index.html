@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Control V2</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script>
+const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3NoZGVtZW9keWlwcGxyaG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTY4OTYsImV4cCI6MjA5NDM3Mjg5Nn0.4FyyfjnmGuwSq3C_V_0Hq3rsyF2Lmfxrpmt1suxv-fA';
+const HDR = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+const supabase = supabaseJs.createClient(SB_URL, SB_KEY);
+</script>
+
+<style>
+:root {
+    --bg:       #0b0d14;
+    --surface:  #13161f;
+    --card:     #181c29;
+    --border:   #252a3a;
+    --input-bg: #1e2336;
+    --accent:   #165DFF;
+    --accent2:  #00d4aa;
+    --danger:   #ff4757;
+    --text:     #e8eaf2;
+    --muted:    #6b7499;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+/* ───── AUTH SCREEN ───── */
+#authScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(22,93,255,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,212,170,0.08) 0%, transparent 70%),
+        var(--bg);
+}
+
+.auth-box {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.auth-logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.auth-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.auth-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+}
+
+.auth-tabs {
+    display: flex;
+    background: var(--input-bg);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 24px;
+    gap: 4px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.auth-tab.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.field {
+    margin-bottom: 14px;
+}
+
+.field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+}
+
+.field input {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.field input:focus {
+    border-color: var(--accent);
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.auth-btn:hover { opacity: 0.9; }
+.auth-btn:active { transform: scale(0.98); }
+.auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-msg {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+}
+
+.auth-msg.error   { background: rgba(255,71,87,0.12); color: #ff6b7a; border: 1px solid rgba(255,71,87,0.25); display: block; }
+.auth-msg.success { background: rgba(0,212,170,0.10); color: var(--accent2); border: 1px solid rgba(0,212,170,0.25); display: block; }
+
+/* ───── APP SCREEN ───── */
+#appScreen { display: none; }
+
+.topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.topbar-brand {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-email {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+}
+
+.logout-btn {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.app-body {
+    padding: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.page-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* ───── STATS ───── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+}
+
+.stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.stat-card.low .stat-value { color: var(--danger); }
+.stat-card.value .stat-value { color: var(--accent2); }
+
+/* ───── CARD ───── */
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 16px;
+}
+
+/* ───── FORM ───── */
+.add-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+
+.form-field label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+}
+
+.form-field input {
+    padding: 10px 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-field input:focus { border-color: var(--accent); }
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { opacity: 0.88; }
+
+.btn-ghost {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ───── BACKUP ROW ───── */
+.backup-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.file-label {
+    padding: 10px 20px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.file-label:hover { border-color: var(--accent); color: var(--accent); }
+#importFile { display: none; }
+
+/* ───── TABLE ───── */
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 0 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+tbody tr { transition: background 0.15s; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+tbody td {
+    padding: 12px 10px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.mono { font-family: var(--mono); font-size: 13px; }
+
+.qty-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--input-bg);
+    color: var(--text);
+}
+
+.qty-badge.low { background: rgba(255,71,87,0.15); color: var(--danger); }
+
+.action-btns { display: flex; gap: 6px; }
+
+.btn-icon {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.btn-icon.plus  { background: rgba(0,212,170,0.12); color: var(--accent2); }
+.btn-icon.minus { background: rgba(22,93,255,0.12); color: var(--accent); }
+.btn-icon.del   { background: rgba(255,71,87,0.10); color: var(--danger); }
+.btn-icon:hover { filter: brightness(1.3); transform: scale(1.08); }
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+/* ───── RESPONSIVE ───── */
+@media (max-width: 700px) {
+    .add-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .add-grid .btn-primary {
+        grid-column: span 2;
+    }
+    .user-email { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH SCREEN ═══ -->
+<div id="authScreen">
+    <div class="auth-box">
+        <div class="auth-logo">📦 Stock Control</div>
+        <div class="auth-title">Welcome back</div>
+        <div class="auth-sub">Sign in to manage your stock</div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+            <button class="auth-tab" onclick="switchTab('register')">Create Account</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="loginForm">
+            <div class="field">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <button class="auth-btn" onclick="doLogin()">Sign In</button>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="registerForm" style="display:none">
+            <div class="field">
+                <label>Email</label>
+                <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="regPass" placeholder="Min. 6 characters" autocomplete="new-password">
+            </div>
+            <div class="field">
+                <label>Confirm Password</label>
+                <input type="password" id="regPass2" placeholder="Repeat password" autocomplete="new-password">
+            </div>
+            <button class="auth-btn" onclick="doRegister()">Create Account</button>
+        </div>
+
+        <div class="auth-msg" id="authMsg"></div>
+    </div>
+</div>
+
+<!-- ═══ APP SCREEN ═══ -->
+<div id="appScreen">
+
+    <div class="topbar">
+        <div class="topbar-brand">📦 Stock Control V2</div>
+        <div class="topbar-user">
+            <span class="user-email" id="userEmail"></span>
+            <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+        </div>
+    </div>
+
+    <div class="app-body">
+        <div class="page-title">Stock Dashboard</div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Items</div>
+                <div class="stat-value" id="totalItems">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Quantity</div>
+                <div class="stat-value" id="totalQty">0</div>
+            </div>
+            <div class="stat-card value">
+                <div class="stat-label">Stock Value</div>
+                <div class="stat-value" id="stockValue">£0.00</div>
+            </div>
+            <div class="stat-card low">
+                <div class="stat-label">Low Stock ≤5</div>
+                <div class="stat-value" id="lowStock">0</div>
+            </div>
+        </div>
+
+        <!-- Add Item -->
+        <div class="card">
+            <h3>Add Item</h3>
+            <div class="add-grid">
+                <div class="form-field">
+                    <label>Item Name</label>
+                    <input id="name" placeholder="e.g. Widget A">
+                </div>
+                <div class="form-field">
+                    <label>SKU / Part No.</label>
+                    <input id="sku" placeholder="e.g. WGT-001">
+                </div>
+                <div class="form-field">
+                    <label>Quantity</label>
+                    <input id="qty" type="number" value="0">
+                </div>
+                <div class="form-field">
+                    <label>Cost Price (£)</label>
+                    <input id="cost" type="number" step="0.01" value="0">
+                </div>
+                <button class="btn btn-primary" onclick="addItem()">Save Item</button>
+            </div>
+        </div>
+
+        <!-- Backup -->
+        <div class="card">
+            <h3>Backup & Restore</h3>
+            <div class="backup-row">
+                <button class="btn btn-ghost" onclick="exportBackup()">⬇ Export Backup</button>
+                <label class="file-label" for="importFile">⬆ Import Backup</label>
+                <input type="file" id="importFile" accept=".json" onchange="importBackup(event)">
+            </div>
+        </div>
+
+        <!-- Stock Table -->
+        <div class="card">
+            <h3>Stock Items</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>SKU</th>
+                        <th>Qty</th>
+                        <th>Unit Cost</th>
+                        <th>Value</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="stockBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Log Table -->
+        <div class="card">
+            <h3>Movement Log</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Item</th>
+                        <th>Action</th>
+                        <th>Qty</th>
+                    </tr>
+                </thead>
+                <tbody id="logBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+let stock = [];
+let logs  = [];
+let currentUser = null;
+
+// ═══ AUTH ═══
+
+function switchTab(tab) {
+    document.getElementById('loginForm').style.display    = tab === 'login'    ? '' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? '' : 'none';
+    document.querySelectorAll('.auth-tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+    });
+    clearMsg();
+}
+
+function showMsg(text, type = 'error') {
+    const el = document.getElementById('authMsg');
+    el.textContent = text;
+    el.className = 'auth-msg ' + type;
+}
+
+function clearMsg() {
+    const el = document.getElementById('authMsg');
+    el.className = 'auth-msg';
+    el.textContent = '';
+}
+
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPass').value;
+    if (!email || !pass) { showMsg('Please enter your email and password.'); return; }
+
+    const btn = document.querySelector('#loginForm .auth-btn');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+
+    btn.disabled = false; btn.textContent = 'Sign In';
+
+    if (error) { showMsg(error.message); return; }
+    enterApp(data.user);
+}
+
+async function doRegister() {
+    const email = document.getElementById('regEmail').value.trim();
+    const pass  = document.getElementById('regPass').value;
+    const pass2 = document.getElementById('regPass2').value;
+
+    if (!email || !pass) { showMsg('Please fill in all fields.'); return; }
+    if (pass !== pass2)  { showMsg('Passwords do not match.'); return; }
+    if (pass.length < 6) { showMsg('Password must be at least 6 characters.'); return; }
+
+    const btn = document.querySelector('#registerForm .auth-btn');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+
+    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+
+    btn.disabled = false; btn.textContent = 'Create Account';
+
+    if (error) { showMsg(error.message); return; }
+
+    // If email confirmation is disabled in Supabase, user session is returned immediately
+    if (data.session) {
+        enterApp(data.user);
+    } else {
+        showMsg('Account created! Check your email to confirm, then sign in.', 'success');
+        switchTab('login');
+    }
+}
+
+async function doLogout() {
+    await supabase.auth.signOut();
+    currentUser = null;
+    stock = []; logs = [];
+    document.getElementById('appScreen').style.display  = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+}
+
+function enterApp(user) {
+    currentUser = user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display  = 'block';
+    document.getElementById('userEmail').textContent = user.email;
+    loadData();
+}
+
+// ═══ DATA ═══
+
+async function loadData() {
+    const { data: stockData } = await supabase.from('stock').select('*').eq('user_id', currentUser.id);
+    const { data: logData }   = await supabase.from('logs').select('*').eq('user_id', currentUser.id);
+    stock = stockData || [];
+    logs  = logData  || [];
+    render();
+}
+
+async function saveData() {
+    await supabase.from('stock').delete().eq('user_id', currentUser.id);
+    await supabase.from('stock').insert(stock.map(i => ({ ...i, user_id: currentUser.id })));
+    await supabase.from('logs').delete().eq('user_id', currentUser.id);
+    await supabase.from('logs').insert(logs.map(l => ({ ...l, user_id: currentUser.id })));
+}
+
+function addItem() {
+    const item = {
+        id:   Date.now(),
+        name: document.getElementById('name').value.trim(),
+        sku:  document.getElementById('sku').value.trim(),
+        qty:  Number(document.getElementById('qty').value),
+        cost: Number(document.getElementById('cost').value)
+    };
+    if (!item.name || !item.sku) { alert('Please enter Item Name and SKU'); return; }
+
+    stock.push(item);
+    logs.unshift({ id: Date.now(), date: new Date().toLocaleString(), item: item.name, action: 'ADD', qty: item.qty });
+
+    saveData();
+    render();
+
+    document.getElementById('name').value = '';
+    document.getElementById('sku').value  = '';
+    document.getElementById('qty').value  = '0';
+    document.getElementById('cost').value = '0';
+}
+
+function adjust(id, change) {
+    const item = stock.find(i => i.id === id);
+    if (!item) return;
+    item.qty = Math.max(0, item.qty + change);
+    logs.unshift({ id: Date.now(), date: new Date().toLocaleString(), item: item.name, action: change > 0 ? 'IN' : 'OUT', qty: Math.abs(change) });
+    saveData();
+    render();
+}
+
+function deleteItem(id) {
+    if (!confirm('Delete this item?')) return;
+    stock = stock.filter(i => i.id !== id);
+    saveData();
+    render();
+}
+
+function render() {
+    const sb = document.getElementById('stockBody');
+    sb.innerHTML = stock.length ? stock.map(item => `
+        <tr>
+            <td>${item.name}</td>
+            <td class="mono">${item.sku}</td>
+            <td><span class="qty-badge${item.qty <= 5 ? ' low' : ''}">${item.qty}</span></td>
+            <td class="mono">£${Number(item.cost).toFixed(2)}</td>
+            <td class="mono">£${(item.qty * item.cost).toFixed(2)}</td>
+            <td>
+                <div class="action-btns">
+                    <button class="btn-icon plus"  onclick="adjust(${item.id}, 1)"  title="Stock In">+</button>
+                    <button class="btn-icon minus" onclick="adjust(${item.id},-1)"  title="Stock Out">−</button>
+                    <button class="btn-icon del"   onclick="deleteItem(${item.id})" title="Delete">✕</button>
+                </div>
+            </td>
+        </tr>`) .join('')
+    : `<tr><td colspan="6"><div class="empty-state">No stock items yet — add one above.</div></td></tr>`;
+
+    const lb = document.getElementById('logBody');
+    lb.innerHTML = logs.length ? logs.slice(0, 50).map(log => `
+        <tr>
+            <td class="mono" style="font-size:12px;color:var(--muted)">${log.date}</td>
+            <td>${log.item}</td>
+            <td><span style="font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:4px;background:var(--input-bg)">${log.action}</span></td>
+            <td class="mono">${log.qty}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="4"><div class="empty-state">No movements recorded yet.</div></td></tr>`;
+
+    document.getElementById('totalItems').textContent  = stock.length;
+    document.getElementById('totalQty').textContent    = stock.reduce((t, i) => t + i.qty, 0);
+    document.getElementById('stockValue').textContent  = '£' + stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
+    document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
+}
+
+function exportBackup() {
+    const blob = new Blob([JSON.stringify({ stock, logs }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'stock-backup.json';
+    a.click();
+}
+
+function importBackup(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const data = JSON.parse(e.target.result);
+        stock = data.stock || [];
+        logs  = data.logs  || [];
+        saveData();
+        render();
+    };
+    reader.readAsText(file);
+}
+
+// ═══ BOOT — check existing session ═══
+(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        enterApp(session.user);
+    }
+})();
+</script>
+
+</body>
+</html>

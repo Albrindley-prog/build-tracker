@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tech Repair Pro — Job Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue:#3b82f6; --blue-dim:#1e40af; --blue-glow:rgba(59,130,246,.15);
+  --bg:#080b10; --surface:#0e1219; --surface2:#141923; --surface3:#1a2030;
+  --border:#1e2540; --border2:#2a3350;
+  --text:#e8eaf0; --text2:#a0aabf; --muted:#5a6480;
+  --green:#10b981; --green-dim:rgba(16,185,129,.12);
+  --amber:#f59e0b; --amber-dim:rgba(245,158,11,.12);
+  --red:#ef4444; --red-dim:rgba(239,68,68,.1);
+  --purple:#8b5cf6; --purple-dim:rgba(139,92,246,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* AUTH */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(59,130,246,.1) 0%,transparent 60%),var(--bg);}
+.auth-box{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px;box-shadow:0 32px 80px rgba(0,0,0,.7);}
+.auth-logo{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--blue);letter-spacing:2px;text-align:center;margin-bottom:4px;}
+.auth-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:32px;}
+.tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:28px;gap:4px;border:1px solid var(--border);}
+.tab-btn{flex:1;padding:10px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;}
+.tab-btn.active{background:var(--surface2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.field-group{margin-bottom:16px;}
+label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;display:block;margin-bottom:7px;}
+input,textarea,select{width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:9px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s;outline:none;}
+input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+input::placeholder,textarea::placeholder{color:var(--muted);}
+textarea{resize:vertical;} select option{background:var(--surface2);}
+.btn{padding:12px 20px;border:none;border-radius:9px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.2px;display:inline-flex;align-items:center;gap:7px;}
+.btn-primary{background:var(--blue);color:white;width:100%;justify-content:center;}
+.btn-primary:hover{background:var(--blue-dim);transform:translateY(-1px);box-shadow:0 6px 20px rgba(59,130,246,.35);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);padding:8px 16px;font-size:13px;}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:7px;}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+.btn-danger:hover{background:rgba(239,68,68,.2);}
+.btn-success{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,.25);}
+.btn-success:hover{background:rgba(16,185,129,.2);}
+.btn-blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,.25);}
+.btn-blue:hover{background:rgba(59,130,246,.2);}
+.btn-purple{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(139,92,246,.25);}
+.err{color:var(--red);font-size:13px;margin-top:10px;text-align:center;}
+.suc{color:var(--green);font-size:13px;margin-top:10px;text-align:center;}
+.hidden{display:none !important;}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--blue);letter-spacing:2px;}
+.logo span{color:var(--text2);font-weight:500;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.user-badge{font-size:12px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:5px 12px;border-radius:20px;}
+.role-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;}
+.role-owner{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
+.role-staff{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(139,92,246,.2);}
+
+/* NAV */
+.nav-tabs{display:flex;gap:4px;padding:0 28px;background:var(--surface);border-bottom:1px solid var(--border);}
+.nav-tab{padding:14px 18px;border:none;background:transparent;color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;letter-spacing:.3px;}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.nav-tab:hover:not(.active){color:var(--text2);}
+
+/* LAYOUT */
+.container{max-width:1140px;margin:auto;padding:28px 24px;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:14px 14px 0 0;}
+.s-blue::before{background:var(--blue);} .s-purple::before{background:var(--purple);} .s-green::before{background:var(--green);} .s-amber::before{background:var(--amber);} .s-red::before{background:var(--red);}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:600;}
+.stat-val{font-family:'Rajdhani',sans-serif;font-size:34px;font-weight:700;line-height:1;}
+.sv-blue{color:var(--blue);} .sv-purple{color:var(--purple);} .sv-green{color:var(--green);} .sv-amber{color:var(--amber);} .sv-red{color:var(--red);}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;margin-bottom:24px;}
+.card-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:600;letter-spacing:.5px;margin-bottom:22px;color:var(--text);display:flex;align-items:center;gap:10px;}
+.card-title-icon{width:28px;height:28px;background:var(--blue-glow);border:1px solid rgba(59,130,246,.2);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;}
+.create-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;margin-bottom:0;}
+.toggle-arrow{font-size:12px;color:var(--muted);transition:transform .2s;}
+.toggle-arrow.open{transform:rotate(180deg);}
+.create-body{margin-top:22px;}
+
+/* FILTER */
+.filter-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.filter-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'IBM Plex Sans',sans-serif;}
+.filter-btn.on{border-color:var(--blue);color:var(--blue);background:var(--blue-glow);}
+.search-wrap{flex:1;min-width:200px;position:relative;}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;}
+.search-input{width:100%;margin:0;padding:9px 14px 9px 36px;font-size:13px;}
+.sort-select{margin:0;padding:9px 14px;font-size:13px;width:auto;min-width:150px;}
+
+/* JOB CARD */
+.job-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px;transition:border-color .2s,box-shadow .2s;}
+.job-card:hover{border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.3);}
+.job-card.status-complete{border-left:3px solid var(--green);}
+.job-card.status-waiting{border-left:3px solid var(--amber);}
+.job-card.status-active{border-left:3px solid var(--blue);}
+.job-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;}
+.job-num{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--blue);letter-spacing:.5px;}
+.job-meta{color:var(--muted);font-size:12px;margin-top:3px;font-family:'IBM Plex Mono',monospace;}
+.job-top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.days-open{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-active{background:var(--blue-dim);color:#60a5fa;border:1px solid rgba(59,130,246,.25);}
+.badge-complete{background:var(--green-dim);color:#34d399;border:1px solid rgba(16,185,129,.25);}
+.badge-waiting{background:var(--amber-dim);color:#fbbf24;border:1px solid rgba(245,158,11,.25);}
+.job-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;padding:14px;background:var(--bg);border-radius:10px;border:1px solid var(--border);}
+.job-info-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;margin-bottom:3px;}
+.job-info-val{font-size:13px;color:var(--text);font-weight:500;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.fault-text{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border);border-left:2px solid var(--blue);}
+
+/* STAGES */
+.stages-grid{display:flex;flex-direction:column;gap:5px;}
+.stage-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;user-select:none;}
+.stage-row:hover{border-color:var(--border2);}
+.stage-row.done{background:var(--green-dim);border-color:rgba(16,185,129,.2);}
+.stage-row.current{border-color:var(--blue);background:var(--blue-glow);}
+.stage-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border2);background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;transition:all .15s;}
+.stage-row.done .stage-check{background:var(--green);border-color:var(--green);color:white;}
+.stage-num{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;width:18px;text-align:center;flex-shrink:0;}
+.stage-name{font-size:13px;flex:1;color:var(--text);}
+.stage-row.done .stage-name{text-decoration:line-through;color:var(--muted);}
+.stage-tag{font-size:10px;padding:2px 8px;border-radius:10px;flex-shrink:0;font-weight:600;}
+.tag-checkin{background:rgba(59,130,246,.12);color:#60a5fa;}
+.tag-diagnosis{background:rgba(139,92,246,.12);color:#a78bfa;}
+.tag-parts{background:rgba(245,158,11,.12);color:#fbbf24;}
+.tag-repair{background:rgba(239,68,68,.12);color:#f87171;}
+.tag-testing{background:rgba(16,185,129,.12);color:#34d399;}
+
+/* PROGRESS */
+.progress-bar{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;border:1px solid var(--border);}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue-dim),var(--blue));border-radius:99px;transition:width .4s ease;}
+.progress-fill.complete{background:linear-gradient(90deg,#059669,var(--green));}
+
+/* ESTIMATE */
+.estimate-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.estimate-display{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--green);}
+.estimate-input-wrap{display:flex;gap:8px;align-items:center;}
+.estimate-input-wrap input{margin:0;padding:7px 12px;font-size:13px;width:130px;flex:none;}
+
+/* PARTS */
+.part-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;font-size:13px;margin-bottom:6px;}
+.part-item.received{background:var(--green-dim);border-color:rgba(16,185,129,.2);}
+.part-item.received .part-name{text-decoration:line-through;color:var(--muted);}
+.part-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);background:var(--surface2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;transition:all .15s;}
+.part-item.received .part-check{background:var(--green);border-color:var(--green);color:white;}
+.part-name{flex:1;}
+.part-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;font-family:inherit;}
+.part-del:hover{color:var(--red);}
+.add-part-row{display:flex;gap:8px;margin-top:8px;}
+.add-part-row input{margin:0;padding:8px 12px;font-size:13px;flex:1;}
+
+/* NOTES */
+.notes-area{width:100%;min-height:72px;font-size:13px;padding:10px 13px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:9px;resize:vertical;font-family:'IBM Plex Sans',sans-serif;margin:0;}
+.notes-area:focus{border-color:var(--blue);outline:none;}
+
+.job-section-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:600;margin-bottom:8px;}
+
+/* CLIENT LINK */
+.client-link-box{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;margin-top:8px;}
+.client-link-url{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);flex:1;word-break:break-all;}
+
+/* CUSTOMER CARDS */
+.customer-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;transition:border-color .2s;}
+.customer-card:hover{border-color:var(--border2);}
+.customer-name{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--text);letter-spacing:.3px;margin-bottom:6px;}
+.customer-info{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;}
+.customer-info-item{font-size:13px;color:var(--text2);}
+.customer-job-chip{padding:4px 12px;background:var(--bg);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);font-family:'IBM Plex Mono',monospace;cursor:pointer;transition:all .15s;display:inline-block;margin:2px;}
+.customer-job-chip:hover{border-color:var(--blue);color:var(--blue);}
+
+/* STAFF */
+.staff-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.staff-info{flex:1;}
+.staff-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.staff-email{font-size:12px;color:var(--muted);}
+.invite-card{background:var(--surface2);border:1px dashed var(--border2);border-radius:14px;padding:20px;margin-bottom:12px;}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:14px;opacity:.3;}
+.empty p{font-size:15px;}
+.empty small{font-size:13px;opacity:.6;margin-top:6px;display:block;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border2);border-left:3px solid var(--green);color:var(--text);padding:12px 20px;border-radius:10px;font-size:14px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.5);opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none;max-width:320px;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:32px;width:100%;max-width:520px;box-shadow:0 32px 80px rgba(0,0,0,.7);max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;margin-bottom:24px;}
+.modal-actions{display:flex;gap:10px;margin-top:24px;}
+
+/* PRINT / INVOICE */
+@media print {
+  body { background: white !important; color: black !important; }
+  .no-print { display: none !important; }
+  .invoice-wrap { display: block !important; }
+}
+.invoice-wrap { display: none; }
+
+/* CLIENT VIEW */
+.client-view{min-height:100vh;padding:24px 20px;max-width:640px;margin:auto;}
+.client-header{text-align:center;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border);}
+.client-logo{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;color:var(--blue);letter-spacing:2px;margin-bottom:4px;}
+.client-job-ref{font-size:22px;font-weight:600;margin-bottom:4px;}
+.client-device{color:var(--muted);font-size:14px;}
+.client-stage-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:10px;margin-bottom:8px;border:1px solid var(--border);background:var(--surface);}
+.client-stage-row.done{background:var(--green-dim);border-color:rgba(16,185,129,.2);}
+.client-stage-row.current{background:var(--blue-glow);border-color:rgba(59,130,246,.3);}
+.client-dot{width:12px;height:12px;border-radius:50%;background:var(--border2);flex-shrink:0;}
+.client-stage-row.done .client-dot{background:var(--green);}
+.client-stage-row.current .client-dot{background:var(--blue);box-shadow:0 0 8px rgba(59,130,246,.5);}
+.client-stage-name{font-size:14px;flex:1;}
+.client-stage-row.done .client-stage-name{color:var(--muted);text-decoration:line-through;}
+.client-stage-row.current .client-stage-name{color:var(--blue);font-weight:600;}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:760px){
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  .container{padding:16px;}
+  .auth-box{padding:28px 24px;}
+  .header{padding:0 16px;}
+  .nav-tabs{padding:0 16px;overflow-x:auto;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-view" class="loading">
+  <div class="spinner"></div>
+  <div style="color:var(--muted);font-size:14px">Loading…</div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-view" class="hidden">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">TECH REPAIR PRO</div>
+      <div class="auth-sub">Professional Repair Job Tracker</div>
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="tab-btn" id="tab-register" onclick="switchAuthTab('register')">Register Shop</button>
+      </div>
+      <div id="login-form">
+        <div class="field-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
+        <div class="field-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
+        <button class="btn btn-primary" onclick="signIn()">Sign In</button>
+        <p id="login-msg"></p>
+      </div>
+      <div id="register-form" class="hidden">
+        <div class="field-group"><label>Your Name</label><input type="text" id="reg-name" placeholder="John Smith"></div>
+        <div class="field-group"><label>Shop Name</label><input type="text" id="reg-shop" placeholder="Pro Tech Repairs"></div>
+        <div class="field-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+        <div class="field-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 6 characters"></div>
+        <button class="btn btn-primary" onclick="register()">Create Account</button>
+        <p id="reg-msg"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REST OF CONTENT COMING IN PART 2 -->
+
+<script>
+// ── GLOBAL SETUP ───────────────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(
+  'https://dkdnlgwflrwdxtrovrrq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6anZtb21haGhod2htbmF5aHBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NTQ4MjAsImV4cCI6MjA5NjIzMDgyMH0.ONm5M0YS_hDQtamiakaueoYt2n-Hc_C5cOFXLesXL5A',
+  { auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true } }
+);
+
+// Repair workflow stages (customised for electronics)
+const STAGES = [
+  {id:1,name:'Device Received & Checked',tag:'checkin'},
+  {id:2,name:'Initial Inspection',tag:'checkin'},
+  {id:3,name:'Fault Diagnosis',tag:'diagnosis'},
+  {id:4,name:'Quote Sent & Approved',tag:'diagnosis'},
+  {id:5,name:'Parts Ordered',tag:'parts'},
+  {id:6,name:'Parts Received',tag:'parts'},
+  {id:7,name:'Disassembly',tag:'repair'},
+  {id:8,name:'Component Replacement / Repair',tag:'repair'},
+  {id:9,name:'Soldering / Board Repair',tag:'repair'},
+  {id:10,name:'Reassembly',tag:'repair'},
+  {id:11,name:'Function Testing',tag:'testing'},
+  {id:12,name:'Quality Assurance',tag:'testing'},
+  {id:13,name:'Data Backup / Transfer',tag:'testing'},
+  {id:14,name:'Clean & Polish',tag:'testing'},
+  {id:15,name:'Ready for Collection',tag:'testing'},
+];
+const TAG_LABELS = {checkin:'Check-In',diagnosis:'Diagnosis',parts:'Parts',repair:'Repair',testing:'Testing'};
+
+// State
+let currentUser = null;
+let userProfile = null;
+let shopId = null;
+let jobs = [];
+let customers = [];
+let staffList = [];
+let filterMode = 'all';
+let mainTab = 'jobs';
+
+// Utils
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function uid(){return '_'+Math.random().toString(36).substr(2,9);}
+let toastTimer;
+function showToast(msg,isErr){
+  const t=document.getElementById('toast');
+  t.innerText=msg; 
+  t.style.borderLeftColor=isErr?'var(--red)':'var(--green)';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+function toggleCreate(id,arrowId){
+  const el=document.getElementById(id),arr=document.getElementById(arrowId);
+  el.classList.toggle('hidden');
+  arr.classList.toggle('open');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+</script>
+</body>
+</html>
+<!-- APP VIEW -->
+<div id="app-view" class="hidden">
+  <div class="header no-print">
+    <div class="logo">TECH <span>REPAIR</span> PRO</div>
+    <div class="header-right">
+      <span class="user-badge" id="user-label"></span>
+      <span class="role-badge" id="role-badge"></span>
+      <button class="btn btn-ghost" style="padding:6px 14px;font-size:12px" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="nav-tabs no-print">
+    <button class="nav-tab active" id="ntab-jobs" onclick="switchMainTab('jobs')">🔧 Repairs</button>
+    <button class="nav-tab" id="ntab-customers" onclick="switchMainTab('customers')">👥 Customers</button>
+    <button class="nav-tab" id="ntab-staff" onclick="switchMainTab('staff')">👤 Staff</button>
+  </div>
+
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-card s-blue"><div class="stat-label">Total Repairs</div><div class="stat-val sv-blue" id="stat-total">0</div></div>
+      <div class="stat-card s-purple"><div class="stat-label">In Progress</div><div class="stat-val sv-purple" id="stat-active">0</div></div>
+      <div class="stat-card s-amber"><div class="stat-label">Waiting Parts</div><div class="stat-val sv-amber" id="stat-waiting">0</div></div>
+      <div class="stat-card s-green"><div class="stat-label">Completed</div><div class="stat-val sv-green" id="stat-complete">0</div></div>
+      <div class="stat-card s-red"><div class="stat-label">Total Value</div><div class="stat-val sv-red" id="stat-value">£0</div></div>
+    </div>
+
+    <!-- JOBS TAB -->
+    <div id="tab-jobs">
+      <div class="card">
+        <div class="card-title create-toggle" onclick="toggleCreate('create-body','create-arrow')">
+          <div style="display:flex;align-items:center;gap:10px"><div class="card-title-icon">＋</div>New Repair Job</div>
+          <span class="toggle-arrow" id="create-arrow">▼</span>
+        </div>
+        <div class="create-body hidden" id="create-body">
+          <div class="grid-2">
+            <div class="field-group"><label>Job Reference *</label><input id="f-num" placeholder="TECH-001"></div>
+            <div class="field-group"><label>Device Type</label><select id="f-type">
+              <option value="Mobile Phone">Mobile Phone</option>
+              <option value="Tablet">Tablet</option>
+              <option value="Laptop / PC">Laptop / PC</option>
+              <option value="Game Console">Game Console</option>
+              <option value="Home Appliance">Home Appliance</option>
+              <option value="Other">Other</option>
+            </select></div>
+          </div>
+          <div class="grid-3">
+            <div class="field-group"><label>Customer</label>
+              <select id="f-cust-sel" onchange="fillCustFromSel()"><option value="">— Select existing —</option></select>
+            </div>
+            <div class="field-group"><label>Or New Customer Name</label><input id="f-customer" placeholder="John Smith"></div>
+            <div class="field-group"><label>Phone</label><input id="f-phone" placeholder="07700 900000"></div>
+          </div>
+          <div class="grid-3">
+            <div class="field-group"><label>Make / Model</label><input id="f-model" placeholder="iPhone 15 / Samsung TV"></div>
+            <div class="field-group"><label>Date Received</label><input type="date" id="f-datein"></div>
+            <div class="field-group"><label>Due Date</label><input type="date" id="f-dateout"></div>
+          </div>
+          <div class="grid-2">
+            <div class="field-group"><label>Quote / Estimate (£)</label><input type="number" id="f-estimate" placeholder="0.00" step="0.01" min="0"></div>
+            <div class="field-group"><label>Status</label>
+              <select id="f-status"><option value="active">In Progress</option><option value="waiting">Waiting for Parts</option><option value="complete">Completed</option></select>
+            </div>
+          </div>
+          <div class="field-group"><label>Fault Description</label><textarea id="f-fault" rows="3" placeholder="Describe what's wrong with the device…"></textarea></div>
+          <button class="btn btn-primary" style="max-width:200px" onclick="createJob()">Create Job</button>
+          <p id="create-job-msg" style="margin-top:10px;font-size:13px"></p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700">Repair Jobs</div>
+        <div style="font-size:13px;color:var(--muted)" id="jobs-count"></div>
+      </div>
+      <div class="filter-row">
+        <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" id="search" placeholder="Search jobs, customers, model…" oninput="renderJobs()"></div>
+        <button class="filter-btn on" data-f="all" onclick="setFilter('all')">All</button>
+        <button class="filter-btn" data-f="active" onclick="setFilter('active')">In Progress</button>
+        <button class="filter-btn" data-f="waiting" onclick="setFilter('waiting')">Waiting</button>
+        <button class="filter-btn" data-f="complete" onclick="setFilter('complete')">Completed</button>
+        <select class="sort-select" id="sort-select" onchange="renderJobs()">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="progress">By progress</option>
+          <option value="customer">By customer</option>
+          <option value="estimate">By value</option>
+        </select>
+      </div>
+      <div id="jobs-list"></div>
+    </div>
+
+    <!-- CUSTOMERS TAB -->
+    <div id="tab-customers" class="hidden">
+      <div class="card">
+        <div class="card-title create-toggle" onclick="toggleCreate('create-cust-body','create-cust-arrow')">
+          <div style="display:flex;align-items:center;gap:10px"><div class="card-title-icon">＋</div>Add Customer</div>
+          <span class="toggle-arrow" id="create-cust-arrow">▼</span>
+        </div>
+        <div class="create-body hidden" id="create-cust-body">
+          <div class="grid-2">
+            <div class="field-group"><label>Full Name *</label><input id="c-name" placeholder="John Smith"></div>
+            <div class="field-group"><label>Company (optional)</label><input id="c-company" placeholder="ABC Electronics Ltd"></div>
+          </div>
+          <div class="grid-3">
+            <div class="field-group"><label>Phone</label><input id="c-phone" placeholder="07700 900000"></div>
+            <div class="field-group"><label>Email</label><input type="email" id="c-email" placeholder="john@example.com"></div>
+            <div class="field-group"><label>Address</label><input id="c-address" placeholder="123 Main St"></div>
+          </div>
+          <div class="field-group"><label>Notes</label><textarea id="c-notes" rows="2" placeholder="Any notes…"></textarea></div>
+          <button class="btn btn-primary" style="max-width:200px" onclick="createCustomer()">Save Customer</button>
+          <p id="create-cust-msg" style="margin-top:10px;font-size:13px"></p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700">Customers</div>
+        <div style="font-size:13px;color:var(--muted)" id="customers-count"></div>
+      </div>
+      <div class="filter-row">
+        <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" id="cust-search" placeholder="Search customers…" oninput="renderCustomers()"></div>
+      </div>
+      <div id="customers-list"></div>
+    </div>
+
+    <!-- STAFF TAB -->
+    <div id="tab-staff" class="hidden">
+      <div class="card" id="staff-owner-only">
+        <div class="card-title"><div class="card-title-icon">＋</div>Invite Staff Member</div>
+        <div class="grid-2">
+          <div class="field-group"><label>Staff Name</label><input id="s-name" placeholder="Jane Smith"></div>
+          <div class="field-group"><label>Email Address</label><input type="email" id="s-email" placeholder="jane@example.com"></div>
+        </div>
+        <div class="field-group"><label>Temporary Password</label><input type="text" id="s-pw" placeholder="They can change this after signing in"></div>
+        <button class="btn btn-primary" style="max-width:220px" onclick="inviteStaff()">Add Staff Member</button>
+        <p id="staff-msg" style="margin-top:10px;font-size:13px"></p>
+      </div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;margin-bottom:16px">Staff Members</div>
+      <div id="staff-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ Edit Repair</div>
+    <input type="hidden" id="edit-id">
+    <div class="grid-2">
+      <div class="field-group"><label>Job Reference</label><input id="edit-num"></div>
+      <div class="field-group"><label>Device Type</label><select id="edit-type">
+        <option value="Mobile Phone">Mobile Phone</option>
+        <option value="Tablet">Tablet</option>
+        <option value="Laptop / PC">Laptop / PC</option>
+        <option value="Game Console">Game Console</option>
+        <option value="Home Appliance">Home Appliance</option>
+        <option value="Other">Other</option>
+      </select></div>
+    </div>
+    <div class="grid-2">
+      <div class="field-group"><label>Customer Name</label><input id="edit-customer"></div>
+      <div class="field-group"><label>Phone</label><input id="edit-phone"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field-group"><label>Email</label><input id="edit-email"></div>
+      <div class="field-group"><label>Make / Model</label><input id="edit-model"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field-group"><label>Date Received</label><input type="date" id="edit-datein"></div>
+      <div class="field-group"><label>Due Date</label><input type="date" id="edit-dateout"></div>
+    </div>
+    <div class="field-group"><label>Fault Description</label><textarea id="edit-fault" rows="3"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Save Changes</button>
+      <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-cust-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ Edit Customer</div>
+    <input type="hidden" id="editc-id">
+    <div class="grid-2">
+      <div class="field-group"><label>Full Name</label><input id="editc-name"></div>
+      <div class="field-group"><label>Company</label><input id="editc-company"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field-group"><label>Phone</label><input id="editc-phone"></div>
+      <div class="field-group"><label>Email</label><input id="editc-email"></div>
+    </div>
+    <div class="field-group"><label>Address</label><input id="editc-address"></div>
+    <div class="field-group"><label>Notes</label><textarea id="editc-notes" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEditCustomer()">Save</button>
+      <button class="btn btn-ghost" onclick="closeModal('edit-cust-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="invoice-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-title">🖨️ Repair Invoice / Report</div>
+    <div id="invoice-content"></div>
+    <div class="modal-actions no-print">
+      <button class="btn btn-primary" style="flex:1" onclick="printInvoice()">🖨️ Print / Save PDF</button>
+      <button class="btn btn-ghost" onclick="closeModal('invoice-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENT VIEW -->
+<div id="client-view" class="hidden">
+  <div class="client-view">
+    <div class="client-header">
+      <div class="client-logo">TECH REPAIR PRO</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Repair Progress Tracker</div>
+      <div class="client-job-ref" id="cv-jobref"></div>
+      <div class="client-device" id="cv-device"></div>
+      <div style="margin-top:12px" id="cv-badge"></div>
+      <div style="margin-top:16px;max-width:400px;margin:16px auto 0">
+        <div class="progress-bar" style="height:10px">
+          <div class="progress-fill" id="cv-fill" style="width:0%"></div>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px" id="cv-pct"></div>
+      </div>
+    </div>
+    <div id="cv-stages"></div>
+    <div style="text-align:center;margin-top:32px;color:var(--muted);font-size:12px;padding-bottom:40px">
+      Live progress — updated by our repair team
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── AUTH & NAVIGATION ───────────────────────────────────────────
+function switchAuthTab(tab){
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-register').classList.toggle('active', tab==='register');
+  document.getElementById('login-form').classList.toggle('hidden', tab!=='login');
+  document.getElementById('register-form').classList.toggle('hidden', tab!=='register');
+}
+
+function switchMainTab(tab){
+  mainTab = tab;
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('ntab-'+tab).classList.add('active');
+  document.querySelectorAll('[id^="tab-"]').forEach(el=>el.classList.add('hidden'));
+  document.getElementById('tab-'+tab).classList.remove('hidden');
+
+  if(tab==='customers') renderCustomers();
+  if(tab==='staff') renderStaff();
+}
+
+async function signIn(){
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const msg = document.getElementById('login-msg');
+  msg.innerText=''; msg.className='err';
+  try{
+    const {data,error} = await sb.auth.signInWithPassword({email,password:pw});
+    if(error) throw error;
+    currentUser = data.user;
+    await loadUserProfile();
+    showApp();
+  }catch(e){msg.innerText=e.message;}
+}
+
+async function register(){
+  const name = document.getElementById('reg-name').value.trim();
+  const shop = document.getElementById('reg-shop').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value;
+  const msg = document.getElementById('reg-msg');
+  msg.innerText=''; msg.className='err';
+  if(pw.length<6) return msg.innerText='Password must be at least 6 characters';
+  try{
+    const {data,error} = await sb.auth.signUp({email,password:pw,options:{data:{name,shop_name:shop}}});
+    if(error) throw error;
+    msg.className='suc';
+    msg.innerText='Account created! You can now sign in.';
+  }catch(e){msg.innerText=e.message;}
+}
+
+async function loadUserProfile(){
+  const {data:prof} = await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  userProfile = prof;
+  shopId = prof.shop_id;
+  document.getElementById('user-label').innerText = prof.name;
+  const roleEl = document.getElementById('role-badge');
+  roleEl.innerText = prof.role;
+  roleEl.className = 'role-badge role-'+prof.role;
+  if(prof.role!=='owner') document.getElementById('staff-owner-only')?.remove();
+}
+
+function showApp(){
+  document.getElementById('loading-view').classList.add('hidden');
+  document.getElementById('auth-view').classList.add('hidden');
+  document.getElementById('app-view').classList.remove('hidden');
+  loadAllData();
+}
+
+function logout(){
+  sb.auth.signOut();
+  location.reload();
+}
+
+// ── DATA LOAD ───────────────────────────────────────────────────
+async function loadAllData(){
+  await Promise.all([loadJobs(),loadCustomers(),loadStaff()]);
+  updateStats();
+  populateCustomerSelect();
+}
+
+async function loadJobs(){
+  const {data} = await sb.from('jobs').select('*').eq('shop_id',shopId).order('created_at',{ascending:false});
+  jobs = data || [];
+  renderJobs();
+}
+
+async function loadCustomers(){
+  const {data} = await sb.from('customers').select('*').eq('shop_id',shopId).order('name',{ascending:true});
+  customers = data || [];
+}
+
+async function loadStaff(){
+  const {data} = await sb.from('profiles').select('*').eq('shop_id',shopId);
+  staffList = data || [];
+}
+
+function populateCustomerSelect(){
+  const sel = document.getElementById('f-cust-sel');
+  sel.innerHTML = '<option value="">— Select existing —</option>';
+  customers.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+}
+
+function fillCustFromSel(){
+  const id = document.getElementById('f-cust-sel').value;
+  if(!id) return;
+  const c = customers.find(x=>x.id===id);
+  if(c){
+    document.getElementById('f-customer').value = c.name;
+    document.getElementById('f-phone').value = c.phone || '';
+  }
+}
+
+function setFilter(mode){
+  filterMode = mode;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
+  event.target.classList.add('on');
+  renderJobs();
+}
+
+function updateStats(){
+  const total = jobs.length;
+  const active = jobs.filter(j=>j.status==='active').length;
+  const waiting = jobs.filter(j=>j.status==='waiting').length;
+  const complete = jobs.filter(j=>j.status==='complete').length;
+  const value = jobs.reduce((sum,j)=>sum + Number(j.estimate||0),0);
+
+  document.getElementById('stat-total').innerText = total;
+  document.getElementById('stat-active').innerText = active;
+  document.getElementById('stat-waiting').innerText = waiting;
+  document.getElementById('stat-complete').innerText = complete;
+  document.getElementById('stat-value').innerText = '£'+value.toFixed(2);
+}
+
+// ── JOB CRUD ────────────────────────────────────────────────────
+async function createJob(){
+  const job = {
+    shop_id: shopId,
+    job_ref: document.getElementById('f-num').value.trim(),
+    device_type: document.getElementById('f-type').value,
+    customer_name: document.getElementById('f-customer').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    model: document.getElementById('f-model').value.trim(),
+    date_in: document.getElementById('f-datein').value,
+    date_out: document.getElementById('f-dateout').value,
+    estimate: document.getElementById('f-estimate').value || 0,
+    status: document.getElementById('f-status').value,
+    fault: document.getElementById('f-fault').value.trim(),
+    stages: STAGES.map(s=>({...s,done:false})),
+    parts: [],
+    notes: ''
+  };
+  if(!job.job_ref || !job.customer_name) return showToast('Reference and Customer Name required',true);
+
+  try{
+    const {error} = await sb.from('jobs').insert([job]);
+    if(error) throw error;
+    showToast('Job created!');
+    document.getElementById('create-body').classList.add('hidden');
+    document.getElementById('create-arrow').classList.remove('open');
+    // reset form
+    ['f-num','f-customer','f-phone','f-model','f-fault','f-estimate'].forEach(id=>document.getElementById(id).value='');
+    await loadJobs();
+  }catch(e){showToast(e.message,true);}
+}
+
+function renderJobs(){
+  const search = document.getElementById('search').value.toLowerCase();
+  let list = jobs.filter(j=>{
+    if(filterMode!=='all' && j.status!==filterMode) return false;
+    if(search){
+      return (j.job_ref||'').toLowerCase().includes(search)
+          || (j.customer_name||'').toLowerCase().includes(search)
+          || (j.model||'').toLowerCase().includes(search);
+    }
+    return true;
+  });
+
+  // sort
+  const sort = document.getElementById('sort-select').value;
+  if(sort==='newest') list.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  if(sort==='oldest') list.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  if(sort==='customer') list.sort((a,b)=>a.customer_name.localeCompare(b.customer_name));
+  if(sort==='estimate') list.sort((a,b)=>Number(b.estimate||0)-Number(a.estimate||0));
+  if(sort==='progress') list.sort((a,b)=>getProgressPct(b) - getProgressPct(a));
+
+  document.getElementById('jobs-count').innerText = list.length+' jobs';
+  const cont = document.getElementById('jobs-list');
+  if(!list.length) return cont.innerHTML = `<div class="empty"><div class="empty-icon">🔧</div><p>No repair jobs found</p></div>`;
+
+  cont.innerHTML = list.map(j=>`
+    <div class="job-card status-${j.status}">
+      <div class="job-top">
+        <div>
+          <div class="job-num">${esc(j.job_ref)}</div>
+          <div class="job-meta">${esc(j.device_type)} • ${esc(j.model)}</div>
+        </div>
+        <div class="job-top-right">
+          <span class="badge badge-${j.status}">${j.status==='active'?'In Progress':j.status==='waiting'?'Waiting Parts':'Completed'}</span>
+          <div class="days-open">${daysSince(j.date_in)} days open</div>
+        </div>
+      </div>
+      <div class="job-info-grid">
+        <div><div class="job-info-label">Customer</div><div class="job-info-val">${esc(j.customer_name)}</div></div>
+        <div><div class="job-info-label">Phone</div><div class="job-info-val mono">${esc(j.phone)}</div></div>
+        <div><div class="job-info-label">Received</div><div class="job-info-val">${esc(j.date_in)}</div></div>
+        <div><div class="job-info-label">Quote</div><div class="job-info-val" style="color:var(--green)">£${Number(j.estimate||0).toFixed(2)}</div></div>
+      </div>
+      <div class="fault-text"><strong>Fault:</strong> ${esc(j.fault)}</div>
+      <div style="margin:12px 0">
+        <div class="progress-bar">
+          <div class="progress-fill ${getProgressPct(j)===100?'complete':''}" style="width:${getProgressPct(j)}%"></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${getProgressPct(j)}% complete</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-blue" onclick="openJob('${j.id}')">View / Edit</button>
+        <button class="btn btn-sm btn-purple" onclick="openInvoice('${j.id}')">Invoice</button>
+        <button class="btn btn-sm btn-ghost" onclick="copyClientLink('${j.id}')">Copy Client Link</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function daysSince(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.ceil((now-d)/(1000*60*60*24));
+}
+
+function getProgressPct(job){
+  if(!job.stages) return 0;
+  const done = job.stages.filter(s=>s.done).length;
+  return Math.round((done / job.stages.length)*100);
+}
+</script>
+<!-- JOB DETAIL VIEW (INJECTED DYNAMICALLY) -->
+<div id="job-detail-view" class="hidden card" style="margin-top:20px"></div>
+
+<script>
+// ── JOB DETAIL & WORKFLOW ────────────────────────────────────────
+let activeJob = null;
+
+async function openJob(jobId){
+  const {data,error} = await sb.from('jobs').select('*').eq('id',jobId).single();
+  if(error) return showToast('Job not found',true);
+  activeJob = data;
+
+  const el = document.getElementById('job-detail-view');
+  el.classList.remove('hidden');
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div>
+        <div class="job-num">${esc(activeJob.job_ref)}</div>
+        <div class="job-meta">${esc(activeJob.device_type)} • ${esc(activeJob.model)}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-blue" onclick="openEditModal()">✏️ Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteJob()">🗑️ Delete</button>
+        <button class="btn btn-sm btn-ghost" onclick="closeJobDetail()">✕ Close</button>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:20px">
+      <div>
+        <div class="section-label">Status</div>
+        <select id="edit-status" onchange="saveJobMeta()">
+          <option value="active" ${activeJob.status==='active'?'selected':''}>In Progress</option>
+          <option value="waiting" ${activeJob.status==='waiting'?'selected':''}>Waiting for Parts</option>
+          <option value="complete" ${activeJob.status==='complete'?'selected':''}>Completed</option>
+        </select>
+      </div>
+      <div>
+        <div class="section-label">Quote (£)</div>
+        <input type="number" id="edit-estimate" value="${activeJob.estimate||0}" step="0.01" onblur="saveJobMeta()">
+      </div>
+      <div>
+        <div class="section-label">Progress</div>
+        <div class="progress-bar">
+          <div class="progress-fill ${getProgressPct(activeJob)===100?'complete':''}" style="width:${getProgressPct(activeJob)}%"></div>
+        </div>
+        <div style="font-size:11px;margin-top:4px">${getProgressPct(activeJob)}% complete</div>
+      </div>
+    </div>
+
+    <hr class="job-section-divider">
+    <div class="section-label">Repair Stages — click to mark done</div>
+    <div class="stages-grid" id="stages-container">
+      ${activeJob.stages.map((s,i)=>`
+        <div class="stage-row ${s.done?'done':''} ${!s.done && !activeJob.stages[i-1]?.done?'':'current'}" 
+             onclick="toggleStage(${i})">
+          <div class="stage-check">✓</div>
+          <div class="stage-num">${String(i+1).padStart(2,'0')}</div>
+          <div class="stage-name">${esc(s.name)}</div>
+          <span class="stage-tag tag-${s.tag}">${TAG_LABELS[s.tag]}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <hr class="job-section-divider">
+    <div class="section-label">Parts Used / Ordered</div>
+    <div id="parts-container">
+      ${(activeJob.parts||[]).map((p,idx)=>`
+        <div class="part-item ${p.received?'received':''}">
+          <div class="part-check" onclick="togglePart(${idx})">✓</div>
+          <div class="part-name">${esc(p.name)}</div>
+          <div style="margin-left:auto;font-size:12px">£${Number(p.cost||0).toFixed(2)}</div>
+          <button class="part-del" onclick="deletePart(${idx})">×</button>
+        </div>
+      `).join('')}
+    </div>
+    <div class="add-part-row">
+      <input type="text" id="part-name" placeholder="Part name / description">
+      <input type="number" id="part-cost" placeholder="Cost £" step="0.01" style="max-width:120px">
+      <button class="btn btn-sm btn-blue" onclick="addPart()">Add</button>
+    </div>
+
+    <hr class="job-section-divider">
+    <div class="section-label">Job Notes / History</div>
+    <textarea id="job-notes" class="notes-area" placeholder="Add notes, test results, customer calls…">${esc(activeJob.notes||'')}</textarea>
+    <button class="btn btn-sm btn-blue" style="margin-top:8px" onclick="saveNotes()">Save Notes</button>
+
+    <hr class="job-section-divider">
+    <div class="section-label">Client Progress Link</div>
+    <div class="client-link-box">
+      <div class="client-link-url" id="client-link-full"></div>
+      <button class="btn btn-sm btn-blue" onclick="copyClientLink(activeJob.id)">Copy</button>
+    </div>
+  `;
+
+  // Generate client link
+  const link = `${location.origin}${location.pathname}?client=${activeJob.id}`;
+  document.getElementById('client-link-full').textContent = link;
+
+  el.scrollIntoView({behavior:'smooth'});
+}
+
+function closeJobDetail(){
+  document.getElementById('job-detail-view').classList.add('hidden');
+  activeJob = null;
+}
+
+function toggleStage(index){
+  if(!activeJob) return;
+  // Only allow toggling if previous stage is done (or first)
+  if(index>0 && !activeJob.stages[index-1].done && !activeJob.stages[index].done){
+    return showToast('Complete previous stage first',true);
+  }
+  activeJob.stages[index].done = !activeJob.stages[index].done;
+  saveJobChanges();
+}
+
+function addPart(){
+  const name = document.getElementById('part-name').value.trim();
+  const cost = document.getElementById('part-cost').value || 0;
+  if(!name) return;
+  activeJob.parts = activeJob.parts || [];
+  activeJob.parts.push({name,cost:Number(cost),received:false});
+  document.getElementById('part-name').value='';
+  document.getElementById('part-cost').value='';
+  saveJobChanges();
+}
+
+function togglePart(index){
+  activeJob.parts[index].received = !activeJob.parts[index].received;
+  saveJobChanges();
+}
+
+function deletePart(index){
+  activeJob.parts.splice(index,1);
+  saveJobChanges();
+}
+
+function saveNotes(){
+  activeJob.notes = document.getElementById('job-notes').value;
+  saveJobChanges();
+  showToast('Notes saved');
+}
+
+function saveJobMeta(){
+  activeJob.status = document.getElementById('edit-status').value;
+  activeJob.estimate = Number(document.getElementById('edit-estimate').value || 0);
+  saveJobChanges();
+}
+
+async function saveJobChanges(){
+  await sb.from('jobs').update({
+    status:activeJob.status,
+    estimate:activeJob.estimate,
+    stages:activeJob.stages,
+    parts:activeJob.parts,
+    notes:activeJob.notes
+  }).eq('id',activeJob.id);
+  await loadJobs();
+  if(activeJob) openJob(activeJob.id); // refresh view
+}
+
+function openEditModal(){
+  document.getElementById('edit-id').value = activeJob.id;
+  document.getElementById('edit-num').value = activeJob.job_ref;
+  document.getElementById('edit-type').value = activeJob.device_type;
+  document.getElementById('edit-customer').value = activeJob.customer_name;
+  document.getElementById('edit-phone').value = activeJob.phone;
+  document.getElementById('edit-email').value = activeJob.email || '';
+  document.getElementById('edit-model').value = activeJob.model;
+  document.getElementById('edit-datein').value = activeJob.date_in;
+  document.getElementById('edit-dateout').value = activeJob.date_out;
+  document.getElementById('edit-fault').value = activeJob.fault;
+  openModal('edit-modal');
+}
+
+async function saveEdit(){
+  const updates = {
+    job_ref: document.getElementById('edit-num').value.trim(),
+    device_type: document.getElementById('edit-type').value,
+    customer_name: document.getElementById('edit-customer').value.trim(),
+    phone: document.getElementById('edit-phone').value.trim(),
+    email: document.getElementById('edit-email').value.trim(),
+    model: document.getElementById('edit-model').value.trim(),
+    date_in: document.getElementById('edit-datein').value,
+    date_out: document.getElementById('edit-dateout').value,
+    fault: document.getElementById('edit-fault').value.trim()
+  };
+  if(!updates.job_ref || !updates.customer_name) return showToast('Required fields missing',true);
+  await sb.from('jobs').update(updates).eq('id',document.getElementById('edit-id').value);
+  closeModal('edit-modal');
+  await loadJobs();
+  if(activeJob) openJob(activeJob.id);
+  showToast('Job updated');
+}
+
+async function deleteJob(){
+  if(!confirm('Delete this repair job? This cannot be undone.')) return;
+  await sb.from('jobs').delete().eq('id',activeJob.id);
+  closeJobDetail();
+  await loadJobs();
+  showToast('Job deleted');
+}
+
+function copyClientLink(jobId){
+  const link = `${location.origin}${location.pathname}?client=${jobId}`;
+  navigator.clipboard.writeText(link);
+  showToast('Client link copied!');
+}
+</script>
+<script>
+// ── CUSTOMERS MANAGEMENT ─────────────────────────────────────────
+async function createCustomer(){
+  const cust = {
+    shop_id: shopId,
+    name: document.getElementById('c-name').value.trim(),
+    company: document.getElementById('c-company').value.trim(),
+    phone: document.getElementById('c-phone').value.trim(),
+    email: document.getElementById('c-email').value.trim(),
+    address: document.getElementById('c-address').value.trim(),
+    notes: document.getElementById('c-notes').value.trim()
+  };
+  if(!cust.name) return showToast('Customer name is required',true);
+
+  try{
+    const {error} = await sb.from('customers').insert([cust]);
+    if(error) throw error;
+    showToast('Customer saved!');
+    document.getElementById('create-cust-body').classList.add('hidden');
+    document.getElementById('create-cust-arrow').classList.remove('open');
+    // reset form
+    ['c-name','c-company','c-phone','c-email','c-address','c-notes'].forEach(id=>document.getElementById(id).value='');
+    await loadCustomers();
+    populateCustomerSelect();
+  }catch(e){showToast(e.message,true);}
+}
+
+function renderCustomers(){
+  const search = document.getElementById('cust-search').value.toLowerCase();
+  let list = customers.filter(c=>{
+    if(search){
+      return (c.name||'').toLowerCase().includes(search)
+          || (c.company||'').toLowerCase().includes(search)
+          || (c.phone||'').toLowerCase().includes(search);
+    }
+    return true;
+  });
+
+  document.getElementById('customers-count').innerText = list.length+' customers';
+  const cont = document.getElementById('customers-list');
+  if(!list.length) return cont.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><p>No customers found</p></div>`;
+
+  cont.innerHTML = list.map(c=>`
+    <div class="customer-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="customer-name">${esc(c.name)}</div>
+          ${c.company?`<div style="font-size:13px;color:var(--muted);margin-bottom:8px">${esc(c.company)}</div>`:''}
+          <div class="customer-info">
+            ${c.phone?`<div class="customer-info-item">📞 ${esc(c.phone)}</div>`:''}
+            ${c.email?`<div class="customer-info-item">✉️ ${esc(c.email)}</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-blue" onclick="openEditCustomer('${c.id}')">✏️ Edit</button>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <div style="font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Repair History</div>
+        <div id="cust-jobs-${c.id}"></div>
+      </div>
+    </div>
+  `).join('');
+
+  // Load job history for each customer
+  list.forEach(c=>{
+    const jobList = jobs.filter(j=>j.customer_name.toLowerCase()===c.name.toLowerCase());
+    const el = document.getElementById(`cust-jobs-${c.id}`);
+    if(!jobList.length) return el.innerHTML = '<span style="font-size:12px;color:var(--muted)">No repairs yet</span>';
+    el.innerHTML = jobList.map(j=>`<span class="customer-job-chip" onclick="openJob('${j.id}')">${esc(j.job_ref)}</span>`).join('');
+  });
+}
+
+async function openEditCustomer(custId){
+  const c = customers.find(x=>x.id===custId);
+  if(!c) return;
+  document.getElementById('editc-id').value = c.id;
+  document.getElementById('editc-name').value = c.name;
+  document.getElementById('editc-company').value = c.company || '';
+  document.getElementById('editc-phone').value = c.phone || '';
+  document.getElementById('editc-email').value = c.email || '';
+  document.getElementById('editc-address').value = c.address || '';
+  document.getElementById('editc-notes').value = c.notes || '';
+  openModal('edit-cust-modal');
+}
+
+async function saveEditCustomer(){
+  const updates = {
+    name: document.getElementById('editc-name').value.trim(),
+    company: document.getElementById('editc-company').value.trim(),
+    phone: document.getElementById('editc-phone').value.trim(),
+    email: document.getElementById('editc-email').value.trim(),
+    address: document.getElementById('editc-address').value.trim(),
+    notes: document.getElementById('editc-notes').value.trim()
+  };
+  if(!updates.name) return showToast('Customer name required',true);
+  await sb.from('customers').update(updates).eq('id',document.getElementById('editc-id').value);
+  closeModal('edit-cust-modal');
+  await loadCustomers();
+  renderCustomers();
+  populateCustomerSelect();
+  showToast('Customer updated');
+}
+
+// ── STAFF SYSTEM ─────────────────────────────────────────────────
+async function inviteStaff(){
+  const name = document.getElementById('s-name').value.trim();
+  const email = document.getElementById('s-email').value.trim();
+  const pw = document.getElementById('s-pw').value;
+  const msg = document.getElementById('staff-msg');
+  msg.innerText=''; msg.className='err';
+
+  if(!name || !email || !pw) return msg.innerText='All fields required';
+  if(pw.length<6) return msg.innerText='Password min 6 characters';
+
+  try{
+    // Create auth user (requires service role in real deployment — simplified here)
+    const {data,error} = await sb.auth.signUp({
+      email, password:pw,
+      options:{data:{name, shop_id:shopId, role:'staff'}}
+    });
+    if(error) throw error;
+    msg.className='suc'; msg.innerText='Staff invited successfully!';
+    document.getElementById('s-name').value='';
+    document.getElementById('s-email').value='';
+    document.getElementById('s-pw').value='';
+    await loadStaff();
+    renderStaff();
+  }catch(e){msg.innerText=e.message;}
+}
+
+function renderStaff(){
+  const cont = document.getElementById('staff-list');
+  if(!staffList.length) return cont.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><p>No staff members yet</p></div>`;
+
+  cont.innerHTML = staffList.map(s=>`
+    <div class="staff-card">
+      <div class="staff-info">
+        <div class="staff-name">${esc(s.name)}</div>
+        <div class="staff-email">${esc(s.email)} • <span class="role-badge role-${s.role}">${s.role}</span></div>
+      </div>
+      ${s.id!==currentUser.id?`<button class="btn btn-sm btn-danger" onclick="removeStaff('${s.id}')">Remove</button>`:''}
+    </div>
+  `).join('');
+}
+
+async function removeStaff(staffId){
+  if(!confirm('Remove this staff member?')) return;
+  await sb.from('profiles').delete().eq('id',staffId);
+  await loadStaff();
+  renderStaff();
+  showToast('Staff removed');
+}
+
+// ── INVOICE / REPORT GENERATOR ────────────────────────────────────
+function openInvoice(jobId){
+  const job = jobs.find(j=>j.id===jobId);
+  if(!job) return;
+  const totalParts = (job.parts||[]).reduce((sum,p)=>sum+Number(p.cost||0),0);
+  const labour = Number(job.estimate||0) - totalParts;
+
+  document.getElementById('invoice-content').innerHTML = `
+    <div class="invoice-wrap" style="padding:20px">
+      <div style="text-align:center;margin-bottom:30px">
+        <h2 style="font-size:24px;margin:0">TECH REPAIR PRO</h2>
+        <p style="margin:4px 0;color:#666">Professional Electronics Repair Service</p>
+        <p style="margin:0;color:#666">Invoice / Repair Report</p>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ddd;padding-bottom:10px">
+        <div>
+          <strong>Job Ref:</strong> ${esc(job.job_ref)}<br>
+          <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
+          <strong>Received:</strong> ${esc(job.date_in)}
+        </div>
+        <div style="text-align:right">
+          <strong>Status:</strong> ${job.status.toUpperCase()}<br>
+          <strong>Device:</strong> ${esc(job.device_type)} — ${esc(job.model)}
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <h4 style="margin:0 0 6px 0">Customer Details</h4>
+        ${esc(job.customer_name)}<br>
+        ${job.phone?`Tel: ${esc(job.phone)}`:''}
+      </div>
+
+      <div style="margin-bottom:20px">
+        <h4 style="margin:0 0 6px 0">Fault Description</h4>
+        <p style="background:#f9f9f9;padding:10px;border-radius:4px">${esc(job.fault)}</p>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <h4 style="margin:0 0 6px 0">Repair Progress</h4>
+        <ul style="margin:0;padding-left:20px">
+          ${(job.stages||[]).map(s=>`<li style="color:${s.done?'#000':'#999'};text-decoration:${s.done?'none':'line-through'}">${esc(s.name)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <h4 style="margin:0 0 6px 0">Parts Used</h4>
+        <table style="width:100%;border-collapse:collapse">
+          <tr style="background:#f0f0f0">
+            <th style="padding:6px;text-align:left;border:1px solid #ddd">Part</th>
+            <th style="padding:6px;text-align:right;border:1px solid #ddd">Cost (£)</th>
+          </tr>
+          ${(job.parts||[]).map(p=>`
+          <tr>
+            <td style="padding:6px;border:1px solid #ddd">${esc(p.name)}</td>
+            <td style="padding:6px;text-align:right;border:1px solid #ddd">${Number(p.cost||0).toFixed(2)}</td>
+          </tr>`).join('')}
+          <tr>
+            <td style="padding:6px;border:1px solid #ddd"><strong>Total Parts</strong></td>
+            <td style="padding:6px;text-align:right;border:1px solid #ddd"><strong>${totalParts.toFixed(2)}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding:6px;border:1px solid #ddd"><strong>Labour / Service</strong></td>
+            <td style="padding:6px;text-align:right;border:1px solid #ddd"><strong>${labour.toFixed(2)}</strong></td>
+          </tr>
+          <tr style="background:#f0f0f0">
+            <td style="padding:6px;border:1px solid #ddd"><strong>TOTAL</strong></td>
+            <td style="padding:6px;text-align:right;border:1px solid #ddd"><strong>${Number(job.estimate||0).toFixed(2)}</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin-top:40px;text-align:center;color:#666;font-size:12px">
+        Thank you for your business — Tech Repair Pro
+      </div>
+    </div>
+  `;
+  openModal('invoice-modal');
+}
+
+function printInvoice(){
+  window.print();
+}
+</script>
+<script>
+// ── CLIENT PUBLIC PROGRESS VIEW ─────────────────────────────────
+async function loadClientView(jobId){
+  const {data,error} = await sb.from('jobs').select('*').eq('id',jobId).single();
+  if(error) return document.body.innerHTML = `<div class="empty"><div class="empty-icon">🔧</div><p>Repair job not found</p></div>`;
+
+  document.getElementById('loading-view').classList.add('hidden');
+  document.getElementById('app-view').classList.add('hidden');
+  document.getElementById('client-view').classList.remove('hidden');
+
+  document.getElementById('cv-jobref').innerText = data.job_ref;
+  document.getElementById('cv-device').innerText = `${data.device_type} • ${data.model}`;
+  
+  // Set status badge
+  const badge = document.getElementById('cv-badge');
+  if(data.status==='active') badge.innerHTML = `<span class="badge badge-active">In Progress</span>`;
+  if(data.status==='waiting') badge.innerHTML = `<span class="badge badge-waiting">Waiting Parts</span>`;
+  if(data.status==='complete') badge.innerHTML = `<span class="badge badge-complete">Completed</span>`;
+
+  // Set progress
+  const pct = getProgressPct(data);
+  document.getElementById('cv-fill').style.width = `${pct}%`;
+  document.getElementById('cv-pct').innerText = `${pct}% complete`;
+
+  // Set stages
+  const stagesEl = document.getElementById('cv-stages');
+  stagesEl.innerHTML = data.stages.map((s,i)=>`
+    <div class="client-stage-row ${s.done?'done':''} ${!s.done && !data.stages[i-1]?.done?'':'current'}">
+      <div class="client-dot"></div>
+      <div class="client-stage-name">${esc(s.name)}</div>
+    </div>
+  `).join('');
+}
+
+// ── INITIAL APP LOAD ─────────────────────────────────────────────
+window.onload = async function(){
+  // Check for client view parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const clientJobId = urlParams.get('client');
+  if(clientJobId){
+    await loadClientView(clientJobId);
+    return;
+  }
+
+  // Check for existing session
+  const {data:session} = await sb.auth.getSession();
+  if(session.session){
+    currentUser = session.session.user;
+    await loadUserProfile();
+    showApp();
+  } else {
+    document.getElementById('loading-view').classList.add('hidden');
+    document.getElementById('auth-view').classList.remove('hidden');
+  }
+};
+</script>
+
+
+<!-- ───────────────────────────────────────────────────────────────
+  DATABASE SETUP INSTRUCTIONS (CRITICAL FOR FULL FUNCTIONALITY)
+─────────────────────────────────────────────────────────────── -->
+<!-- 
+To make this app work fully, you need to set up these tables in your Supabase project:
+
+1. Go to https://supabase.com/dashboard and create a new project
+2. Go to "SQL Editor" → "New Query"
+3. Run this SQL to create all required tables:
+
+
+-- PROFILES TABLE (for users & staff)
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  shop_id UUID NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('owner', 'staff')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIME ZONE 'utc'::text NOT NULL DEFAULT now()
+);
+
+-- SHOPS TABLE (for repair businesses)
+CREATE TABLE shops (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIME ZONE 'utc'::text NOT NULL DEFAULT now()
+);
+
+-- JOBS TABLE (repair jobs)
+CREATE TABLE jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id UUID REFERENCES shops(id) NOT NULL,
+  job_ref TEXT NOT NULL,
+  device_type TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  model TEXT,
+  date_in DATE,
+  date_out DATE,
+  estimate NUMERIC DEFAULT 0,
+  status TEXT NOT NULL CHECK (status IN ('active', 'waiting', 'complete')),
+  fault TEXT,
+  stages JSONB NOT NULL,
+  parts JSONB DEFAULT '[]'::jsonb,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIME ZONE 'utc'::text NOT NULL DEFAULT now()
+);
+
+-- CUSTOMERS TABLE (customer database)
+CREATE TABLE customers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id UUID REFERENCES shops(id) NOT NULL,
+  name TEXT NOT NULL,
+  company TEXT,
+  phone TEXT,
+  email TEXT,
+  address TEXT,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIME ZONE 'utc'::text NOT NULL DEFAULT now()
+);
+
+-- TRIGGER: Create shop & profile when new user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Create new shop for the owner
+  INSERT INTO public.shops (name)
+  VALUES (NEW.raw_user_meta_data->>'shop_name')
+  RETURNING id INTO NEW.raw_user_meta_data->>'shop_id';
+
+  -- Create profile
+  INSERT INTO public.profiles (id, name, email, shop_id, role)
+  VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data->>'name',
+    NEW.email,
+    (NEW.raw_user_meta_data->>'shop_id')::UUID,
+    'owner' -- New users are shop owners by default
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- POLICIES: Secure data access (only allow access to own shop data)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+
+ALTER TABLE shops ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Shop owners can view their shop" ON shops FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = shops.id AND profiles.id = auth.uid())
+);
+
+ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their shop's jobs" ON jobs FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = jobs.shop_id AND profiles.id = auth.uid())
+);
+CREATE POLICY "Users can insert jobs for their shop" ON jobs FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = jobs.shop_id AND profiles.id = auth.uid())
+);
+CREATE POLICY "Users can update their shop's jobs" ON jobs FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = jobs.shop_id AND profiles.id = auth.uid())
+);
+CREATE POLICY "Users can delete their shop's jobs" ON jobs FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = jobs.shop_id AND profiles.id = auth.uid())
+);
+
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their shop's customers" ON customers FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = customers.shop_id AND profiles.id = auth.uid())
+);
+CREATE POLICY "Users can insert customers for their shop" ON customers FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = customers.shop_id AND profiles.id = auth.uid())
+);
+CREATE POLICY "Users can update their shop's customers" ON customers FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = customers.shop_id AND profiles.id = auth.uid())
+);
+
+
+4. After running the SQL:
+   - Go to "Authentication" → "Settings" → "Email Provider" and enable email/password login
+   - Replace the Supabase URL and anon key in the GLOBAL SETUP section (Part 1) with your project's credentials
+
+
+IMPORTANT NOTES:
+- The staff invitation feature requires a service role key for creating users (the current code uses the anon key for simplicity — in production, use a backend for this)
+- All data is secured with row-level security (only users from the same shop can access their data)
+- The app is fully responsive and works on mobile, tablet, and desktop
+- The client public view is accessible via links like "yourdomain.com?client=JOB_ID"
+-->

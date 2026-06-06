@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build Tracker Solutions</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- ✅ SUPABASE ADDED -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // --- YOUR LIVE DETAILS ---
+    const SUPABASE_URL = "https://dkdnlgwflrwdxtrovrrq.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_mMm99xk2f43pFG_7BsAvmA_RYuGCpma"; // ← Replace with your actual public key
+    const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+  </script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family: 'DM Sans', sans-serif; }
+    html, body { color:#1D2129; background:#fff; line-height:1.6; }
+
+    nav { background:#1D2129; color:white; padding:1rem 5%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; position:sticky; top:0; z-index:50; }
+    nav .logo { font-size:1.3rem; font-weight:bold; }
+    nav a { color:white; text-decoration:none; margin:0 0.8rem; }
+    nav a:hover { color:#FF7D00; }
+    .nav-right { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+
+    /* ✅ DROPDOWN MENU STYLE */
+    .dropdown { position:relative; display:inline-block; }
+    .dropbtn { background:transparent; color:white; border:none; padding:.6rem 1rem; font-size:1rem; cursor:pointer; }
+    .dropdown-content { display:none; position:absolute; background:#fff; min-width:180px; box-shadow:0 8px 16px rgba(0,0,0,0.15); z-index:100; border-radius:4px; overflow:hidden; }
+    .dropdown-content a { color:#1D2129; padding:.7rem 1rem; text-decoration:none; display:block; margin:0; }
+    .dropdown-content a:hover { background:#f5f5f5; color:#FF7D00; }
+    .dropdown:hover .dropdown-content { display:block; }
+    .dropdown:hover .dropbtn { color:#FF7D00; }
+
+    .mkt-btn { display:inline-block; background:#FF7D00; color:white; padding:.6rem 1.3rem; border-radius:6px; text-decoration:none; font-weight:bold; margin:.5rem; transition:opacity .2s; border:none; cursor:pointer; font-size:.9rem; }
+    .mkt-btn:hover { opacity:.9; }
+    .mkt-btn-blue { background:#165DFF; }
+    .mkt-btn-blue:hover { background:#0052cc; opacity:1; }
+    .mkt-btn-signin { background:transparent; border:2px solid rgba(255,255,255,.5); color:white; padding:.5rem 1.2rem; font-size:.9rem; margin:0; }
+    .mkt-btn-signin:hover { border-color:white; opacity:1; }
+
+    .hero { background:linear-gradient(135deg,#165DFF 0%,#0038A8 100%); color:white; padding:4rem 5%; text-align:center; }
+    .hero h1 { font-size:2.5rem; margin-bottom:.5rem; }
+    .hero h2 { font-size:1.3rem; font-weight:normal; margin-bottom:2rem; opacity:.9; }
+
+    .section { padding:3rem 5%; max-width:1200px; margin:0 auto; }
+    .section h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#165DFF; text-align:center; }
+
+    .mkt-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:2rem; margin:2rem 0; }
+    .mkt-card { background:#F2F3F5; padding:1.8rem; border-radius:8px; }
+    .mkt-card h4 { color:#165DFF; margin-bottom:1rem; font-size:1.2rem; }
+
+    .product-card { background:#F2F3F5; padding:1.8rem; border-radius:8px; text-align:center; transition:transform .2s; }
+    .product-card:hover { transform:translateY(-5px); }
+    .product-card h4 { color:#165DFF; margin-bottom:1rem; font-size:1.2rem; }
+
+    .price-box { background:#F2F3F5; border:3px solid #165DFF; border-radius:12px; padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
+    .price-box .price { font-size:3rem; color:#FF7D00; font-weight:bold; }
+
+    footer { background:#1D2129; color:white; padding:2rem 5%; text-align:center; margin-top:3rem; }
+
+    /* ✅ NEW STYLES FOR LOGIN/DASHBOARD */
+    .hidden { display:none !important; }
+    .auth-box { max-width:400px; margin:3rem auto; background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
+    .auth-box input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid #ccc; border-radius:6px; font-family:inherit; font-size:1rem; }
+    .dashboard-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:2rem; margin:2rem 0; }
+    .dashboard-card { background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
+    .dashboard-card a { display:inline-block; margin-top:1rem; }
+  </style>
+</head>
+<body>
+
+<div id="marketing-site">
+<nav>
+  <div class="logo">Build Tracker Solutions</div>
+  <div class="nav-right" id="mainNav">
+    <a href="#home">Home</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+
+    <!-- ✅ DROPDOWN MENU TO CHOOSE SOFTWARE -->
+    <div class="dropdown">
+      <button class="dropbtn">Open Software ▾</button>
+      <div class="dropdown-content">
+        <a href="build-track/index.html">Build Tracker</a>
+        <a href="body-shop-pro/index.html">Body Shop Pro</a>
+        <a href="Electronics repair/index.html">Electronics Repair</a>
+        <a href="Stock Control/index.html">Stock Control</a>
+      </div>
+    </div>
+
+    <button class="mkt-btn mkt-btn-signin" onclick="showLogin()">Sign In</button>
+    <button class="mkt-btn mkt-btn-blue" onclick="showSignup()">Start Free Trial</button>
+  </div>
+  <div class="nav-right hidden" id="loggedInNav">
+    <a href="#dashboard">Dashboard</a>
+    <button class="mkt-btn mkt-btn-signin" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<section id="home" class="hero">
+  <h1>Build Tracker Solutions</h1>
+  <h2>Web‑based build tracking & live client update portal</h2>
+  <p style="font-size:1.1rem;max-width:800px;margin:0 auto 2rem;">Manage every stage of your project, keep perfect records, and give your customers a simple link to see live progress — all in one place.</p>
+  <ul style="list-style:none;margin-bottom:2rem;font-size:1.05rem;">
+    <li>✅ No app download required — works in any web browser</li>
+    <li>✅ Send one link → your client sees everything, no phone calls needed</li>
+    <li>✅ Saves hours every week, stops disputes, builds total trust</li>
+    <li>✅ <strong>14 days FREE trial — only £32.00 per month </strong></li>
+  </ul>
+  <button class="mkt-btn mkt-btn-blue" onclick="showSignup()">Start your free trial</button>
+  <p style="margin-top:1rem;font-size:.95rem;">Just over £1 per day for unlimited projects & unlimited clients</p>
+</section>
+
+<section class="section">
+  <h3>Everything you need, nothing you don't</h3>
+  <div class="mkt-grid">
+    <div class="mkt-card"><h4>Full Stage Tracking</h4><p>Log every phase from start to finish. Update instantly project status.</p></div>
+    <div class="mkt-card"><h4>Live Client Portal</h4><p>Unique link per customer — they see live progress on any device. No install needed.</p></div>
+    <div class="mkt-card"><h4>Records & Transparency</h4><p>Keep everything organised for accounts, compliance and peace of mind.</p></div>
+  </div>
+</section>
+
+<section id="products" class="section products-section">
+  <h3>Our Software Solutions</h3>
+  <p style="text-align:center;max-width:700px;margin:0 auto 2.5rem;color:#4a5568;">
+    We build specialist web tools for trade, repair and manufacturing businesses — designed in the UK, simple to use, and fully cloud‑based.
+  </p>
+  <div class="mkt-grid">
+    <div class="product-card">
+      <h4>🚛 Build Tracker</h4>
+      <p>Track commercial vehicle, trailer and body builds stage‑by‑stage. Includes live client portal and full history.</p>
+    </div>
+    <div class="product-card">
+      <h4>🚗 Body Shop Pro</h4>
+      <p>Manage accident repair jobs, estimates, parts ordering, paint stages and handover. Perfect for body shops.</p>
+    </div>
+    <div class="product-card">
+      <h4>🔧 Electronics Repair Tracker</h4>
+      <p>Log mobile, laptop and appliance repairs, fault codes, parts used and status updates. Print or email job sheets.</p>
+    </div>
+    <div class="product-card">
+      <h4>📦 Stock Control</h4>
+      <p>Parts inventory, low‑stock alerts, suppliers, purchase orders and cost tracking.</p>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section" style="background:#F2F3F5;">
+  <h3>Everything you need to run projects smoothly</h3>
+  <div class="mkt-grid">
+    <div class="mkt-card"><h4>1. Complete Stage Management</h4><ul><li>Create unlimited projects</li><li>Track every stage from start to finish</li><li>Full audit trail and history</li></ul></div>
+    <div class="mkt-card"><h4>2. Simple Universal Access</h4><ul><li>Works on any device</li><li>Runs in a browser — no app download</li><li>Secure and backed up daily</li></ul></div>
+    <div class="mkt-card"><h4>3. Records & Transparency</h4><ul><li>Track labour, materials and costs</li><li>Profit reporting</li><li>Instant information for accountants</li></ul></div>
+  </div>
+</section>
+
+<section id="pricing" class="section">
+  <h3>Simple, honest pricing</h3>
+  <div class="price-box">
+    <div class="price">£32.00</div>
+    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>(Just over £1 per day)</small></div>
+    <ul style="text-align:left;display:inline-block;margin-bottom:1.5rem;">
+      <li>✅ All 4 programs included</li>
+      <li>✅ Unlimited projects & builds</li>
+      <li>✅ Unlimited client view links</li>
+      <li>✅ Full stage tracking</li>
+      <li>✅ Works on any device</li>
+      <li>✅ Free support & updates</li>
+      <li>✅ Cancel anytime</li>
+    </ul><br>
+    <button class="mkt-btn mkt-btn-blue" onclick="showSignup()" style="margin-top:1rem;">Start My 14-Day FREE Trial</button>
+  </div>
+</section>
+
+<section id="about" class="section" style="background:#F2F3F5;">
+  <h3>About Build Tracker Solutions</h3>
+  <p style="margin-bottom:1.5rem;">Built for the construction and trade industry — we know keeping clients informed is one of the hardest parts of running a business.</p>
+  <p>Based in the UK. We build, support and develop everything ourselves — so we can fix things fast and add features you actually ask for.</p>
+</section>
+
+<section id="contact" class="section">
+  <h3>Get in touch</h3>
+  <div class="mkt-grid">
+    <div>
+      <h4 style="color:#165DFF;margin-bottom:1rem;">📞 Contact Details</h4>
+      <p><strong>Phone</strong>: 07540 799925<br>
+      <strong>Email</strong>: <a href="mailto:info@build-tracker.co.uk" style="color:#165DFF; text-decoration:none;">info@build-tracker.co.uk</a></p>
+      <h4 style="color:#165DFF;margin:1.5rem 0 .5rem;">🕒 Opening Hours</h4>
+      <p>Monday – Friday: 08:00 – 18:00<br>Saturday: 09:00 – 13:00<br>Sunday: Closed</p>
+    </div>
+    <div>
+      <h4 style="color:#165DFF;margin-bottom:1rem;">✉️ Send us a message</h4>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <input type="text" placeholder="Your Name">
+        <input type="email" placeholder="Your Email">
+        <textarea placeholder="Message" rows="4"></textarea>
+        <button class="mkt-btn">Send Message</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ✅ LOGIN FORM -->
+<section id="loginForm" class="section hidden">
+  <div class="auth-box">
+    <h2 style="color:#165DFF; margin-bottom:1rem;">Sign In</h2>
+    <input type="email" id="loginEmail" placeholder="Email Address">
+    <input type="password" id="loginPass" placeholder="Password">
+    <button class="mkt-btn mkt-btn-blue" style="width:100%; margin-top:.5rem;" onclick="login()">Login</button>
+    <p style="margin-top:1rem; font-size:.9rem;">Don’t have an account? <a href="#" onclick="showSignup()" style="color:#165DFF; text-decoration:none;">Sign up here</a></p>
+  </div>
+</section>
+
+<!-- ✅ SIGNUP FORM -->
+<section id="signupForm" class="section hidden">
+  <div class="auth-box">
+    <h2 style="color:#FF7D00; margin-bottom:1rem;">Create Your Account</h2>
+    <input type="email" id="signupEmail" placeholder="Email Address">
+    <input type="password" id="signupPass" placeholder="Create Password">
+    <p style="margin:.8rem 0; font-size:.9rem;">By creating an account you start your 14‑day free trial. After that it’s just <strong>£32/month</strong>.</p>
+    <button class="mkt-btn mkt-btn-blue" style="width:100%;" onclick="signup()">Create Account</button>
+  </div>
+</section>
+
+<!-- ✅ DASHBOARD (ONLY WHEN LOGGED IN) -->
+<section id="dashboard" class="section hidden">
+  <h2 style="text-align:center; color:#165DFF;">Your Software Dashboard</h2>
+  <div class="dashboard-grid">
+    <div class="dashboard-card">
+      <h3>🏗️ Build Tracker</h3>
+      <p>Project tracking & client portal</p>
+      <a href="build-track/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
+    </div>
+    <div class="dashboard-card">
+      <h3>🚗 Body Shop Pro</h3>
+      <p>Repair & job management</p>
+      <a href="body-shop-pro/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
+    </div>
+    <div class="dashboard-card">
+      <h3>🔧 Electronics Repair</h3>
+      <p>Repair tracking & job cards</p>
+      <a href="Electronics repair/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
+    </div>
+    <div class="dashboard-card">
+      <h3>📦 Stock Control</h3>
+      <p>Inventory & stock management</p>
+      <a href="Stock Control/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.co.uk | 07540 799925</p>
+  <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
+</footer>
+</div>
+
+<script src="script.js"></script>
+<script>
+// --- PAGE DISPLAY ---
+function hideAllSections() {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+}
+function showLogin() { hideAllSections(); document.getElementById('loginForm').classList.remove('hidden'); window.scrollTo(0,0); }
+function showSignup() { hideAllSections(); document.getElementById('signupForm').classList.remove('hidden'); window.scrollTo(0,0); }
+function showDashboard() {
+  hideAllSections();
+  document.getElementById('dashboard').classList.remove('hidden');
+  document.getElementById('mainNav').classList.add('hidden');
+  document.getElementById('loggedInNav').classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+function showHome() {
+  hideAllSections();
+  document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden'));
+  document.getElementById('mainNav').classList.remove('hidden');
+  document.getElementById('loggedInNav').classList.add('hidden');
+}
+
+// --- AUTH & SUBSCRIPTION ---
+async function login() {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: document.getElementById('loginEmail').value,
+    password: document.getElementById('loginPass').value
+  });
+  if (error) return alert(error.message);
+  await checkSubscription();
+}
+
+async function signup() {
+  const { data, error } = await supabase.auth.signUp({
+    email: document.getElementById('signupEmail').value,
+    password: document.getElementById('signupPass').value
+  });
+  if (error) return alert(error.message);
+  alert("✅ Account created! Check your email to confirm, then log in.");
+  showLogin();
+}
+
+async function logout() {
+  await supabase.auth.signOut();
+  location.reload();
+}
+
+async function checkSubscription() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return showHome();
+
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('status, expires_at')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!sub || sub.status !== 'active' || new Date(sub.expires_at) < new Date()) {
+    alert("⚠️ Subscription inactive or expired — please renew.");
+    logout();
+    return;
+  }
+
+  showDashboard();
+}
+
+// --- OPEN SOFTWARE FUNCTION ---
+function openApp(type) {
+  if (type === 'login') showLogin();
+  if (type === 'signup') showSignup();
+}
+
+// --- AUTO CHECK ---
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) checkSubscription();
+  else showHome();
+});
+</script>
+
+</body>
+</html>
