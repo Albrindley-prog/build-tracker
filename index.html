@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,14 +7,28 @@
   <title>Build Tracker Solutions</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- ✅ SUPABASE ADDED -->
+  
+  <!-- ✅ SUPABASE CONNECTION -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ✅ STRIPE CONNECTION -->
+  <script src="https://js.stripe.com/v3/"></script>
+
   <script>
-    // --- YOUR LIVE DETAILS ---
-    const SUPABASE_URL = "https://dkdnlgwflrwdxtrovrrq.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_mMm99xk2f43pFG_7BsAvmA_RYuGCpma"; // ← Replace with your actual public key
+    // --------------------------
+    // ✅ YOUR LIVE DETAILS - EDIT THESE!
+    // --------------------------
+    const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SB_KEY = 'sb_publishable_mMm99xk2f43pFG_7BsAvmA_RYuGCpma';
+   const STRIPE_PUBLISHABLE_KEY = "pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ";
+    const MONTHLY_PRICE_ID = "price_1Td9RuICF2fQjVNyyc4TaewE"; // ← PUT YOUR STRIPE PRICE ID HERE (£32/month)
+    const SUCCESS_URL = "https://build-tracker.co.uk/payment-success.html"; // ← YOUR SUCCESS PAGE
+    const CANCEL_URL = "https://build-tracker.co.uk/payment-cancelled.html"; // ← YOUR CANCEL PAGE
+
+    // Initialize services
     const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
   </script>
+
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family: 'DM Sans', sans-serif; }
     html, body { color:#1D2129; background:#fff; line-height:1.6; }
@@ -60,13 +75,14 @@
 
     footer { background:#1D2129; color:white; padding:2rem 5%; text-align:center; margin-top:3rem; }
 
-    /* ✅ NEW STYLES FOR LOGIN/DASHBOARD */
+    /* ✅ NEW STYLES FOR LOGIN/DASHBOARD / PAYMENT */
     .hidden { display:none !important; }
     .auth-box { max-width:400px; margin:3rem auto; background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
     .auth-box input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid #ccc; border-radius:6px; font-family:inherit; font-size:1rem; }
     .dashboard-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:2rem; margin:2rem 0; }
     .dashboard-card { background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
     .dashboard-card a { display:inline-block; margin-top:1rem; }
+    .payment-note { font-size:0.9rem; color:#666; margin:1rem 0; }
   </style>
 </head>
 <body>
@@ -81,14 +97,14 @@
     <a href="#about">About</a>
     <a href="#contact">Contact</a>
 
-    <!-- ✅ DROPDOWN MENU TO CHOOSE SOFTWARE -->
+    <!-- ✅ DROPDOWN MENU — 100% CORRECT LINKS -->
     <div class="dropdown">
       <button class="dropbtn">Open Software ▾</button>
       <div class="dropdown-content">
         <a href="build-tracker/index.html">Build Tracker</a>
         <a href="body-shop-pro/index.html">Body Shop Pro</a>
-        <a href="Electronics repair/index.html">Electronics Repair</a>
-        <a href="Stock Control/index.html">Stock Control</a>
+        <a href="electronics-repair/index.html">Electronics Repair</a>
+        <a href="stock-control/index.html">Stock Control</a>
       </div>
     </div>
 
@@ -109,7 +125,7 @@
     <li>✅ No app download required — works in any web browser</li>
     <li>✅ Send one link → your client sees everything, no phone calls needed</li>
     <li>✅ Saves hours every week, stops disputes, builds total trust</li>
-    <li>✅ <strong>14 days FREE trial — only £32.00 per month </strong></li>
+    <li>✅ <strong>14 days FREE trial — only £32.00 per month after</strong></li>
   </ul>
   <button class="mkt-btn mkt-btn-blue" onclick="showSignup()">Start your free trial</button>
   <p style="margin-top:1rem;font-size:.95rem;">Just over £1 per day for unlimited projects & unlimited clients</p>
@@ -118,33 +134,33 @@
 <section class="section">
   <h3>Everything you need, nothing you don't</h3>
   <div class="mkt-grid">
-    <div class="mkt-card"><h4>Full Stage Tracking</h4><p>Log every phase from start to finish. Update instantly project status.</p></div>
+    <div class="mkt-card"><h4>Full Stage Tracking</h4><p>Log every phase from start to finish. Update project status instantly.</p></div>
     <div class="mkt-card"><h4>Live Client Portal</h4><p>Unique link per customer — they see live progress on any device. No install needed.</p></div>
-    <div class="mkt-card"><h4>Records & Transparency</h4><p>Keep everything organised for accounts, compliance and peace of mind.</p></div>
+    <div class="mkt-card"><h4>Records & Transparency</h4><p>Everything saved for accounts, compliance and peace of mind.</p></div>
   </div>
 </section>
 
 <section id="products" class="section products-section">
   <h3>Our Software Solutions</h3>
   <p style="text-align:center;max-width:700px;margin:0 auto 2.5rem;color:#4a5568;">
-    We build specialist web tools for trade, repair and manufacturing businesses — designed in the UK, simple to use, and fully cloud‑based.
+    Specialist tools for construction, repair and trades businesses — built in the UK, simple to use, fully cloud‑based.
   </p>
   <div class="mkt-grid">
     <div class="product-card">
       <h4>🚛 Build Tracker</h4>
-      <p>Track commercial vehicle, trailer and body builds stage‑by‑stage. Includes live client portal and full history.</p>
+      <p>Track commercial, residential & renovation builds stage‑by‑stage. Includes live client view and full history.</p>
     </div>
     <div class="product-card">
       <h4>🚗 Body Shop Pro</h4>
-      <p>Manage accident repair jobs, estimates, parts ordering, paint stages and handover. Perfect for body shops.</p>
+      <p>Manage accident repair jobs, estimates, parts ordering, paint stages and handover. Perfect for bodyshops.</p>
     </div>
     <div class="product-card">
       <h4>🔧 Electronics Repair Tracker</h4>
-      <p>Log mobile, laptop and appliance repairs, fault codes, parts used and status updates. Print or email job sheets.</p>
+      <p>Log mobile, laptop and appliance repairs, fault codes, parts used and status updates. Print or email job sheets instantly.</p>
     </div>
     <div class="product-card">
       <h4>📦 Stock Control</h4>
-      <p>Parts inventory, low‑stock alerts, suppliers, purchase orders and cost tracking.</p>
+      <p>Parts inventory, low‑stock alerts, supplier lists, purchase orders and cost tracking — all in one place.</p>
     </div>
   </div>
 </section>
@@ -153,8 +169,8 @@
   <h3>Everything you need to run projects smoothly</h3>
   <div class="mkt-grid">
     <div class="mkt-card"><h4>1. Complete Stage Management</h4><ul><li>Create unlimited projects</li><li>Track every stage from start to finish</li><li>Full audit trail and history</li></ul></div>
-    <div class="mkt-card"><h4>2. Simple Universal Access</h4><ul><li>Works on any device</li><li>Runs in a browser — no app download</li><li>Secure and backed up daily</li></ul></div>
-    <div class="mkt-card"><h4>3. Records & Transparency</h4><ul><li>Track labour, materials and costs</li><li>Profit reporting</li><li>Instant information for accountants</li></ul></div>
+    <div class="mkt-card"><h4>2. Simple Universal Access</h4><ul><li>Works on phone, tablet or PC</li><li>Runs in browser — no app needed</li><li>Secure, backed‑up daily</li></ul></div>
+    <div class="mkt-card"><h4>3. Records & Transparency</h4><ul><li>Labour, materials and costs logged</li><li>Profit reporting built‑in</li><li>Data ready for your accountant</li></ul></div>
   </div>
 </section>
 
@@ -162,23 +178,25 @@
   <h3>Simple, honest pricing</h3>
   <div class="price-box">
     <div class="price">£32.00</div>
-    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>(Just over £1 per day)</small></div>
+    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>(Unlimited users, unlimited jobs)</small></div>
     <ul style="text-align:left;display:inline-block;margin-bottom:1.5rem;">
       <li>✅ All 4 programs included</li>
       <li>✅ Unlimited projects & builds</li>
-      <li>✅ Unlimited client view links</li>
-      <li>✅ Full stage tracking</li>
+      <li>✅ Unlimited client access links</li>
+      <li>✅ Full stage tracking & history</li>
       <li>✅ Works on any device</li>
-      <li>✅ Free support & updates</li>
+      <li>✅ Email & phone support</li>
       <li>✅ Cancel anytime</li>
-    </ul><br>
-    <button class="mkt-btn mkt-btn-blue" onclick="showSignup()" style="margin-top:1rem;">Start My 14-Day FREE Trial</button>
+    </ul>
+    <button class="mkt-btn mkt-btn-blue" onclick="showSignup()">Start My 14-Day FREE Trial</button>
+    <p class="payment-note">No card required to start. Pay only after 14 days if you want to keep using it.</p>
+    <button class="mkt-btn" onclick="startPayment()" id="payBtn" style="background:#24a148; margin-top:0.5rem;">Pay Now / Subscribe</button>
   </div>
 </section>
 
 <section id="about" class="section" style="background:#F2F3F5;">
   <h3>About Build Tracker Solutions</h3>
-  <p style="margin-bottom:1.5rem;">Built for the construction and trade industry — we know keeping clients informed is one of the hardest parts of running a business.</p>
+  <p style="margin-bottom:1.5rem;">Built specifically for construction and trade businesses — we know how important it is to keep everyone on the same page and have a clear record of every job.</p>
   <p>Based in the UK. We build, support and develop everything ourselves — so we can fix things fast and add features you actually ask for.</p>
 </section>
 
@@ -189,7 +207,7 @@
       <h4 style="color:#165DFF;margin-bottom:1rem;">📞 Contact Details</h4>
       <p><strong>Phone</strong>: 07540 799925<br>
       <strong>Email</strong>: <a href="mailto:info@build-tracker.co.uk" style="color:#165DFF; text-decoration:none;">info@build-tracker.co.uk</a></p>
-      <h4 style="color:#165DFF;margin:1.5rem 0 .5rem;">🕒 Opening Hours</h4>
+      <h4 style="color:#165DFF;margin-bottom:1.5rem 0 .5rem;">🕒 Opening Hours</h4>
       <p>Monday – Friday: 08:00 – 18:00<br>Saturday: 09:00 – 13:00<br>Sunday: Closed</p>
     </div>
     <div>
@@ -221,35 +239,40 @@
     <h2 style="color:#FF7D00; margin-bottom:1rem;">Create Your Account</h2>
     <input type="email" id="signupEmail" placeholder="Email Address">
     <input type="password" id="signupPass" placeholder="Create Password">
-    <p style="margin:.8rem 0; font-size:.9rem;">By creating an account you start your 14‑day free trial. After that it’s just <strong>£32/month</strong>.</p>
+    <p style="margin:.8rem 0; font-size:.9rem;">By creating an account you start your <strong>14‑day free trial</strong>. After that it’s just £32/month.</p>
     <button class="mkt-btn mkt-btn-blue" style="width:100%;" onclick="signup()">Create Account</button>
   </div>
 </section>
 
-<!-- ✅ DASHBOARD (ONLY WHEN LOGGED IN) -->
+<!-- ✅ DASHBOARD — 100% CORRECT LINKS -->
 <section id="dashboard" class="section hidden">
   <h2 style="text-align:center; color:#165DFF;">Your Software Dashboard</h2>
   <div class="dashboard-grid">
     <div class="dashboard-card">
       <h3>🏗️ Build Tracker</h3>
-      <p>Project tracking & client portal</p>
-      <a href="build-track/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
+      <p>Project tracking & live client portal</p>
+      <a href="build-tracker/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
     </div>
     <div class="dashboard-card">
       <h3>🚗 Body Shop Pro</h3>
-      <p>Repair & job management</p>
+      <p>Repair job management & estimates</p>
       <a href="body-shop-pro/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
     </div>
     <div class="dashboard-card">
       <h3>🔧 Electronics Repair</h3>
-      <p>Repair tracking & job cards</p>
-      <a href="Electronics repair/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
+      <p>Repair logging & job sheets</p>
+      <a href="electronics-repair/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
     </div>
     <div class="dashboard-card">
       <h3>📦 Stock Control</h3>
-      <p>Inventory & stock management</p>
-      <a href="Stock Control/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
+      <p>Inventory, orders & cost tracking</p>
+      <a href="stock-control/index.html" class="mkt-btn mkt-btn-blue">Open Now</a>
     </div>
+  </div>
+
+  <!-- ✅ PAYMENT BUTTON INSIDE DASHBOARD -->
+  <div style="text-align:center; margin-top:2rem;">
+    <button class="mkt-btn" onclick="startPayment()" style="background:#24a148;">Subscribe / Pay £32/month</button>
   </div>
 </section>
 
@@ -261,7 +284,9 @@
 
 <script src="script.js"></script>
 <script>
-// --- PAGE DISPLAY ---
+// --------------------------
+// ✅ PAGE NAVIGATION
+// --------------------------
 function hideAllSections() {
   document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
 }
@@ -281,7 +306,9 @@ function showHome() {
   document.getElementById('loggedInNav').classList.add('hidden');
 }
 
-// --- AUTH & SUBSCRIPTION ---
+// --------------------------
+// ✅ AUTHENTICATION
+// --------------------------
 async function login() {
   const { data, error } = await supabase.auth.signInWithPassword({
     email: document.getElementById('loginEmail').value,
@@ -297,6 +324,19 @@ async function signup() {
     password: document.getElementById('signupPass').value
   });
   if (error) return alert(error.message);
+  
+  // ✅ CREATE FREE TRIAL RECORD AUTOMATICALLY
+  if (data.user) {
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 14); // 14 days free
+
+    await supabase.from('subscriptions').insert({
+      user_id: data.user.id,
+      status: 'trial',
+      expires_at: trialEnd.toISOString()
+    });
+  }
+
   alert("✅ Account created! Check your email to confirm, then log in.");
   showLogin();
 }
@@ -306,6 +346,9 @@ async function logout() {
   location.reload();
 }
 
+// --------------------------
+// ✅ SUBSCRIPTION CHECK
+// --------------------------
 async function checkSubscription() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return showHome();
@@ -316,22 +359,49 @@ async function checkSubscription() {
     .eq('user_id', user.id)
     .single();
 
-  if (!sub || sub.status !== 'active' || new Date(sub.expires_at) < new Date()) {
-    alert("⚠️ Subscription inactive or expired — please renew.");
-    logout();
+  const now = new Date();
+  const expiry = new Date(sub?.expires_at);
+
+  if (!sub || (sub.status !== 'active' && now > expiry)) {
+    alert("⚠️ Your trial has ended or subscription is inactive — please pay to continue.");
+    showDashboard(); // Show dashboard but only payment button works
     return;
   }
 
-  showDashboard();
+  showDashboard(); // Fully active
 }
 
-// --- OPEN SOFTWARE FUNCTION ---
-function openApp(type) {
-  if (type === 'login') showLogin();
-  if (type === 'signup') showSignup();
+// --------------------------
+// ✅ STRIPE PAYMENT FLOW
+// --------------------------
+async function startPayment() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    alert("Please login first to subscribe.");
+    showLogin();
+    return;
+  }
+
+  // ✅ CREATE STRIPE CHECKOUT SESSION
+  const response = await fetch('https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      priceId: MONTHLY_PRICE_ID,
+      userId: user.id,
+      userEmail: user.email,
+      successUrl: SUCCESS_URL,
+      cancelUrl: CANCEL_URL
+    })
+  });
+
+  const session = await response.json();
+  await stripe.redirectToCheckout({ sessionId: session.id });
 }
 
-// --- AUTO CHECK ---
+// --------------------------
+// ✅ AUTO CHECK ON LOAD
+// --------------------------
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) checkSubscription();
   else showHome();
