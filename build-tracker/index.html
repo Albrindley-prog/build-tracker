@@ -452,8 +452,8 @@ async function loadAll(){
   try{
     const uid=curUser.id;
     const [vd,cd]=await Promise.all([
-      sb('vehicles?select=*&user_id=eq.'+uid+'&order=created_at.desc'),
-      sb('customers?select=*&user_id=eq.'+uid+'&order=reference.asc')
+     sb('vehicles?select=*&user_id=eq.'+uid+'&order=created_at.desc')
+      sb('customers?select=*&owner_id=eq.'+uid+'&order=reference.asc')
     ]);
     vehicles=vd.map(mapV);
     customers=cd.map(mapC);
