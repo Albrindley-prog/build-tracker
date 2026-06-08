@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,16 +15,16 @@
 
   <script>
     // --------------------------
-    // ✅ YOUR LIVE DETAILS - 100% CORRECT, NO DUPLICATES
+    // ✅ YOUR LIVE DETAILS - EDIT THESE!
     // --------------------------
-    const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
-    const STRIPE_PUBLISHABLE_KEY = "pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ";
-    const MONTHLY_PRICE_ID = "price_1Td9RuICF2fQjVNyyc4TaewE"; // £32/month
-    const SUCCESS_URL = "https://build-tracker.co.uk/payment-success.html";
-    const CANCEL_URL = "https://build-tracker.co.uk/payment-cancelled.html";
+    const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SB_KEY = 'sb_publishable_mMm99xk2f43pFG_7BsAvmA_RYuGCpma';
+   const STRIPE_PUBLISHABLE_KEY = "pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ";
+    const MONTHLY_PRICE_ID = "price_1Td9RuICF2fQjVNyyc4TaewE"; // ← PUT YOUR STRIPE PRICE ID HERE (£32/month)
+    const SUCCESS_URL = "https://build-tracker.co.uk/payment-success.html"; // ← YOUR SUCCESS PAGE
+    const CANCEL_URL = "https://build-tracker.co.uk/payment-cancelled.html"; // ← YOUR CANCEL PAGE
 
-    // ✅ CREATE ONLY ONCE — NO DUPLICATE LATER!
+    // Initialize services
     const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
   </script>
@@ -238,12 +239,12 @@
     <h2 style="color:#FF7D00; margin-bottom:1rem;">Create Your Account</h2>
     <input type="email" id="signupEmail" placeholder="Email Address">
     <input type="password" id="signupPass" placeholder="Create Password">
-    <p style="margin:.8rem 0; font-size:.9rem;">By creating an研究生 account you start your <strong>14‑day free trial</strong>. After that it’s just £32/month.</p>
+    <p style="margin:.8rem 0; font-size:.9rem;">By creating an account you start your <strong>14‑day free trial</strong>. After that it’s just £32/month.</p>
     <button class="mkt-btn mkt-btn-blue" style="width:100%;" onclick="signup()">Create Account</button>
   </div>
 </section>
 
-<!-- ✅ DASHBOARD -- 100% CORRECT LINKS -->
+<!-- ✅ DASHBOARD — 100% CORRECT LINKS -->
 <section id="dashboard" class="section hidden">
   <h2 style="text-align:center; color:#165DFF;">Your Software Dashboard</h2>
   <div class="dashboard-grid">
@@ -276,7 +277,7 @@
 </section>
 
 <footer>
-  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.co.uk | 07540 799925</p>
+  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.com | 07540 799925</p>
   <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
 </footer>
 </div>
@@ -363,15 +364,15 @@ async function checkSubscription() {
 
   if (!sub || (sub.status !== 'active' && now > expiry)) {
     alert("⚠️ Your trial has ended or subscription is inactive — please pay to continue.");
-    showDashboard();
+    showDashboard(); // Show dashboard but only payment button works
     return;
   }
 
-  showDashboard();
+  showDashboard(); // Fully active
 }
 
 // --------------------------
-// ✅ STRIPE PAYMENT FLOW — ✅ CORRECT ENDPOINT ✅
+// ✅ STRIPE PAYMENT FLOW
 // --------------------------
 async function startPayment() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -381,13 +382,10 @@ async function startPayment() {
     return;
   }
 
-  // ✅ ✅ ✅ EXACT FUNCTION NAME: create-checkout-session ✅ ✅ ✅
+  // ✅ CREATE STRIPE CHECKOUT SESSION
   const response = await fetch('https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session', {
     method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       priceId: MONTHLY_PRICE_ID,
       userId: user.id,
@@ -397,19 +395,12 @@ async function startPayment() {
     })
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    console.error('ERROR:', err);
-    alert("Payment error: " + err);
-    return;
-  }
-
   const session = await response.json();
   await stripe.redirectToCheckout({ sessionId: session.id });
 }
 
 // --------------------------
-// ✅ AUTO CHECK ON LOAD — ✅ NOW WORKS ✅
+// ✅ AUTO CHECK ON LOAD
 // --------------------------
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) checkSubscription();
