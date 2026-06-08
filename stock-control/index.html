@@ -12,7 +12,7 @@
 const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
 const HDR = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
-const supabase = supabaseJs.createClient(SB_URL, SB_KEY);
+const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
 </script>
 
 <style>
@@ -639,7 +639,7 @@ async function doLogin() {
     const btn = document.querySelector('#loginForm .auth-btn');
     btn.disabled = true; btn.textContent = 'Signing in…';
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    const { data, error } = await sbClient.auth.signInWithPassword({ email, password: pass });
 
     btn.disabled = false; btn.textContent = 'Sign In';
 
@@ -659,7 +659,7 @@ async function doRegister() {
     const btn = document.querySelector('#registerForm .auth-btn');
     btn.disabled = true; btn.textContent = 'Creating account…';
 
-    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+    const { data, error } = await sbClient.auth.signUp({ email, password: pass });
 
     btn.disabled = false; btn.textContent = 'Create Account';
 
@@ -675,7 +675,7 @@ async function doRegister() {
 }
 
 async function doLogout() {
-    await supabase.auth.signOut();
+    await sbClient.auth.signOut();
     currentUser = null;
     stock = []; logs = [];
     document.getElementById('appScreen').style.display  = 'none';
@@ -693,18 +693,18 @@ function enterApp(user) {
 // ═══ DATA ═══
 
 async function loadData() {
-    const { data: stockData } = await supabase.from('stock').select('*').eq('user_id', currentUser.id);
-    const { data: logData }   = await supabase.from('logs').select('*').eq('user_id', currentUser.id);
+    const { data: stockData } = await sbClient.from('stock').select('*').eq('user_id', currentUser.id);
+    const { data: logData }   = await sbClient.from('logs').select('*').eq('user_id', currentUser.id);
     stock = stockData || [];
     logs  = logData  || [];
     render();
 }
 
 async function saveData() {
-    await supabase.from('stock').delete().eq('user_id', currentUser.id);
-    await supabase.from('stock').insert(stock.map(i => ({ ...i, user_id: currentUser.id })));
-    await supabase.from('logs').delete().eq('user_id', currentUser.id);
-    await supabase.from('logs').insert(logs.map(l => ({ ...l, user_id: currentUser.id })));
+    await sbClient.from('stock').delete().eq('user_id', currentUser.id);
+    await sbClient.from('stock').insert(stock.map(i => ({ ...i, user_id: currentUser.id })));
+    await sbClient.from('logs').delete().eq('user_id', currentUser.id);
+    await sbClient.from('logs').insert(logs.map(l => ({ ...l, user_id: currentUser.id })));
 }
 
 function addItem() {
@@ -804,7 +804,7 @@ function importBackup(event) {
 
 // ═══ BOOT — check existing session ═══
 (async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sbClient.auth.getSession();
     if (session) {
         enterApp(session.user);
     }
