@@ -6,23 +6,26 @@
   <title>Build Tracker Solutions</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <!-- ✅ SUPABASE + STRIPE - ONLY ONCE -->
+
+  <!-- ✅ LIBRARIES - ONLY ONCE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://js.stripe.com/v3/"></script>
 
   <script>
-    // ✅ CONFIG - ONLY DEFINED ONCE
+    // ==============================================
+    // ✅ CONFIG - ALL IN ONE PLACE, NO DUPLICATES
+    // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
-    const STRIPE_KEY = "pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ";
-    const PRICE_ID = "price_1Td9RuICF2fQjVNyyc4TaewE";
-    const SUCCESS = "https://build-tracker.co.uk/payment-success.html";
-    const CANCEL = "https://build-tracker.co.uk/payment-cancelled.html";
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
+    const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
+    const PRICE_ID = 'price_1Td9RuICF2fQjVNyyc4TaewE';
+    const SUCCESS_URL = 'https://build-tracker.co.uk/payment-success.html';
+    const CANCEL_URL = 'https://build-tracker.co.uk/payment-cancelled.html';
+    const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
 
-    // ✅ CREATE CLIENTS - ONLY HERE, NO WHERE ELSE
-    const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const stripe = Stripe(STRIPE_KEY);
+    // ✅ INITIALISE - ONLY ONCE, NAME CHANGED TO AVOID CONFLICTS
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
   </script>
 
   <style>
@@ -269,56 +272,130 @@
 </div>
 
 <script>
+// ==============================================
 // ✅ NAVIGATION
-function hideAllSections() { document.querySelectorAll('.section').forEach(s=>s.classList.add('hidden')); }
+// ==============================================
+function hideAllSections() {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+}
 function showLogin() { hideAllSections(); document.getElementById('loginForm').classList.remove('hidden'); window.scrollTo(0,0); }
 function showSignup() { hideAllSections(); document.getElementById('signupForm').classList.remove('hidden'); window.scrollTo(0,0); }
-function showDashboard() { hideAllSections(); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('mainNav').classList.add('hidden'); document.getElementById('loggedInNav').classList.remove('hidden'); window.scrollTo(0,0); }
-function showHome() { hideAllSections(); document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s=>s.classList.remove('hidden')); document.getElementById('mainNav').classList.remove('hidden'); document.getElementById('loggedInNav').classList.add('hidden'); }
+function showDashboard() {
+  hideAllSections();
+  document.getElementById('dashboard').classList.remove('hidden');
+  document.getElementById('mainNav').classList.add('hidden');
+  document.getElementById('loggedInNav').classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+function showHome() {
+  hideAllSections();
+  document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden'));
+  document.getElementById('mainNav').classList.remove('hidden');
+  document.getElementById('loggedInNav').classList.add('hidden');
+}
 
-// ✅ AUTH
+// ==============================================
+// ✅ AUTHENTICATION
+// ==============================================
 async function login() {
-  const {data,error} = await supabase.auth.signInWithPassword({email:document.getElementById('loginEmail').value,password:document.getElementById('loginPass').value});
-  if(error) return alert(error.message);
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPass').value;
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) return alert(error.message);
   await checkSubscription();
 }
 
 async function signup() {
-  const {data,error} = await supabase.auth.signUp({email:document.getElementById('signupEmail').value,password:document.getElementById('signupPass').value});
-  if(error) return alert(error.message);
-  if(data.user) {
-    const end = new Date(); end.setDate(end.getDate()+14);
-    await supabase.from('subscriptions').insert({user_id:data.user.id,status:'trial',expires_at:end.toISOString()});
+  const email = document.getElementById('signupEmail').value;
+  const password = document.getElementById('signupPass').value;
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) return alert(error.message);
+
+  // ✅ CREATE 14-DAY TRIAL AUTOMATICALLY
+  if (data.user) {
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 14);
+    await supabaseClient.from('subscriptions').insert({
+      user_id: data.user.id,
+      status: 'trial',
+      expires_at: trialEnd.toISOString()
+    });
   }
-  alert("✅ Account created! Check email."); showLogin();
+
+  alert("✅ Account created! Check your email to confirm, then log in.");
+  showLogin();
 }
 
-async function logout() { await supabase.auth.signOut(); location.reload(); }
+async function logout() {
+  await supabaseClient.auth.signOut();
+  location.reload();
+}
 
-// ✅ SUBS CHECK
+// ==============================================
+// ✅ SUBSCRIPTION CHECK
+// ==============================================
 async function checkSubscription() {
-  const {data:{user}} = await supabase.auth.getUser();
-  if(!user) return showHome();
-  const {data:sub} = await supabase.from('subscriptions').select('status,expires_at').eq('user_id',user.id).single();
-  const now = new Date(); const exp = new Date(sub?.expires_at);
-  if(!sub || (sub.status!=='active' && now>exp)) { alert("⚠️ Trial ended — pay to continue."); showDashboard(); return; }
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return showHome();
+
+  const { data: sub } = await supabaseClient
+    .from('subscriptions')
+    .select('status, expires_at')
+    .eq('user_id', user.id)
+    .single();
+
+  const now = new Date();
+  const expiry = new Date(sub?.expires_at);
+
+  if (!sub || (sub.status !== 'active' && now > expiry)) {
+    alert("⚠️ Your trial has ended or subscription is inactive — please pay to continue.");
+    showDashboard();
+    return;
+  }
+
   showDashboard();
 }
 
-// ✅ PAYMENT
+// ==============================================
+// ✅ STRIPE PAYMENT
+// ==============================================
 async function startPayment() {
-  const {data:{user}} = await supabase.auth.getUser();
-  if(!user) { alert("Please login first."); showLogin(); return; }
-  const res = await fetch('https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({priceId:PRICE_ID,userId:user.id,userEmail:user.email,successUrl:SUCCESS,cancelUrl:CANCEL})
-  });
-  if(!res.ok) return alert("Payment error");
-  const sesh = await res.json(); await stripe.redirectToCheckout({sessionId:sesh.id});
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) {
+    alert("Please login first to subscribe.");
+    showLogin();
+    return;
+  }
+
+  try {
+    const res = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        priceId: PRICE_ID,
+        userId: user.id,
+        email: user.email,
+        successUrl: SUCCESS_URL,
+        cancelUrl: CANCEL_URL
+      })
+    });
+
+    if (!res.ok) throw new Error('Failed to create session');
+    const session = await res.json();
+    await stripe.redirectToCheckout({ sessionId: session.id });
+
+  } catch (err) {
+    alert("Payment error: " + err.message);
+  }
 }
 
-// ✅ AUTO RUN — NO ERRORS HERE
-supabase.auth.onAuthStateChange((_,session) => { session ? checkSubscription() : showHome(); });
+// ==============================================
+// ✅ AUTO RUN ON LOAD
+// ==============================================
+supabaseClient.auth.onAuthStateChange((_, session) => {
+  if (session) checkSubscription();
+  else showHome();
+});
 </script>
 
 </body>
