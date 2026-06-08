@@ -33,7 +33,9 @@
     html, body { color:#1D2129; background:#fff; line-height:1.6; }
 
     nav { background:#1D2129; color:white; padding:1rem 5%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; position:sticky; top:0; z-index:50; }
-    nav .logo { font-size:1.3rem; font-weight:bold; }
+    /* ✅ Make logo clickable + hover effect */
+    nav .logo { font-size:1.3rem; font-weight:bold; cursor:pointer; text-decoration:none; color:white; }
+    nav .logo:hover { color:#FF7D00; }
     nav a { color:white; text-decoration:none; margin:0 0.8rem; }
     nav a:hover { color:#FF7D00; }
     .nav-right { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
@@ -86,9 +88,11 @@
 
 <div id="marketing-site">
 <nav>
-  <div class="logo">Build Tracker Solutions</div>
+  <!-- ✅ CLICKABLE LOGO → GOES HOME -->
+  <a href="#" class="logo" onclick="showHome(); return false;">Build Tracker Solutions</a>
+
   <div class="nav-right" id="mainNav">
-    <a href="#home">Home</a>
+    <a href="#home" onclick="showHome(); return false;">Home</a>
     <a href="#features">Features</a>
     <a href="#pricing">Pricing</a>
     <a href="#about">About</a>
@@ -222,7 +226,7 @@
     <input type="email" id="loginEmail" placeholder="Email Address">
     <input type="password" id="loginPass" placeholder="Password">
     <button class="mkt-btn mkt-btn-blue" style="width:100%; margin-top:.5rem;" onclick="login()">Login</button>
-    <p style="margin-top:1rem; font-size:.9rem;">Don’t have an account? <a href="#" onclick="showSignup()" style="color:#165DFF; text-decoration:none;">Sign up here</a></p>
+    <p style="margin-top:1rem; font-size:.9rem;">Don’t have an account? <a href="#" onclick="showSignup(); return false;" style="color:#165DFF; text-decoration:none;">Sign up here</a></p>
   </div>
 </section>
 
@@ -292,6 +296,7 @@ function showHome() {
   document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden'));
   document.getElementById('mainNav').classList.remove('hidden');
   document.getElementById('loggedInNav').classList.add('hidden');
+  window.scrollTo(0,0);
 }
 
 // ==============================================
