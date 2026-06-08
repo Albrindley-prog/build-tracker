@@ -566,8 +566,8 @@ async function addVehicle(){
     const res=await sb('vehicles',{method:'POST',body:JSON.stringify({
       job,chassis,type,customer_id,user_id:curUser.id,
       build:document.getElementById('f-build').value.trim(),
-      start_date:document.getElementById('f-start').value,
-      end_date:document.getElementById('f-end').value,
+      start_date:document.getElementById('f-start').value||null,
+end_date:document.getElementById('f-end').value||null,
       notes:document.getElementById('f-notes').value.trim(),
       applicable,ticked:[]
     })});
