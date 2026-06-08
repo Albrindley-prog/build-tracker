@@ -14,7 +14,7 @@
 
   <script>
     // --------------------------
-    // ✅ YOUR LIVE DETAILS — CREATED ONLY ONCE!
+    // ✅ YOUR LIVE DETAILS — ONLY DEFINED ONCE
     // --------------------------
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
@@ -23,7 +23,7 @@
     const SUCCESS_URL = "https://build-tracker.co.uk/payment-success.html";
     const CANCEL_URL = "https://build-tracker.co.uk/payment-cancelled.html";
 
-    // ✅ CREATE SUPABASE CLIENT — ONLY ONCE HERE!
+    // ✅ CREATE SUPABASE & STRIPE — ONLY HERE, NO DUPLICATES LATER
     const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
   </script>
@@ -205,7 +205,7 @@
     <div>
       <h4 style="color:#165DFF;margin-bottom:1rem;">📞 Contact Details</h4>
       <p><strong>Phone</strong>: 07540 799925<br>
-      <strong>Email</strong>: <a href="mailto:info@build-tracker.com" style="color:#165DFF; text-decoration:none;">info@build-tracker.com</a></p>
+      <strong>Email</strong>: <a href="mailto:info@build-tracker.co.uk" style="color:#165DFF; text-decoration:none;">info@build-tracker.co.uk</a></p>
       <h4 style="color:#165DFF;margin-bottom:1.5rem 0 .5rem;">🕒 Opening Hours</h4>
       <p>Monday – Friday: 08:00 – 18:00<br>Saturday: 09:00 – 13:00<br>Sunday: Closed</p>
     </div>
@@ -276,7 +276,7 @@
 </section>
 
 <footer>
-  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.com | 07540 799925</p>
+  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.co.uk | 07540 799925</p>
   <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
 </footer>
 </div>
@@ -409,7 +409,7 @@ async function startPayment() {
 }
 
 // --------------------------
-// ✅ AUTO CHECK ON LOAD — ✅ NOW WORKS PERFECTLY ✅
+// ✅ AUTO CHECK ON LOAD — ✅ NO DUPLICATES, NO ERRORS ✅
 // --------------------------
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) checkSubscription();
