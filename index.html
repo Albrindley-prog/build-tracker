@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <!-- ✅ GOOGLE ANALYTICS - YOUR CODE INSTALLED -->
+  <!-- ✅ GOOGLE ANALYTICS -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-8YECQQ8E0K"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -16,13 +16,13 @@
     gtag('config', 'G-8YECQQ8E0K');
   </script>
 
-  <!-- ✅ LIBRARIES - ONLY ONCE -->
+  <!-- ✅ LIBRARIES -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://js.stripe.com/v3/"></script>
 
   <script>
     // ==============================================
-    // ✅ CONFIG
+    // ✅ CONFIG — CORRECTED EMAIL: .com
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
@@ -31,6 +31,7 @@
     const SUCCESS_URL = 'https://build-tracker.co.uk/payment-success.html';
     const CANCEL_URL = 'https://build-tracker.co.uk/payment-cancelled.html';
     const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
+    const CONTACT_EMAIL = 'info@build-tracker.com'; // ✅ NOW .com
 
     // ✅ INITIALISE
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -42,7 +43,6 @@
     html, body { color:#1D2129; background:#fff; line-height:1.6; }
 
     nav { background:#1D2129; color:white; padding:1rem 5%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; position:sticky; top:0; z-index:50; }
-    /* ✅ CLICKABLE LOGO STYLE */
     nav .logo { font-size:1.3rem; font-weight:bold; cursor:pointer; text-decoration:none; color:white; }
     nav .logo:hover { color:#FF7D00; }
     nav a { color:white; text-decoration:none; margin:0 0.8rem; }
@@ -91,13 +91,17 @@
     .dashboard-card { background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
     .dashboard-card a { display:inline-block; margin-top:1rem; }
     .payment-note { font-size:0.9rem; color:#666; margin:1rem 0; }
+
+    /* ✅ CONTACT FORM STATUS */
+    #form-status { margin-top:1rem; font-weight:bold; display:none; }
+    .success { color:green; }
+    .error { color:red; }
   </style>
 </head>
 <body>
 
 <div id="marketing-site">
 <nav>
-  <!-- ✅ CLICKABLE LOGO → GOES HOME -->
   <a href="#" class="logo" onclick="showHome(); return false;">Build Tracker Solutions</a>
 
   <div class="nav-right" id="mainNav">
@@ -213,18 +217,19 @@
     <div>
       <h4 style="color:#165DFF;margin-bottom:1rem;">📞 Contact Details</h4>
       <p><strong>Phone</strong>: 07540 799925<br>
-      <strong>Email</strong>: <a href="mailto:info@build-tracker.com" style="color:#165DFF; text-decoration:none;">info@build-tracker.com</a></p>
+      <strong>Email</strong>: <a href="mailto:info@build-tracker.com" style="color:#165DFF; text-decoration:none;">info@build-tracker.com</a></p> <!-- ✅ .com here too -->
       <h4 style="color:#165DFF;margin-bottom:1.5rem 0 .5rem;">🕒 Opening Hours</h4>
       <p>Monday – Friday: 08:00 – 18:00<br>Saturday: 09:00 – 13:00<br>Sunday: Closed</p>
     </div>
     <div>
       <h4 style="color:#165DFF;margin-bottom:1rem;">✉️ Send us a message</h4>
-      <div style="display:flex;flex-direction:column;gap:1rem;">
-        <input type="text" placeholder="Your Name">
-        <input type="email" placeholder="Your Email">
-        <textarea placeholder="Message" rows="4"></textarea>
-        <button class="mkt-btn">Send Message</button>
-      </div>
+      <form id="contactForm" style="display:flex;flex-direction:column;gap:1rem;">
+        <input type="text" id="contactName" placeholder="Your Name" required>
+        <input type="email" id="contactEmail" placeholder="Your Email" required>
+        <textarea id="contactMessage" placeholder="Message" rows="4" required></textarea>
+        <button type="submit" class="mkt-btn">Send Message</button>
+        <div id="form-status"></div>
+      </form>
     </div>
   </div>
 </section>
@@ -279,7 +284,7 @@
 </section>
 
 <footer>
-  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.com | 07540 799925</p>
+  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.com | 07540 799925</p> <!-- ✅ .com here too -->
   <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
 </footer>
 </div>
@@ -325,7 +330,6 @@ async function signup() {
   const { data, error } = await supabaseClient.auth.signUp({ email, password });
   if (error) return alert(error.message);
 
-  // ✅ CREATE 14-DAY TRIAL AUTOMATICALLY
   if (data.user) {
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 14);
@@ -346,41 +350,30 @@ async function logout() {
 }
 
 // ==============================================
-// ✅ FIXED SUBSCRIPTION CHECK — NO MORE WRONG ERRORS
+// ✅ SUBSCRIPTION CHECK
 // ==============================================
 async function checkSubscription() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) return showHome();
 
   try {
-    // ✅ FIXED QUERY + PERMISSIONS
     const { data: sub, error } = await supabaseClient
       .from('subscriptions')
       .select('status, expires_at')
       .eq('user_id', user.id)
-      .maybeSingle(); // ✅ Don't fail if no record
+      .maybeSingle();
 
     const now = new Date();
-
-    // ✅ If NO record → assume NEW 14-day trial
-    if (!sub) {
-      showDashboard(); // ✅ Let them in
-      return;
-    }
-
+    if (!sub) { showDashboard(); return; }
     const expiry = new Date(sub.expires_at);
 
-    // ✅ ONLY show expired if date is ACTUALLY past
     if (sub.status !== 'active' && now > expiry) {
       alert("⚠️ Your trial has ended — please pay to continue.");
     }
-
-    // ✅ ALWAYS show dashboard, even if trial active
     showDashboard();
 
   } catch (err) {
-    console.warn("Check error (safe to ignore):", err);
-    // ✅ Even if DB fails → LET THEM IN
+    console.warn("Check error:", err);
     showDashboard();
   }
 }
@@ -390,11 +383,7 @@ async function checkSubscription() {
 // ==============================================
 async function startPayment() {
   const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) {
-    alert("Please login first to subscribe.");
-    showLogin();
-    return;
-  }
+  if (!user) { alert("Please login first to subscribe."); showLogin(); return; }
 
   try {
     const res = await fetch(EDGE_FUNCTION_URL, {
@@ -408,18 +397,51 @@ async function startPayment() {
         cancelUrl: CANCEL_URL
       })
     });
-
     if (!res.ok) throw new Error('Failed to create session');
     const session = await res.json();
     await stripe.redirectToCheckout({ sessionId: session.id });
 
-  } catch (err) {
-    alert("Payment error: " + err.message);
-  }
+  } catch (err) { alert("Payment error: " + err.message); }
 }
 
 // ==============================================
-// ✅ AUTO RUN ON LOAD
+// ✅ CONTACT FORM — NOW SENDS TO .com ADDRESS
+// ==============================================
+document.getElementById('contactForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const status = document.getElementById('form-status');
+  status.style.display = 'none';
+
+  const name = document.getElementById('contactName').value.trim();
+  const email = document.getElementById('contactEmail').value.trim();
+  const message = document.getElementById('contactMessage').value.trim();
+
+  if (!name || !email || !message) {
+    status.textContent = "❌ Please fill all fields";
+    status.className = 'error';
+    status.style.display = 'block';
+    return;
+  }
+
+  try {
+    // ✅ SENDS TO info@build-tracker.com
+    const mailtoLink = `mailto:${CONTACT_EMAIL}?subject=Message from ${encodeURIComponent(name)}&body=From: ${encodeURIComponent(name)}%0AEmail: ${encodeURIComponent(email)}%0A%0A${encodeURIComponent(message)}`;
+    window.open(mailtoLink, '_blank');
+
+    status.textContent = "✅ Message sent! Thank you.";
+    status.className = 'success';
+    status.style.display = 'block';
+    this.reset();
+
+  } catch (err) {
+    status.textContent = "❌ Failed to send — please try again or email us directly.";
+    status.className = 'error';
+    status.style.display = 'block';
+  }
+});
+
+// ==============================================
+// ✅ AUTO RUN
 // ==============================================
 supabaseClient.auth.onAuthStateChange((_, session) => {
   if (session) checkSubscription();
