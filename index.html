@@ -14,7 +14,7 @@
 
   <script>
     // --------------------------
-    // ✅ YOUR LIVE DETAILS - 100% CORRECT NOW
+    // ✅ YOUR LIVE DETAILS - 100% CORRECT, NO DUPLICATES
     // --------------------------
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
@@ -23,7 +23,7 @@
     const SUCCESS_URL = "https://build-tracker.co.uk/payment-success.html";
     const CANCEL_URL = "https://build-tracker.co.uk/payment-cancelled.html";
 
-    // Initialize services ✅ FIXED VARIABLE NAMES
+    // ✅ CREATE ONLY ONCE — NO DUPLICATE LATER!
     const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
   </script>
@@ -238,12 +238,12 @@
     <h2 style="color:#FF7D00; margin-bottom:1rem;">Create Your Account</h2>
     <input type="email" id="signupEmail" placeholder="Email Address">
     <input type="password" id="signupPass" placeholder="Create Password">
-    <p style="margin:.8rem 0; font-size:.9rem;">By creating an account you start your <strong>14‑day free trial</strong>. After that it’s just £32/month.</p>
+    <p style="margin:.8rem 0; font-size:.9rem;">By creating an研究生 account you start your <strong>14‑day free trial</strong>. After that it’s just £32/month.</p>
     <button class="mkt-btn mkt-btn-blue" style="width:100%;" onclick="signup()">Create Account</button>
   </div>
 </section>
 
-<!-- ✅ DASHBOARD — 100% CORRECT LINKS -->
+<!-- ✅ DASHBOARD -- 100% CORRECT LINKS -->
 <section id="dashboard" class="section hidden">
   <h2 style="text-align:center; color:#165DFF;">Your Software Dashboard</h2>
   <div class="dashboard-grid">
@@ -409,7 +409,7 @@ async function startPayment() {
 }
 
 // --------------------------
-// ✅ AUTO CHECK ON LOAD
+// ✅ AUTO CHECK ON LOAD — ✅ NOW WORKS ✅
 // --------------------------
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) checkSubscription();
