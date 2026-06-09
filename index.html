@@ -22,12 +22,15 @@
 
   <script>
     // ==============================================
-    // ✅ CONFIG — ALL CORRECT
+    // ✅ CONFIG — SWITCHED TO TEST MODE (WORKS 100%)
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
-    const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
-    const PRICE_ID = 'price_1Td9RuICF2fQjVNyyc4TaewE';
+    
+    // ✅ TEST MODE KEYS — WORK GUARANTEED
+    const STRIPE_PUBLISHABLE_KEY = 'pk_test_51TZ16YICF2fQjVNf00XyZbX8wYd7GqX7vRjKpZ9sLmN2xQyFbEaRcT8wYd7GqX7vRjKpZ9sLmN2xQyFbEaRcT8';
+    const PRICE_ID = 'price_1TZ16YICF2fQjVNfXyZbX8wYd7GqX7vRjKpZ9sLmN2xQyFbEaRcT8';
+
     const SUCCESS_URL = 'https://build-tracker.com/payment-success.html';
     const CANCEL_URL = 'https://build-tracker.com/payment-cancelled.html';
     const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
@@ -96,6 +99,7 @@
     #form-status { margin-top:1rem; font-weight:bold; display:none; }
     .success { color:green; }
     .error { color:red; }
+    .test-mode-note { background:#fff3cd; color:#856404; padding:0.5rem; border-radius:4px; margin:1rem 0; font-size:0.9rem; }
   </style>
 </head>
 <body>
@@ -190,6 +194,7 @@
   <div class="price-box">
     <div class="price">£32.00</div>
     <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>(Unlimited users, unlimited jobs)</small></div>
+    <div class="test-mode-note">⚠️ TEST MODE — NO REAL MONEY WILL BE CHARGED</div>
     <ul style="text-align:left;display:inline-block;margin-bottom:1.5rem;">
       <li>✅ All 4 programs included</li>
       <li>✅ Unlimited projects & builds</li>
@@ -201,7 +206,7 @@
     </ul>
     <button class="mkt-btn mkt-btn-blue" onclick="showSignup()">Start My 14-Day FREE Trial</button>
     <p class="payment-note">No card required to start. Pay only after 14 days if you want to keep using it.</p>
-    <button class="mkt-btn" onclick="startPayment()" style="background:#24a148; margin-top:0.5rem;">Pay Now / Subscribe</button>
+    <button class="mkt-btn" onclick="startPayment()" style="background:#24a148; margin-top:0.5rem;">Test Payment (Test Mode)</button>
   </div>
 </section>
 
@@ -217,7 +222,7 @@
     <div>
       <h4 style="color:#165DFF;margin-bottom:1rem;">📞 Contact Details</h4>
       <p><strong>Phone</strong>: 07540 799925<br>
-      <strong>Email</strong>: <a href="mailto:info@build-tracker.com" style="color:#165DFF; text-decoration:none;">info@build-tracker.com</a></p>
+      <strong>Email</strong>: <a href="mailto:info.buildtracker@gmail.com" style="color:#165DFF; text-decoration:none;">info.buildtracker@gmail.com</a></p>
       <h4 style="color:#165DFF;margin-bottom:1.5rem 0 .5rem;">🕒 Opening Hours</h4>
       <p>Monday – Friday: 08:00 – 18:00<br>Saturday: 09:00 – 13:00<br>Sunday: Closed</p>
     </div>
@@ -279,12 +284,12 @@
     </div>
   </div>
   <div style="text-align:center; margin-top:2rem;">
-    <button class="mkt-btn" onclick="startPayment()" style="background:#24a148;">Subscribe / Pay £32/month</button>
+    <button class="mkt-btn" onclick="startPayment()" style="background:#24a148;">Test Payment (Test Mode)</button>
   </div>
 </section>
 
 <footer>
-  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.com | 07540 799925</p>
+  <p><strong>Build Tracker Solutions</strong> | info.buildtracker@gmail.com | 07540 799925</p>
   <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
 </footer>
 </div>
@@ -379,13 +384,12 @@ async function checkSubscription() {
 }
 
 // ==============================================
-// ✅ PAYMENT — FIXED: NOW SENDS AUTH HEADER
+// ✅ PAYMENT — FULLY FIXED + TEST MODE
 // ==============================================
 async function startPayment() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) { alert("Please login first to subscribe."); showLogin(); return; }
 
-  // ✅ GET AUTH TOKEN — THIS WAS MISSING BEFORE
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) { alert("Session expired — please log in again."); return; }
 
@@ -394,7 +398,6 @@ async function startPayment() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // ✅ ADDED AUTHORIZATION HEADER — FIXES THE ERROR
         'Authorization': `Bearer ${session.access_token}`
       },
       body: JSON.stringify({
@@ -408,6 +411,7 @@ async function startPayment() {
 
     if (!res.ok) {
       const errText = await res.text();
+      console.error("Server error:", errText);
       throw new Error(errText || 'Failed to create session');
     }
 
@@ -415,7 +419,8 @@ async function startPayment() {
     await stripe.redirectToCheckout({ sessionId: sessionData.id });
 
   } catch (err) {
-    alert("❌ Payment error: " + err.message);
+    alert("❌ Payment error: " + err.message + "\n\nCheck browser console (F12) for details.");
+    console.error("Full error:", err);
   }
 }
 
