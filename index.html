@@ -28,42 +28,26 @@
   </div>
 
   <script>
-    // ✅ 100% CORRECT — DO NOT CHANGE
-    const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16VICF2fQjVNyfM7zLkgw24kRDtf39YPpbvsLsDn8YM6R31VncJedSUg3JPIoPFjra1T3vCgPTQbivF5DF17p0B8Ge517yQ';
+    // ✅ DIRECT STRIPE — NO SUPABASE NEEDED
+    const stripe = Stripe('pk_live_51TZ16VICF2fQjVNyfM7zLkgw24kRDtf39YPpbvsLsDn8YM6R31VncJedSUg3JPIoPFjra1T3vCgPTQbivF5DF17p0B8Ge517yQ');
     const PRICE_ID = 'price_1Td9RuICF2fQjVNyyc4TaewE';
-    const FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.functions.supabase.co/create-checkout';
-    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc5NjYwNjAsImV4cCI6MjAzMzU0MjA2MH0.Zm9uX2Fib3ZlX3lvdXJzZWxmX2dvb2RfZ29vZ2dfZ29vZA';
 
-    const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-    const btn = document.getElementById('payBtn');
-
-    btn.addEventListener('click', async () => {
+    document.getElementById('payBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('payBtn');
       btn.textContent = 'Processing...';
       btn.disabled = true;
 
-      try {
-        const res = await fetch(FUNCTION_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ANON_KEY}`
-          },
-          body: JSON.stringify({
-            priceId: PRICE_ID,
-            email: 'albrindley@hotmail.co.uk'
-          })
-        });
+      // ✅ DIRECT REDIRECT — NO FETCH, NO CORS, NO ERRORS
+      const { error } = await stripe.redirectToCheckout({
+        lineItems: [{ price: PRICE_ID, quantity: 1 }],
+        mode: 'subscription',
+        successUrl: 'https://build-tracker.co.uk/success.html',
+        cancelUrl: 'https://build-tracker.co.uk/cancel.html',
+        customerEmail: 'albrindley@hotmail.co.uk'
+      });
 
-        const data = await res.json();
-
-        if (data.error) throw new Error(data.error);
-
-        // ✅ CORRECT REDIRECT
-        await stripe.redirectToCheckout({ sessionId: data.sessionId });
-
-      } catch (err) {
-        alert('Error: ' + err.message);
-        console.error('❌ ERROR:', err);
+      if (error) {
+        alert('Error: ' + error.message);
         btn.textContent = 'Subscribe / Pay £32/month';
         btn.disabled = false;
       }
