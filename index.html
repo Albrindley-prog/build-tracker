@@ -4,16 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Build Tracker Solutions | Subscribe</title>
-  <script src="https://js.stripe.com/v3/"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
     body { background: #f8fafc; padding: 2rem; }
     .container { max-width: 600px; margin: 0 auto; background: white; padding: 3rem 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); text-align: center; }
     h1 { font-size: 1.8rem; margin-bottom: 1rem; color: #1e293b; }
     .price { font-size: 2.2rem; color: #2563eb; margin: 1.5rem 0; font-weight: 700; }
-    .subscribe-btn { background: #2563eb; color: white; border: none; padding: 1rem 2.5rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; transition: background 0.2s; }
+    .subscribe-btn { background: #2563eb; color: white; border: none; padding: 1rem 2.5rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; text-decoration: none; display: inline-block; transition: background 0.2s; }
     .subscribe-btn:hover { background: #1d4ed8; }
-    .subscribe-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .note { margin-top: 1.5rem; font-size: 0.9rem; color: #64748b; }
   </style>
 </head>
@@ -23,36 +21,14 @@
     <h1>Build Tracker Solutions</h1>
     <p>Full Access Subscription — 14 Days Free Trial</p>
     <div class="price">£32.00 <span style="font-size:1rem; font-weight:normal;">/ month</span></div>
-    <button class="subscribe-btn" id="payBtn">Subscribe / Pay £32/month</button>
+    
+    <!-- ✅ YOUR FINAL WORKING LINK -->
+    <a href="https://buy.stripe.com/cNi9AUGGd2ed960yrbsc00" target="_blank" class="subscribe-btn">
+      Subscribe / Pay £32/month
+    </a>
+
     <p class="note">Secure payment powered by Stripe</p>
   </div>
-
-  <script>
-    // ✅ YOUR EXACT, CORRECT PUBLISHABLE KEY — NO MISTAKES
-    const stripe = Stripe('pk_live_51TZl6YICF2fQjVNyfM7zLkgw24kRiDtf39YPpbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSDf17p00bGe517yQ');
-    const PRICE_ID = 'price_1Td9RuICF2fQjVNyyc4TaewE';
-
-    document.getElementById('payBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('payBtn');
-      btn.textContent = 'Processing...';
-      btn.disabled = true;
-
-      // ✅ DIRECT STRIPE CHECKOUT — NO SUPABASE, NO ERRORS
-      const { error } = await stripe.redirectToCheckout({
-        lineItems: [{ price: PRICE_ID, quantity: 1 }],
-        mode: 'subscription',
-        successUrl: 'https://build-tracker.co.uk/success.html',
-        cancelUrl: 'https://build-tracker.co.uk/cancel.html',
-        customerEmail: 'albrindley@hotmail.co.uk'
-      });
-
-      if (error) {
-        alert('Error: ' + error.message);
-        btn.textContent = 'Subscribe / Pay £32/month';
-        btn.disabled = false;
-      }
-    });
-  </script>
 
 </body>
 </html>
