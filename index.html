@@ -1,116 +1,33 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Build Tracker Solutions | Subscription</title>
-  <!-- ✅ Official Stripe JS -->
   <script src="https://js.stripe.com/v3/"></script>
-  
-  <!-- ✅ FULL STYLING & LAYOUT -->
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-    }
-    body {
-      background-color: #f8fafc;
-      color: #1e293b;
-      line-height: 1.6;
-    }
-    /* Header / Navigation */
-    header {
-      background: #1e293b;
-      color: white;
-      padding: 1.2rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .logo {
-      font-size: 1.3rem;
-      font-weight: 700;
-    }
-    nav a {
-      color: #e2e8f0;
-      text-decoration: none;
-      margin-left: 1.5rem;
-    }
-    nav a:hover {
-      color: white;
-    }
-    /* Main Container */
-    .container {
-      max-width: 800px;
-      margin: 3rem auto;
-      padding: 0 2rem;
-    }
-    .card {
-      background: white;
-      padding: 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    }
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      color: #1e293b;
-    }
-    .price {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: #2563eb;
-      margin: 1.5rem 0;
-    }
-    .features {
-      margin: 2rem 0;
-      padding-left: 1.2rem;
-    }
-    .features li {
-      margin: 0.7rem 0;
-      list-style: none;
-      position: relative;
-    }
-    .features li::before {
-      content: "✓";
-      color: #16a34a;
-      font-weight: bold;
-      position: absolute;
-      left: -1.2rem;
-    }
-    /* ✅ SUBSCRIBE BUTTON — WORKING */
-    .subscribe-btn {
-      width: 100%;
-      padding: 16px 28px;
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    .subscribe-btn:hover { 
-      background: #1d4ed8; 
-    }
-    .subscribe-btn:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
-    .note {
-      margin-top: 1.5rem;
-      font-size: 0.9rem;
-      color: #64748b;
-      text-align: center;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+    body { background-color: #f8fafc; color: #1e293b; line-height: 1.6; }
+    header { background: #1e293b; color: white; padding: 1.2rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.3rem; font-weight: 700; }
+    nav a { color: #e2e8f0; text-decoration: none; margin-left: 1.5rem; }
+    nav a:hover { color: white; }
+    .container { max-width: 800px; margin: 3rem auto; padding: 0 2rem; }
+    .card { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    h1 { font-size: 2rem; margin-bottom: 1rem; color: #1e293b; }
+    .price { font-size: 2.5rem; font-weight: 700; color: #2563eb; margin: 1.5rem 0; }
+    .features { margin: 2rem 0; padding-left: 1.2rem; }
+    .features li { margin: 0.7rem 0; list-style: none; position: relative; }
+    .features li::before { content: "✓"; color: #16a34a; font-weight: bold; position: absolute; left: -1.2rem; }
+    .subscribe-btn { width: 100%; padding: 16px 28px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: background 0.3s ease; }
+    .subscribe-btn:hover { background: #1d4ed8; }
+    .subscribe-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+    .note { margin-top: 1.5rem; font-size: 0.9rem; color: #64748b; text-align: center; }
+    footer { text-align:center; padding:2rem; color:#64748b; font-size:0.9rem; }
   </style>
 </head>
 <body>
-
-  <!-- ✅ HEADER / NAV -->
   <header>
     <div class="logo">Build Tracker Solutions</div>
     <nav>
@@ -121,14 +38,11 @@
     </nav>
   </header>
 
-  <!-- ✅ MAIN CONTENT -->
   <main class="container">
     <div class="card">
       <h1>Unlock Full Access to Build Tracker</h1>
       <p>Get everything you need to manage your construction projects, costs, and timelines in one place.</p>
-
       <div class="price">£32.00 <span style="font-size:1rem; font-weight:normal;">/ month</span></div>
-
       <ul class="features">
         <li>Unlimited projects & cost tracking</li>
         <li>Real-time budget monitoring</li>
@@ -137,47 +51,32 @@
         <li>Monthly reports & analytics</li>
         <li>Priority email support</li>
       </ul>
-
-      <!-- ✅ SUBSCRIBE BUTTON — FULLY WORKING -->
-      <button class="subscribe-btn" id="subscribeBtn">
-        Start Monthly Subscription
-      </button>
-
+      <button class="subscribe-btn" id="subscribeBtn">Start Monthly Subscription</button>
       <p class="note">Secure payment powered by Stripe. Cancel anytime.</p>
     </div>
   </main>
 
-  <!-- ✅ FOOTER -->
-  <footer style="text-align:center; padding:2rem; color:#64748b; font-size:0.9rem;">
-    © 2026 Build Tracker Solutions. All rights reserved.
-  </footer>
+  <footer>© 2026 Build Tracker Solutions. All rights reserved.</footer>
 
-
-  <!-- ✅ WORKING PAYMENT SCRIPT — DO NOT CHANGE ANYTHING HERE -->
   <script>
-    // ==============================================
-    // ✅ YOUR LIVE VALUES — ALREADY CORRECT
-    // ==============================================
+    // ✅ YOUR LIVE VALUES — CORRECT
     const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16VICF2fQjVNyfM7zLkgw24kRDtf39YPpbvsLsDn8YM6R31VncJedSUg3JPIoPFjra1T3vCgPTQbivF5DF17p0B8Ge517yQ';
     const STRIPE_PRICE_ID = 'price_1Td9RuICF2fQjVNyyc4TaewE';
 
-    // ==============================================
-    // ✅ REPLACE THESE 2 VALUES ONLY
-    // ==============================================
-    const SUPABASE_FUNCTION_URL = 'https://YOUR-PROJECT-ID.functions.supabase.co/create-checkout-session';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // ← PASTE YOUR FULL ANON KEY HERE
+    // ✅ YOUR PROJECT ID — ALREADY FILLED ✅
+    const SUPABASE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.functions.supabase.co/create-checkout-session';
 
-    // ✅ Initialize Stripe
+    // ✅ PASTE YOUR ANON KEY HERE (from API Keys page)
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
+
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
-    // ✅ Button click handler — 100% FIXED
     document.getElementById('subscribeBtn').addEventListener('click', async () => {
       try {
         const btn = document.getElementById('subscribeBtn');
         btn.textContent = 'Processing...';
         btn.disabled = true;
 
-        // ✅ Call your Supabase function
         const response = await fetch(SUPABASE_FUNCTION_URL, {
           method: 'POST',
           headers: {
@@ -186,18 +85,16 @@
           },
           body: JSON.stringify({
             priceId: STRIPE_PRICE_ID,
-            userId: 'user_12345', // ✅ Replace with actual logged-in user ID
-            email: 'user@example.com', // ✅ Replace with actual user email
+            userId: 'test_user_001',
+            email: 'albrindley@hotmail.co.uk', // ✅ Your email
             successUrl: window.location.origin + '/success.html',
             cancelUrl: window.location.origin + '/cancel.html'
           })
         });
 
         const data = await response.json();
-
         if (data.error) throw new Error(data.error);
 
-        // ✅ Redirect to Stripe — CORRECT MODERN METHOD
         await stripe.redirectToCheckout({ sessionId: data.id });
 
       } catch (err) {
@@ -209,6 +106,5 @@
       }
     });
   </script>
-
 </body>
 </html>
