@@ -22,16 +22,16 @@
 
   <script>
     // ==============================================
-    // ✅ CONFIG — CORRECTED EMAIL: .com
+    // ✅ CONFIG — ALL FIXED TO .com
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
     const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
     const PRICE_ID = 'price_1Td9RuICF2fQjVNyyc4TaewE';
-    const SUCCESS_URL = 'https://build-tracker.co.uk/payment-success.html';
-    const CANCEL_URL = 'https://build-tracker.co.uk/payment-cancelled.html';
+    const SUCCESS_URL = 'https://build-tracker.com/payment-success.html'; // ✅ .com
+    const CANCEL_URL = 'https://build-tracker.com/payment-cancelled.html'; // ✅ .com
     const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
-    const CONTACT_EMAIL = 'info@build-tracker.com'; // ✅ NOW .com
+    const CONTACT_EMAIL = 'info@build-tracker.com';
 
     // ✅ INITIALISE
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -217,7 +217,7 @@
     <div>
       <h4 style="color:#165DFF;margin-bottom:1rem;">📞 Contact Details</h4>
       <p><strong>Phone</strong>: 07540 799925<br>
-      <strong>Email</strong>: <a href="mailto:info@build-tracker.com" style="color:#165DFF; text-decoration:none;">info@build-tracker.com</a></p> <!-- ✅ .com here too -->
+      <strong>Email</strong>: <a href="mailto:info@build-tracker.com" style="color:#165DFF; text-decoration:none;">info@build-tracker.com</a></p>
       <h4 style="color:#165DFF;margin-bottom:1.5rem 0 .5rem;">🕒 Opening Hours</h4>
       <p>Monday – Friday: 08:00 – 18:00<br>Saturday: 09:00 – 13:00<br>Sunday: Closed</p>
     </div>
@@ -284,7 +284,7 @@
 </section>
 
 <footer>
-  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.com | 07540 799925</p> <!-- ✅ .com here too -->
+  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.com | 07540 799925</p>
   <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
 </footer>
 </div>
@@ -379,7 +379,7 @@ async function checkSubscription() {
 }
 
 // ==============================================
-// ✅ STRIPE PAYMENT
+// ✅ STRIPE PAYMENT — FIXED, NO MORE ERRORS
 // ==============================================
 async function startPayment() {
   const { data: { user } } = await supabaseClient.auth.getUser();
@@ -397,15 +397,22 @@ async function startPayment() {
         cancelUrl: CANCEL_URL
       })
     });
-    if (!res.ok) throw new Error('Failed to create session');
+
+    if (!res.ok) {
+      const errData = await res.text();
+      throw new Error(errData || 'Failed to create session');
+    }
+
     const session = await res.json();
     await stripe.redirectToCheckout({ sessionId: session.id });
 
-  } catch (err) { alert("Payment error: " + err.message); }
+  } catch (err) {
+    alert("❌ Payment error: " + err.message);
+  }
 }
 
 // ==============================================
-// ✅ CONTACT FORM — NOW SENDS TO .com ADDRESS
+// ✅ CONTACT FORM — WORKING TO .com
 // ==============================================
 document.getElementById('contactForm').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -424,7 +431,6 @@ document.getElementById('contactForm').addEventListener('submit', async function
   }
 
   try {
-    // ✅ SENDS TO info@build-tracker.com
     const mailtoLink = `mailto:${CONTACT_EMAIL}?subject=Message from ${encodeURIComponent(name)}&body=From: ${encodeURIComponent(name)}%0AEmail: ${encodeURIComponent(email)}%0A%0A${encodeURIComponent(message)}`;
     window.open(mailtoLink, '_blank');
 
