@@ -22,14 +22,14 @@
 
   <script>
     // ==============================================
-    // ✅ CONFIG — ALL FIXED TO .com
+    // ✅ CONFIG — ALL CORRECT
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
     const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
     const PRICE_ID = 'price_1Td9RuICF2fQjVNyyc4TaewE';
-    const SUCCESS_URL = 'https://build-tracker.com/payment-success.html'; // ✅ .com
-    const CANCEL_URL = 'https://build-tracker.com/payment-cancelled.html'; // ✅ .com
+    const SUCCESS_URL = 'https://build-tracker.com/payment-success.html';
+    const CANCEL_URL = 'https://build-tracker.com/payment-cancelled.html';
     const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
     const CONTACT_EMAIL = 'info@build-tracker.com';
 
@@ -379,16 +379,24 @@ async function checkSubscription() {
 }
 
 // ==============================================
-// ✅ STRIPE PAYMENT — FIXED, NO MORE ERRORS
+// ✅ PAYMENT — FIXED: NOW SENDS AUTH HEADER
 // ==============================================
 async function startPayment() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) { alert("Please login first to subscribe."); showLogin(); return; }
 
+  // ✅ GET AUTH TOKEN — THIS WAS MISSING BEFORE
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) { alert("Session expired — please log in again."); return; }
+
   try {
     const res = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // ✅ ADDED AUTHORIZATION HEADER — FIXES THE ERROR
+        'Authorization': `Bearer ${session.access_token}`
+      },
       body: JSON.stringify({
         priceId: PRICE_ID,
         userId: user.id,
@@ -399,12 +407,12 @@ async function startPayment() {
     });
 
     if (!res.ok) {
-      const errData = await res.text();
-      throw new Error(errData || 'Failed to create session');
+      const errText = await res.text();
+      throw new Error(errText || 'Failed to create session');
     }
 
-    const session = await res.json();
-    await stripe.redirectToCheckout({ sessionId: session.id });
+    const sessionData = await res.json();
+    await stripe.redirectToCheckout({ sessionId: sessionData.id });
 
   } catch (err) {
     alert("❌ Payment error: " + err.message);
@@ -412,7 +420,7 @@ async function startPayment() {
 }
 
 // ==============================================
-// ✅ CONTACT FORM — WORKING TO .com
+// ✅ CONTACT FORM — WORKING
 // ==============================================
 document.getElementById('contactForm').addEventListener('submit', async function(e) {
   e.preventDefault();
