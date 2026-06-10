@@ -6,6 +6,7 @@
 <title>Stock Control V2</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
 <script>
@@ -13,6 +14,16 @@ const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
 const HDR = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
 const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+
+// --------------------------
+// PAYMENT & TRIAL CONFIG
+// --------------------------
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';// ← Replace with your Stripe key
+const TRIAL_DAYS = 14;
+const MONTHLY_PRICE = 32.00;
+const CURRENCY = 'gbp';
+let stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+let elements, card;
 </script>
 
 <style>
@@ -179,6 +190,61 @@ body {
 .auth-msg.error   { background: rgba(255,71,87,0.12); color: #ff6b7a; border: 1px solid rgba(255,71,87,0.25); display: block; }
 .auth-msg.success { background: rgba(0,212,170,0.10); color: var(--accent2); border: 1px solid rgba(0,212,170,0.25); display: block; }
 
+.trial-note {
+    background: rgba(0,212,170,0.08);
+    border: 1px solid rgba(0,212,170,0.2);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+/* ───── BILLING SCREEN ───── */
+#billingScreen {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(22,93,255,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,212,170,0.08) 0%, transparent 70%),
+        var(--bg);
+}
+
+.billing-box {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    text-align: center;
+}
+
+.billing-box h2 {
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+
+.billing-box .price {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 16px 0;
+}
+
+#stripe-card-element {
+    background: var(--input-bg);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 16px 0;
+}
+
 /* ───── APP SCREEN ───── */
 #appScreen { display: none; }
 
@@ -208,6 +274,15 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.trial-badge {
+    font-size: 11px;
+    background: rgba(0,212,170,0.15);
+    color: var(--accent2);
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 500;
 }
 
 .user-email {
@@ -460,6 +535,8 @@ tbody td {
         <div class="auth-title">Welcome back</div>
         <div class="auth-sub">Sign in to manage your stock</div>
 
+        <div class="trial-note">✅ 14 Days Free Trial — then £32.00 per month</div>
+
         <div class="auth-tabs">
             <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
             <button class="auth-tab" onclick="switchTab('register')">Create Account</button>
@@ -499,12 +576,24 @@ tbody td {
     </div>
 </div>
 
+<!-- ═══ BILLING SCREEN ═══ -->
+<div id="billingScreen">
+    <div class="billing-box">
+        <h2>Subscription Required</h2>
+        <div id="billingMessage"></div>
+        <div id="stripe-card-element"></div>
+        <button class="auth-btn" id="subscribeBtn">Subscribe £32.00/month</button>
+        <button class="btn btn-ghost" onclick="doLogout()" style="margin-top:12px;width:100%;">Sign Out</button>
+    </div>
+</div>
+
 <!-- ═══ APP SCREEN ═══ -->
 <div id="appScreen">
 
     <div class="topbar">
         <div class="topbar-brand">📦 Stock Control V2</div>
         <div class="topbar-user">
+            <span class="trial-badge" id="trialBadge"></span>
             <span class="user-email" id="userEmail"></span>
             <button class="logout-btn" onclick="doLogout()">Sign Out</button>
         </div>
@@ -607,6 +696,7 @@ tbody td {
 let stock = [];
 let logs  = [];
 let currentUser = null;
+let userData = null;
 
 // ═══ AUTH ═══
 
@@ -631,6 +721,86 @@ function clearMsg() {
     el.textContent = '';
 }
 
+// --------------------------
+// TRIAL & PAYMENT FUNCTIONS
+// --------------------------
+function daysRemaining() {
+    if(!userData || !userData.signup_date) return 0;
+    const signup = new Date(userData.signup_date);
+    const now = new Date();
+    const diff = TRIAL_DAYS - Math.floor((now - signup) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+}
+
+async function checkAccess() {
+    const days = daysRemaining();
+    if(days > 0 || userData.subscribed) {
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('billingScreen').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+        document.getElementById('trialBadge').textContent = days > 0 ? `${days} days trial left` : '✓ Subscribed';
+        loadData();
+    } else {
+        showBilling();
+    }
+}
+
+function showBilling() {
+    const days = daysRemaining();
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('billingScreen').style.display = 'flex';
+
+    const msgEl = document.getElementById('billingMessage');
+    if(days > 0) {
+        msgEl.innerHTML = `<p style="color:var(--accent2);margin-bottom:16px;">✅ ${days} days of free trial remaining</p>`;
+    } else {
+        msgEl.innerHTML = `<p style="color:var(--danger);margin-bottom:16px;">❌ Your free trial has ended. Subscribe now to continue.</p>`;
+    }
+
+    if(!elements) {
+        elements = stripe.elements();
+        card = elements.create('card', {
+            style: { base: { color: '#e8eaf2', fontSize: '14px' } }
+        });
+        card.mount('#stripe-card-element');
+    }
+
+    document.getElementById('subscribeBtn').onclick = async () => {
+        const {error} = await stripe.createPaymentMethod({ type: 'card', card });
+        if(error) return alert(error.message);
+
+        // In production: send to server to create subscription
+        const { error: updateError } = await sbClient.from('users').update({
+            subscribed: true,
+            last_payment: new Date().toISOString()
+        }).eq('id', currentUser.id);
+
+        if(updateError) return alert(updateError.message);
+
+        userData.subscribed = true;
+        alert('Subscription successful! Thank you.');
+        checkAccess();
+    };
+}
+
+async function getUserData() {
+    const { data, error } = await sbClient.from('users').select('*').eq('id', currentUser.id).single();
+    if(!data) {
+        // Create new user record if first login
+        const newUser = {
+            id: currentUser.id,
+            email: currentUser.email,
+            signup_date: new Date().toISOString(),
+            subscribed: false
+        };
+        await sbClient.from('users').insert(newUser);
+        userData = newUser;
+    } else {
+        userData = data;
+    }
+}
+
 async function doLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const pass  = document.getElementById('loginPass').value;
@@ -644,7 +814,10 @@ async function doLogin() {
     btn.disabled = false; btn.textContent = 'Sign In';
 
     if (error) { showMsg(error.message); return; }
-    enterApp(data.user);
+    
+    currentUser = data.user;
+    await getUserData();
+    checkAccess();
 }
 
 async function doRegister() {
@@ -665,11 +838,10 @@ async function doRegister() {
 
     if (error) { showMsg(error.message); return; }
 
-    // If email confirmation is disabled in Supabase, user session is returned immediately
-    if (data.session) {
-        enterApp(data.user);
-    } else {
-        showMsg('Account created! Check your email to confirm, then sign in.', 'success');
+    if (data.user) {
+        currentUser = data.user;
+        await getUserData();
+        showMsg('Account created! Your 14-day free trial starts now.', 'success');
         switchTab('login');
     }
 }
@@ -677,17 +849,15 @@ async function doRegister() {
 async function doLogout() {
     await sbClient.auth.signOut();
     currentUser = null;
+    userData = null;
     stock = []; logs = [];
     document.getElementById('appScreen').style.display  = 'none';
+    document.getElementById('billingScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
 }
 
 function enterApp(user) {
-    currentUser = user;
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('appScreen').style.display  = 'block';
-    document.getElementById('userEmail').textContent = user.email;
-    loadData();
+    // Not used directly — we use checkAccess instead
 }
 
 // ═══ DATA ═══
@@ -806,7 +976,9 @@ function importBackup(event) {
 (async () => {
     const { data: { session } } = await sbClient.auth.getSession();
     if (session) {
-        enterApp(session.user);
+        currentUser = session.user;
+        await getUserData();
+        checkAccess();
     }
 })();
 </script>
