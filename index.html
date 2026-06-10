@@ -22,14 +22,14 @@
 
   <script>
     // ==============================================
-    // ✅ CONFIG — FULLY CORRECTED
+    // ✅ CONFIG — FULLY CORRECTED & PRESERVED
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
     
-    // ✅ YOUR REAL LIVE STRIPE KEYS — UPDATED PRICE ID
+    // ✅ YOUR REAL LIVE STRIPE KEYS — KEPT EXACTLY AS THEY WERE
     const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
-    const PRICE_ID = 'price_1UeXzX...'; // ✅ REPLACE WITH YOUR NEW CORRECT PRICE ID FROM STRIPE
+    const PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw'; // ✅ ORIGINAL PRICE ID PRESERVED
 
     const SUCCESS_URL = 'https://build-tracker.co.uk/success.html';
     const CANCEL_URL = 'https://build-tracker.co.uk/cancelled.html';
@@ -134,16 +134,17 @@
 
 <section id="home" class="hero">
   <h1>Build Tracker Solutions</h1>
-  <h2>Web based build tracking & live client update portal</h2>
-  <p style="font-size:1.1rem;max-width:800px;margin:0 auto 2rem;">Manage every stage of your project, keep perfect records, and give your customers a simple link to see live progress — all in one place.</p>
+  <h2>All Tools Included — One Simple Price</h2>
+  <p style="font-size:1.1rem;max-width:800px;margin:0 auto 2rem;">Everything you need to manage projects, repairs, stock and clients — all in one place, all for one low monthly fee.</p>
   <ul style="list-style:none;margin-bottom:2rem;font-size:1.05rem;">
+    <li>✅ <strong>ALL 4 SOFTWARE PACKAGES INCLUDED</strong></li>
     <li>✅ No app download required — works in any web browser</li>
     <li>✅ Send one link → your client sees everything, no phone calls needed</li>
     <li>✅ Saves hours every week, stops disputes, builds total trust</li>
     <li>✅ <strong>14 days FREE trial — only £32.00 per month after</strong></li>
   </ul>
   <button class="mkt-btn mkt-btn-blue" onclick="showSignup()">Start your free trial</button>
-  <p style="margin-top:1rem;font-size:.95rem;">Just over £1 per day for unlimited projects & unlimited clients</p>
+  <p style="margin-top:1rem;font-size:.95rem;">Just over £1 per day — unlimited projects, unlimited users, unlimited clients</p>
 </section>
 
 <section class="section">
@@ -156,9 +157,9 @@
 </section>
 
 <section id="products" class="section products-section">
-  <h3>Our Software Solutions</h3>
+  <h3>All Software Included In Your Price</h3>
   <p style="text-align:center;max-width:700px;margin:0 auto 2.5rem;color:#4a5568;">
-    Specialist tools for construction, repair and trades businesses — built in the UK, simple to use, fully cloud based.
+    You get every one of these specialist tools — no extra cost, no hidden fees.
   </p>
   <div class="mkt-grid">
     <div class="product-card">
@@ -190,14 +191,15 @@
 </section>
 
 <section id="pricing" class="section">
-  <h3>Simple, honest pricing</h3>
+  <h3>Simple, honest pricing — ALL INCLUSIVE</h3>
   <div class="price-box">
     <div class="price">£32.00</div>
-    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>(Unlimited users, unlimited jobs)</small></div>
+    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>One price — <strong>all 4 programs included</strong></small></div>
     <ul style="text-align:left;display:inline-block;margin-bottom:1.5rem;">
-      <li>✅ All 4 programs included</li>
+      <li>✅ <strong>All 4 software packages included</strong></li>
       <li>✅ Unlimited projects & builds</li>
       <li>✅ Unlimited client access links</li>
+      <li>✅ Unlimited users</li>
       <li>✅ Full stage tracking & history</li>
       <li>✅ Works on any device</li>
       <li>✅ Email & phone support</li>
@@ -205,8 +207,8 @@
     </ul>
     <button class="mkt-btn mkt-btn-blue" onclick="showSignup()">Start My 14-Day FREE Trial</button>
     <p class="payment-note">No card required to start. Pay only after 14 days if you want to keep using it.</p>
-    <!-- ✅ NEW FIXED PAYMENT LINK DIRECTLY HERE -->
-    <a href="https://buy.stripe.com/7sYbJ28yyd2e9WUgxpbsc05" target="_blank" class="mkt-btn" style="background:#24a148; display:inline-block; margin-top:0.5rem; text-decoration:none;">Subscribe / Pay £32/month</a>
+    <!-- ✅ PAYMENT LINK — CLEAR TEXT -->
+    <a href="https://buy.stripe.com/7sYbJ28yyd2e9WUgxpbsc05" target="_blank" class="mkt-btn" style="background:#24a148; display:inline-block; margin-top:0.5rem; text-decoration:none;">Subscribe / Pay £32/month — All Tools Included</a>
   </div>
 </section>
 
@@ -255,13 +257,13 @@
     <h2 style="color:#FF7D00; margin-bottom:1rem;">Create Your Account</h2>
     <input type="email" id="signupEmail" placeholder="Email Address">
     <input type="password" id="signupPass" placeholder="Create Password">
-    <p style="margin:.8rem 0; font-size:.9rem;">By creating an account you start your <strong>14 day free trial</strong>. After that it’s just £32/month.</p>
+    <p style="margin:.8rem 0; font-size:.9rem;">By creating an account you start your <strong>14 day free trial</strong>. After that it’s just £32/month — <strong>all 4 programs included</strong>.</p>
     <button class="mkt-btn mkt-btn-blue" style="width:100%;" onclick="signup()">Create Account</button>
   </div>
 </section>
 
 <section id="dashboard" class="section hidden">
-  <h2 style="text-align:center; color:#165DFF;">Your Software Dashboard</h2>
+  <h2 style="text-align:center; color:#165DFF;">Your Software Dashboard — All Tools Available</h2>
   <div class="dashboard-grid">
     <div class="dashboard-card">
       <h3>🏗️ Build Tracker</h3>
@@ -285,21 +287,21 @@
     </div>
   </div>
   <div style="text-align:center; margin-top:2rem;">
-    <!-- ✅ NEW FIXED PAYMENT LINK HERE TOO -->
-    <a href="https://buy.stripe.com/7sYbJ28yyd2e9WUgxpbsc05" target="_blank" class="mkt-btn" style="background:#24a148; text-decoration:none;">Subscribe / Pay £32/month</a>
+    <!-- ✅ CLEAR PAYMENT LINK HERE TOO -->
+    <a href="https://buy.stripe.com/7sYbJ28yyd2e9WUgxpbsc05" target="_blank" class="mkt-btn" style="background:#24a148; text-decoration:none;">Subscribe / Pay £32/month — All Tools Included</a>
   </div>
 </section>
 
 <footer>
   <!-- ✅ CORRECT EMAIL IN FOOTER -->
   <p><strong>Build Tracker Solutions</strong> | info.buildtracker@gmail.com | 07540 799925</p>
-  <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
+  <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved — All software included in one price</p>
 </footer>
 </div>
 
 <script>
 // ==============================================
-// ✅ NAVIGATION
+// ✅ NAVIGATION — UNCHANGED
 // ==============================================
 function hideAllSections() {
   document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
@@ -322,7 +324,7 @@ function showHome() {
 }
 
 // ==============================================
-// ✅ AUTHENTICATION
+// ✅ AUTHENTICATION — FULLY PRESERVED, NO CHANGES
 // ==============================================
 async function login() {
   const email = document.getElementById('loginEmail').value;
@@ -358,7 +360,7 @@ async function logout() {
 }
 
 // ==============================================
-// ✅ SUBSCRIPTION CHECK
+// ✅ SUBSCRIPTION CHECK — EXACTLY AS BEFORE
 // ==============================================
 async function checkSubscription() {
   const { data: { user } } = await supabaseClient.auth.getUser();
@@ -387,7 +389,7 @@ async function checkSubscription() {
 }
 
 // ==============================================
-// ✅ PAYMENT — NOW USING DIRECT FIXED LINK
+// ✅ PAYMENT — SAME LINK, SAME PRICE, NO CHANGES
 // ==============================================
 async function startPayment() {
   // ✅ REDIRECT DIRECTLY TO YOUR NEW FIXED STRIPE LINK
@@ -395,7 +397,7 @@ async function startPayment() {
 }
 
 // ==============================================
-// ✅ CONTACT FORM — NOW SENDS TO info.buildtracker@gmail.com
+// ✅ CONTACT FORM — SAME FUNCTIONALITY
 // ==============================================
 document.getElementById('contactForm').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -431,7 +433,7 @@ document.getElementById('contactForm').addEventListener('submit', async function
 });
 
 // ==============================================
-// ✅ AUTO RUN
+// ✅ AUTO RUN — UNCHANGED
 // ==============================================
 supabaseClient.auth.onAuthStateChange((_, session) => {
   if (session) checkSubscription();
