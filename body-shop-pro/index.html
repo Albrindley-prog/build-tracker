@@ -515,16 +515,11 @@ const sb = createClient(
 );
 
 
-// ----- STRIPE / SUBSCRIPTION CONFIG -----
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ'; // ← YOUR LIVE KEY
-const STRIPE_PRICE_ID        = "price_1TgOwNICF2fQjVNyZi4seWgw"; // ← YOUR PRICE ID
-const SUBSCRIPTION_AMOUNT    = 3200;  // £32.00 in pence
-const SUBSCRIPTION_CURRENCY  = "gbp";
-const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-
 // ── STRIPE CONFIG ─────────────────────────────────────────────
-// (Kept for reference — above config is the active one)
-// const STRIPE_PUBLIC_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
+// Replace with YOUR actual LIVE public key
+const STRIPE_PUBLIC_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ'; // 
+const STRIPE_PRICE_ID        = "price_1TgOwNICF2fQjVNyZi4seWgw"; // ← replace with your Price ID<-- PUT YOUR LIVE KEY HERE
+let stripe;
 let elements;
 
 // Load Stripe script dynamically
@@ -537,7 +532,7 @@ async function loadStripe() {
       document.head.appendChild(script);
     });
   }
-  // Stripe is already initialized above with your key
+  stripe = Stripe(STRIPE_PUBLIC_KEY);
   elements = stripe.elements();
 }
 
@@ -560,18 +555,11 @@ const STAGES = [
   {id:14,name:'Quality Check',tag:'finish'},
   {id:15,name:'Ready for Collection',tag:'finish'},
 ];
-const TAG_LABELS = {
-  intake:'Intake',
-  parts:'Parts',
-  body:'Body Work',
-  paint:'Paint',
-  finish:'Finish'
-};
+const TAG_LABELS = {intake:'Intake',parts:'Parts',body:'Body Work',paint:'Paint',finish:'Finish'};
 
 // ── SUBSCRIPTION SETTINGS ─────────────────────────────────────
-// Values aligned with your new config
-const SUBSCRIPTION_PRICE = SUBSCRIPTION_AMOUNT / 100; // £32.00 per month
-const CURRENCY = SUBSCRIPTION_CURRENCY;
+const SUBSCRIPTION_PRICE = 32.00; // £32.00 per month
+const CURRENCY = 'GBP';
 const TRIAL_DAYS = 14; // ✅ 14 DAY FREE TRIAL
 const PAYMENT_METHODS = ['Card', 'Bank Transfer', 'Cash', 'Cheque'];
 
