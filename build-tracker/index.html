@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Build Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -15,7 +16,7 @@
   --accent:#f97316;--accent-dim:rgba(249,115,22,0.15);
   --green:#22c55e;--green-dim:rgba(34,197,94,0.12);--green-border:rgba(34,197,94,0.3);
   --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.12);--blue-border:rgba(59,130,246,0.3);
-  --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);--amber-border:rgba(245,158,11,0.3);
   --purple:#a855f7;--purple-dim:rgba(168,85,247,0.12);
   --radius:10px;--radius-sm:6px;
 }
@@ -119,6 +120,10 @@ input,select,textarea{font-family:inherit}
 /* Trial banner */
 .trial-banner{background:var(--amber-dim);border-bottom:1px solid var(--amber-border);padding:8px 24px;text-align:center;font-size:13px;color:var(--amber)}
 @media(max-width:520px){.g2,.g3{grid-template-columns:1fr}.container{padding:20px 14px}}
+.expired-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.expired-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:40px;width:100%;max-width:420px;text-align:center}
+.expired-box h2{font-size:20px;font-weight:600;margin-bottom:12px}
+.expired-box p{font-size:14px;color:var(--text2);margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -193,6 +198,9 @@ input,select,textarea{font-family:inherit}
     </div>
   </div>
 </div>
+
+<!-- EXPIRED / SUBSCRIPTION REQUIRED -->
+<div id="view-expired" class="view"></div>
 
 <!-- HOME -->
 <div id="view-home" class="view">
@@ -312,6 +320,13 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const HDR={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 const sbAuth=window.supabase.createClient(SB_URL,SB_KEY);
 
+// ----- STRIPE / SUBSCRIPTION CONFIG -----
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ'; // ← replace with your live key
+const STRIPE_PRICE_ID        = "price_1TgOwNICF2fQjVNyZi4seWgw"; // ← replace with your Price ID
+const SUBSCRIPTION_AMOUNT    = 2999;  // £29.99 in pence
+const SUBSCRIPTION_CURRENCY  = "gbp";
+const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+
 const STAGES=[
   {name:"Frame cut",phase:"fab"},{name:"Weld",phase:"fab"},
   {name:"Galvanising",phase:"fab"},{name:"Sub-frame",phase:"fab"},
@@ -407,20 +422,122 @@ async function doChangePw(){
 function openDrawer(){document.getElementById('settings-drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');}
 function closeDrawer(){document.getElementById('settings-drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');document.getElementById('pw-change-form').style.display='none';}
 
-/* ---- TRIAL BANNER ---- */
-function showTrialBanner(user){
-  const banner=document.getElementById('trial-banner');
+/* ---- TRIAL & SUBSCRIPTION ---- */
+function isTrialActive(user){
   const trialStart=user.user_metadata?.trial_start;
-  if(!trialStart){banner.style.display='none';return;}
+  if(!trialStart) return false;
   const days=Math.floor((new Date()-new Date(trialStart))/(1000*60*60*24));
-  const left=14-days;
-  if(left>0&&left<=14){
+  return days<14;
+}
+
+function getTrialDaysLeft(user){
+  const trialStart=user.user_metadata?.trial_start;
+  if(!trialStart) return 0;
+  const days=Math.floor((new Date()-new Date(trialStart))/(1000*60*60*24));
+  return Math.max(0,14-days);
+}
+
+async function hasActiveSubscription(user){
+  try{
+    const res=await sb(`subscriptions?user_id=eq.${user.id}&status=eq.active`,{method:'GET'});
+    return res&&res.length>0;
+  }catch(e){
+    console.error("Subscription check failed:",e);
+    return false;
+  }
+}
+
+async function isTrialOrSubActive(user){
+  const trialActive=isTrialActive(user);
+  const subActive=await hasActiveSubscription(user);
+  return trialActive||subActive;
+}
+
+async function checkAccess(){
+  if(!curUser) return false;
+  const allowed=await isTrialOrSubActive(curUser);
+  if(!allowed){showSubscriptionRequiredView();return false;}
+  return true;
+}
+
+function showSubscriptionRequiredView(){
+  document.getElementById("view-expired").innerHTML=`
+    <div class="expired-wrap">
+      <div class="expired-box">
+        <h2>Subscription Required</h2>
+        <p>Your free trial has ended. Subscribe now for £29.99 / month to keep using Build Tracker.</p>
+        <div id="payment-section">
+          <button class="btn btn-primary" onclick="startSubscription()" style="margin:10px 0;">
+            Subscribe Now
+          </button>
+        </div>
+        <p id="payment-message" style="margin-top:15px; color:var(--text2);"></p>
+        <br>
+        <button class="btn" onclick="doSignOut()">Sign out</button>
+      </div>
+    </div>`;
+  showView('view-expired');
+}
+
+async function startSubscription(){
+  const msg=document.getElementById("payment-message");
+  msg.textContent="Preparing payment...";
+  msg.style.color="var(--amber)";
+  try{
+    const sessionRes=await fetch(`${SB_URL}/functions/v1/create-checkout-session`,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":SB_KEY,
+        "Authorization":`Bearer ${(await sbAuth.auth.getSession()).data.session?.access_token}`
+      },
+      body:JSON.stringify({
+        price_id:STRIPE_PRICE_ID,
+        currency:SUBSCRIPTION_CURRENCY,
+        success_url:window.location.origin+window.location.pathname+"?payment=success",
+        cancel_url:window.location.origin+window.location.pathname+"?payment=cancel"
+      })
+    });
+    const session=await sessionRes.json();
+    if(session.error) throw new Error(session.error);
+    await stripe.redirectToCheckout({sessionId:session.id});
+  }catch(err){
+    msg.textContent=`Error: ${err.message}`;
+    msg.style.color="#f87171";
+  }
+}
+
+async function handlePaymentResult(){
+  const params=new URLSearchParams(window.location.search);
+  const status=params.get("payment");
+  if(!status) return;
+  if(status==="success"){
+    showToast("Payment successful! Your subscription is now active.");
+    window.history.replaceState({},document.title,window.location.pathname);
+    await startApp();
+  }else if(status==="cancel"){
+    showToast("Payment cancelled. You can try again anytime.");
+    window.history.replaceState({},document.title,window.location.pathname);
+  }
+}
+
+async function updateBannerDisplay(){
+  const banner=document.getElementById('trial-banner');
+  const daysLeft=getTrialDaysLeft(curUser);
+  const subActive=await hasActiveSubscription(curUser);
+  if(subActive){
     banner.style.display='block';
-    banner.textContent=`⏳ Free trial: ${left} day${left!==1?'s':''} remaining — contact us to subscribe and keep your data`;
-  } else if(left<=0){
+    banner.textContent="✅ Subscription active — no expiry";
+    banner.style.background="var(--green-dim)";
+    banner.style.color="var(--green)";
+    banner.style.borderBottom="1px solid var(--green-border)";
+  }else if(daysLeft>0){
     banner.style.display='block';
-    banner.textContent='⚠️ Your free trial has ended — please contact us to continue using Build Tracker';
-  } else {
+    banner.textContent=`⏳ Free trial: ${daysLeft} day${daysLeft!==1?'s':''} remaining — subscribe to continue`;
+    banner.style.background="var(--amber-dim)";
+    banner.style.color="var(--amber)";
+    banner.style.borderBottom="1px solid var(--amber-border)";
+  }else{
     banner.style.display='none';
   }
 }
@@ -831,10 +948,12 @@ async function renderCustomerPortal(token){
 
 /* ---- START APP ---- */
 async function startApp(){
-  const company=curUser.user_metadata?.company_name||curUser.email;
+  if(!curUser) return;
+  const accessOk=await checkAccess();
+  if(!accessOk) return;
+  document.getElementById('drawer-company').textContent=curUser.user_metadata?.company_name||curUser.email;
   document.getElementById('drawer-email').textContent=curUser.email;
-  document.getElementById('drawer-company').textContent=company;
-  showTrialBanner(curUser);
+  await updateBannerDisplay();
   renderFormStages();
   await loadAll();
   showView('view-home');
@@ -848,6 +967,7 @@ async function init(){
   const {data:{session}}=await sbAuth.auth.getSession();
   if(session){curUser=session.user;await startApp();}
   else{showView('view-auth');}
+  await handlePaymentResult();
 }
 init();
 </script>
