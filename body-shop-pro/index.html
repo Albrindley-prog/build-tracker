@@ -506,12 +506,35 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
 
 <script>
 // ── SUPABASE ──────────────────────────────────────────────────
+// ── SUPABASE ──────────────────────────────────────────────────
 const { createClient } = supabase;
 const sb = createClient(
   'https://dkdnlgwflrwdxtrovrrq.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk',
   { auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true } }
 );
+
+
+// ── STRIPE CONFIG ─────────────────────────────────────────────
+// Replace with YOUR actual LIVE public key
+const STRIPE_PUBLIC_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ'; // <-- PUT YOUR LIVE KEY HERE
+let stripe;
+let elements;
+
+// Load Stripe script dynamically
+async function loadStripe() {
+  if (!window.Stripe) {
+    await new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://js.stripe.com/v3/';
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
+  }
+  stripe = Stripe(STRIPE_PUBLIC_KEY);
+  elements = stripe.elements();
+}
+
 
 // ── STAGES ────────────────────────────────────────────────────
 const STAGES = [
@@ -533,6 +556,11 @@ const STAGES = [
 ];
 const TAG_LABELS = {intake:'Intake',parts:'Parts',body:'Body Work',paint:'Paint',finish:'Finish'};
 
+// ── SUBSCRIPTION SETTINGS ─────────────────────────────────────
+const SUBSCRIPTION_PRICE = 32.00; // £32.00 per month
+const CURRENCY = 'GBP';
+const PAYMENT_METHODS = ['Card', 'Bank Transfer', 'Cash', 'Cheque'];
+
 // ── STATE ─────────────────────────────────────────────────────
 let currentUser = null;
 let userProfile = null;
@@ -540,6 +568,9 @@ let shopId = null;
 let jobs = [];
 let customers = [];
 let staffList = [];
+let payments = [];
+let subscriptionActive = false;
+let nextPaymentDate = null;
 let filterMode = 'all';
 let mainTab = 'jobs';
 
@@ -560,6 +591,104 @@ function toggleCreate(bodyId,arrowId){
   a.classList.toggle('open',!open);
 }
 function setMsg(id,msg,isErr){const el=document.getElementById(id);if(!el)return;el.className=isErr?'err':'suc';el.innerText=msg;}
+function formatMoney(amount){return '£' + Number(amount).toFixed(2);}
+function formatDate(dateStr){return new Date(dateStr).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+
+// ── PAYMENT & SUBSCRIPTION FUNCTIONS ─────────────────────────
+async function initStripeCard() {
+  if (!stripe) await loadStripe();
+  const card = elements.create('card', {
+    style: { base: { fontSize: '16px', color: '#32325d' } }
+  });
+  card.mount('#card-element');
+  return card;
+}
+
+async function processStripePayment() {
+  const amountInPence = Math.round(SUBSCRIPTION_PRICE * 100); // £32 → 3200p
+  const card = await initStripeCard();
+
+  const {error, paymentMethod} = await stripe.createPaymentMethod({
+    type: 'card',
+    card: card,
+    billing_details: { name: currentUser?.email || 'Customer' }
+  });
+
+  if (error) {
+    showToast('Payment failed: ' + error.message, true);
+    return {success: false};
+  }
+
+  // Here you would send paymentMethod.id + amount to your backend/Supabase function to charge
+  showToast('✅ Card details saved — processing payment...');
+  await recordPayment(SUBSCRIPTION_PRICE, 'Card', 'Stripe subscription payment');
+  return {success: true, paymentMethodId: paymentMethod.id};
+}
+
+async function recordPayment(amount, method, note = '') {
+  if(!currentUser) return;
+  const paymentData = {
+    shop_id: shopId,
+    user_id: currentUser.id,
+    amount: Number(amount),
+    method: method,
+    note: note,
+    date: new Date().toISOString(),
+    type: 'subscription'
+  };
+  const { data, error } = await sb.from('bs_payments').insert([paymentData]).select();
+  if(error){showToast('Error saving payment: ' + error.message, true); return null;}
+  payments.push(data[0]);
+  updateSubscriptionStatus();
+  showToast(`✅ Payment recorded: ${formatMoney(amount)}`);
+  return data[0];
+}
+
+function calculateNextPaymentDate(lastDate) {
+  const d = new Date(lastDate);
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString();
+}
+
+async function updateSubscriptionStatus() {
+  const { data: latest } = await sb.from('bs_payments')
+    .select('date')
+    .eq('shop_id', shopId)
+    .eq('type', 'subscription')
+    .order('date', { ascending: false })
+    .limit(1)
+    .single();
+
+  if(latest) {
+    const lastPaid = new Date(latest.date);
+    nextPaymentDate = calculateNextPaymentDate(lastPaid);
+    subscriptionActive = new Date() < new Date(nextPaymentDate);
+  } else {
+    subscriptionActive = false;
+    nextPaymentDate = null;
+  }
+  updateSubscriptionUI();
+}
+
+function updateSubscriptionUI() {
+  const el = document.getElementById('subscription-status');
+  if(!el) return;
+  if(subscriptionActive) {
+    el.innerHTML = `<span class="badge badge-success">✅ Subscription Active — Next payment: ${formatDate(nextPaymentDate)}</span>`;
+  } else {
+    el.innerHTML = `<span class="badge badge-danger">❌ Subscription Expired — Pay ${formatMoney(SUBSCRIPTION_PRICE)} to reactivate</span>`;
+  }
+}
+
+async function getPaymentHistory() {
+  const { data, error } = await sb.from('bs_payments')
+    .select('*')
+    .eq('shop_id', shopId)
+    .eq('type', 'subscription')
+    .order('date', { ascending: false });
+  if(!error) payments = data;
+  return payments;
+}
 
 // ── AUTH ──────────────────────────────────────────────────────
 function switchAuthTab(tab){
