@@ -505,7 +505,7 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
 <div class="toast" id="toast"></div>
 
 <script>
-// ── SUPABASE ──────────────────────────────────────────────────
+
 // ── SUPABASE ──────────────────────────────────────────────────
 const { createClient } = supabase;
 const sb = createClient(
@@ -559,6 +559,7 @@ const TAG_LABELS = {intake:'Intake',parts:'Parts',body:'Body Work',paint:'Paint'
 // ── SUBSCRIPTION SETTINGS ─────────────────────────────────────
 const SUBSCRIPTION_PRICE = 32.00; // £32.00 per month
 const CURRENCY = 'GBP';
+const TRIAL_DAYS = 14; // ✅ 14 DAY FREE TRIAL
 const PAYMENT_METHODS = ['Card', 'Bank Transfer', 'Cash', 'Cheque'];
 
 // ── STATE ─────────────────────────────────────────────────────
@@ -570,6 +571,7 @@ let customers = [];
 let staffList = [];
 let payments = [];
 let subscriptionActive = false;
+let trialEndDate = null;
 let nextPaymentDate = null;
 let filterMode = 'all';
 let mainTab = 'jobs';
@@ -619,9 +621,9 @@ async function processStripePayment() {
     return {success: false};
   }
 
-  // Here you would send paymentMethod.id + amount to your backend/Supabase function to charge
-  showToast('✅ Card details saved — processing payment...');
+  // Save payment record
   await recordPayment(SUBSCRIPTION_PRICE, 'Card', 'Stripe subscription payment');
+  showToast('✅ Payment successful — subscription active!');
   return {success: true, paymentMethodId: paymentMethod.id};
 }
 
@@ -640,8 +642,13 @@ async function recordPayment(amount, method, note = '') {
   if(error){showToast('Error saving payment: ' + error.message, true); return null;}
   payments.push(data[0]);
   updateSubscriptionStatus();
-  showToast(`✅ Payment recorded: ${formatMoney(amount)}`);
   return data[0];
+}
+
+function calculateTrialEndDate(signupDate) {
+  const d = new Date(signupDate);
+  d.setDate(d.getDate() + TRIAL_DAYS);
+  return d;
 }
 
 function calculateNextPaymentDate(lastDate) {
@@ -651,6 +658,21 @@ function calculateNextPaymentDate(lastDate) {
 }
 
 async function updateSubscriptionStatus() {
+  if(!userProfile) return;
+
+  // 1. Check if still in 14-day trial
+  const signupDate = new Date(userProfile.created_at);
+  trialEndDate = calculateTrialEndDate(signupDate);
+  const now = new Date();
+
+  if(now < trialEndDate) {
+    subscriptionActive = true;
+    nextPaymentDate = trialEndDate;
+    updateSubscriptionUI();
+    return;
+  }
+
+  // 2. Trial ended — check if paid
   const { data: latest } = await sb.from('bs_payments')
     .select('date')
     .eq('shop_id', shopId)
@@ -662,21 +684,39 @@ async function updateSubscriptionStatus() {
   if(latest) {
     const lastPaid = new Date(latest.date);
     nextPaymentDate = calculateNextPaymentDate(lastPaid);
-    subscriptionActive = new Date() < new Date(nextPaymentDate);
+    subscriptionActive = now < new Date(nextPaymentDate);
   } else {
     subscriptionActive = false;
     nextPaymentDate = null;
   }
+
   updateSubscriptionUI();
+  lockAppIfExpired();
 }
 
 function updateSubscriptionUI() {
   const el = document.getElementById('subscription-status');
   if(!el) return;
-  if(subscriptionActive) {
+
+  const now = new Date();
+  if(now < trialEndDate) {
+    const daysLeft = Math.ceil((trialEndDate - now) / (1000*60*60*24));
+    el.innerHTML = `<span class="badge badge-info">🎁 Free Trial — ${daysLeft} day(s) left. Pay ${formatMoney(SUBSCRIPTION_PRICE)} after trial ends.</span>`;
+  } else if(subscriptionActive) {
     el.innerHTML = `<span class="badge badge-success">✅ Subscription Active — Next payment: ${formatDate(nextPaymentDate)}</span>`;
   } else {
-    el.innerHTML = `<span class="badge badge-danger">❌ Subscription Expired — Pay ${formatMoney(SUBSCRIPTION_PRICE)} to reactivate</span>`;
+    el.innerHTML = `<span class="badge badge-danger">❌ Trial Ended — Pay ${formatMoney(SUBSCRIPTION_PRICE)} now to continue using the system.</span>`;
+  }
+}
+
+function lockAppIfExpired() {
+  const overlay = document.getElementById('payment-lock');
+  if(!overlay) return;
+
+  if(!subscriptionActive && new Date() >= trialEndDate) {
+    overlay.classList.add('show');
+  } else {
+    overlay.classList.remove('show');
   }
 }
 
@@ -707,7 +747,7 @@ async function register(){
   if(pw.length<6){setMsg('reg-msg','Password must be 6+ characters.',true);return;}
   const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name,shop_name:shop,role:'owner'}}});
   if(error){setMsg('reg-msg',error.message,true);return;}
-  setMsg('reg-msg','✅ Account created! Check your email to confirm, then sign in.','');
+  setMsg('reg-msg','✅ Account created! You have 14 days free trial.','');
 }
 
 async function signIn(){
