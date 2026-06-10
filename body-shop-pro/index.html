@@ -245,7 +245,41 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
   .auth-box{padding:28px 24px;}
   .header{padding:0 16px;}
   .nav-tabs{padding:0 16px;overflow-x:auto;}
+
 }
+@media(max-width:760px){
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  .container{padding:16px;}
+  .auth-box{padding:28px 24px;}
+  .header{padding:0 16px;}
+  .nav-tabs{padding:0 16px;overflow-x:auto;}
+}
+
+/* ——— PAYMENT LOCK SCREEN ——— */
+#payment-lock {
+  background: rgba(0, 0, 0, 0.85);
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+}
+#payment-lock .modal {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+#card-element {
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
 </style>
 </head>
 <body>
@@ -1469,6 +1503,28 @@ async function init(){
   }
 }
 init();
+
 </script>
+    init();
+</script> <!-- END OF JAVASCRIPT -->
+
+<!-- ↓↓↓ LIVE PAYMENT SYSTEM ↓↓↓ -->
+<!-- ——— PAYMENT STATUS BAR ——— -->
+<div id="subscription-status" class="no-print" style="position: sticky; top: 62px; z-index: 99; background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; font-size: 13px; text-align: center;"></div>
+
+<!-- ——— PAYMENT LOCK SCREEN ——— -->
+<div id="payment-lock" class="modal-overlay hidden">
+  <div class="modal">
+    <h2 class="modal-title" style="color: var(--orange); text-align: center;">⚠️ Trial Ended</h2>
+    <p style="margin-bottom: 20px; line-height: 1.5;">Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Body Shop Pro.</p>
+    
+    <div id="card-element"></div> <!-- Live card input → REAL PAYMENTS -->
+
+    <button class="btn btn-primary" style="width: 100%;" onclick="processStripePayment()">💳 Pay £32.00 Now</button>
+    <p id="payment-msg" style="margin-top: 12px;"></p>
+  </div>
+</div>
+<!-- ↑↑↑ LIVE SYSTEM - NO TEST MODE ↑↑↑ -->
+
 </body>
 </html>
