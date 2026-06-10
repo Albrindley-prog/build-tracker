@@ -245,6 +245,37 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
   .header{padding:0 16px;}
   .nav-tabs{padding:0 16px;overflow-x:auto;}
 }
+/* ——— TRIAL & PAYMENT SYSTEM ——— */
+#subscription-status {
+  position: sticky;
+  top: 62px;
+  z-index: 99;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 28px;
+  font-size: 13px;
+  text-align: center;
+}
+#payment-lock {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+}
+#payment-lock.open {
+  display: flex;
+}
+#payment-lock .modal {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+.trial-active { color: var(--green); }
+.trial-expired { color: var(--red); }
 </style>
 </head>
 <body>
@@ -315,6 +346,47 @@ const STAGES = [
 const TAG_LABELS = {checkin:'Check-In',diagnosis:'Diagnosis',parts:'Parts',repair:'Repair',testing:'Testing'};
 
 // State
+// ── TRIAL SYSTEM ───────────────────────────────────────────────
+const TRIAL_DAYS = 14;
+
+// Check trial status on load
+function checkTrialStatus(){
+  if(!userProfile) return;
+
+  // If already paid → skip
+  if(userProfile.subscription_active) {
+    document.getElementById('subscription-status').innerText = '✅ Subscription active';
+    return;
+  }
+
+  // Get or set trial start date
+  let startDate = userProfile.trial_start_at;
+  if(!startDate){
+    startDate = new Date().toISOString();
+    // Save to database
+    sb.from('profiles').update({trial_start_at: startDate}).eq('id', currentUser.id);
+  }
+
+  // Calculate days remaining
+  const start = new Date(startDate);
+  const now = new Date();
+  const daysUsed = Math.floor((now - start) / (1000*60*60*24));
+  const daysLeft = TRIAL_DAYS - daysUsed;
+
+  const statusEl = document.getElementById('subscription-status');
+
+  if(daysLeft > 0){
+    statusEl.className = 'trial-active';
+    statusEl.innerText = `✅ Free trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
+  } else {
+    statusEl.className = 'trial-expired';
+    statusEl.innerText = '❌ Trial expired — please pay to continue';
+    // LOCK THE APP
+    document.getElementById('payment-lock').classList.add('open');
+    // Hide everything else
+    document.getElementById('app-view').classList.add('hidden');
+  }
+}
 let currentUser = null;
 let userProfile = null;
 let shopId = null;
@@ -344,6 +416,17 @@ function toggleCreate(id,arrowId){
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openModal(id){document.getElementById(id).classList.add('open');}
 </script>
+<!-- ——— TRIAL STATUS BAR ——— -->
+<div id="subscription-status" class="no-print"></div>
+
+<!-- ——— LOCK SCREEN ——— -->
+<div id="payment-lock" class="modal-overlay">
+  <div class="modal">
+    <h2 class="modal-title" style="color: var(--orange); text-align: center;">⚠️ Trial Ended</h2>
+    <p style="margin-bottom: 20px; line-height: 1.5;">Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Tech Repair Pro.</p>
+    <button class="btn btn-primary" style="width: 100%;" onclick="alert('Stripe goes here')">💳 Pay Now</button>
+  </div>
+</div>
 </body>
 </html>
 <!-- APP VIEW -->
@@ -608,7 +691,7 @@ async function signIn(){
     if(error) throw error;
     currentUser = data.user;
     await loadUserProfile();
-    showApp();
+    showApp();checkTrialStatus();
   }catch(e){msg.innerText=e.message;}
 }
 
