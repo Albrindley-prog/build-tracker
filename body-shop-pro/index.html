@@ -517,12 +517,14 @@ const sb = createClient(
 
 // ── STRIPE CONFIG ─────────────────────────────────────────────
 // Replace with YOUR actual LIVE public key
-const STRIPE_PUBLIC_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ'; // 
-const STRIPE_PRICE_ID        = "price_1TgOwNICF2fQjVNyZi4seWgw"; // ← replace with your Price ID<-- PUT YOUR LIVE KEY HERE
+const STRIPE_PUBLIC_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
+// Replace with your actual Price ID from Stripe Dashboard
+const STRIPE_PRICE_ID   = 'price_1TgOwNICF2fQjVNyZi4seWgw';
+
 let stripe;
 let elements;
 
-// Load Stripe script dynamically
+// Load Stripe script dynamically and initialise
 async function loadStripe() {
   if (!window.Stripe) {
     await new Promise((resolve) => {
