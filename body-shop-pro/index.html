@@ -517,9 +517,11 @@ const sb = createClient(
 
 // ── STRIPE CONFIG ─────────────────────────────────────────────
 // Replace with YOUR actual LIVE public key
-const STRIPE_PUBLIC_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ'; // <-- PUT YOUR LIVE KEY HERE
-let stripe;
-let elements;
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ'; // ← replace with your live key
+const STRIPE_PRICE_ID        = "price_1TgOwNICF2fQjVNyZi4seWgw"; // ← replace with your Price ID
+const SUBSCRIPTION_AMOUNT    = 3200;  // £32.00 in pence
+const SUBSCRIPTION_CURRENCY  = "gbp";
+const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
 // Load Stripe script dynamically
 async function loadStripe() {
