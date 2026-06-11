@@ -35,12 +35,12 @@
     const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
     const CONTACT_EMAIL = 'info.buildtracker@gmail.com';
 
-    // ✅ CRITICAL FIX: detectSessionInUrl = true
+    // ✅ CRITICAL FIX — detectSessionInUrl: true = AUTO-LOGIN AFTER EMAIL CONFIRMATION
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true // THIS IS WHAT MAKES AUTO-LOGIN WORK AFTER EMAIL
+        detectSessionInUrl: true // THIS WAS MISSING BEFORE — NOW FIXED
       }
     });
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
