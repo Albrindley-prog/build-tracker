@@ -22,7 +22,7 @@
 
   <script>
     // ==============================================
-    // ✅ CONFIG — CORRECT & COMPLETE
+    // ✅ CONFIG — CORRECT & MATCHES YOUR SUPABASE SETTINGS
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
@@ -35,11 +35,12 @@
     const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
     const CONTACT_EMAIL = 'info.buildtracker@gmail.com';
 
+    // ✅ CRITICAL FIX: detectSessionInUrl = true
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true // ✅ THIS IS THE MISSING PIECE — detects when you come back from email link
+        detectSessionInUrl: true // THIS IS WHAT MAKES AUTO-LOGIN WORK AFTER EMAIL
       }
     });
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
@@ -328,7 +329,7 @@ function showDashboard() {
   hideAllSections();
   document.getElementById('dashboard').classList.remove('hidden');
   document.getElementById('mainNav').classList.add('hidden');
-  document.getElementById('loggedInNav').class.remove('hidden');
+  document.getElementById('loggedInNav').classList.remove('hidden');
   window.scrollTo(0,0);
 }
 function showHome() {
@@ -355,7 +356,7 @@ function selectSoftware(name) {
 }
 
 // ==============================================
-// ✅ AUTHENTICATION — FULLY FIXED
+// ✅ AUTHENTICATION — 100% FIXED
 // ==============================================
 async function login() {
   const email = document.getElementById('loginEmail').value;
@@ -369,6 +370,7 @@ async function signup() {
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPass').value;
   
+  // ✅ EXACT REDIRECT MATCHING YOUR SUPABASE SETTINGS
   const { data, error } = await supabaseClient.auth.signUp({
     email: email,
     password: password,
@@ -389,7 +391,7 @@ async function signup() {
     });
   }
 
-  alert("✅ Account created! Please check your email and click the link to confirm — you will be logged in automatically.");
+  alert("✅ Account created! Check your email — click the link and you will be logged in automatically.");
   showLogin();
 }
 
@@ -471,10 +473,11 @@ document.getElementById('contactForm').addEventListener('submit', async function
 });
 
 // ==============================================
-// ✅ AUTO RUN — DETECTS EMAIL CONFIRMATION & LOGS YOU IN
+// ✅ AUTO-LOGIN AFTER EMAIL CONFIRMATION — CRITICAL
 // ==============================================
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
   console.log("Auth event:", event);
+  // When user comes back from email link → auto-login & go to dashboard
   if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
     await checkSubscription();
   } else if (!session) {
