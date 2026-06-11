@@ -22,13 +22,13 @@
 
   <script>
     // ==============================================
-    // ✅ CONFIG — EXACTLY AS BEFORE, NO CHANGES
+    // ✅ CONFIG — NO CHANGES
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
     
     const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
-    const PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw'; // Same price ID as always
+    const PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 
     const SUCCESS_URL = 'https://build-tracker.co.uk/success.html';
     const CANCEL_URL = 'https://build-tracker.co.uk/cancelled.html';
@@ -78,10 +78,6 @@
     .mkt-card { background:#F2F3F5; padding:1.8rem; border-radius:8px; }
     .mkt-card h4 { color:#165DFF; margin-bottom:1rem; font-size:1.2rem; }
 
-    .product-card { background:#F2F3F5; padding:1.8rem; border-radius:8px; text-align:center; transition:transform .2s; }
-    .product-card:hover { transform:translateY(-5px); }
-    .product-card h4 { color:#165DFF; margin-bottom:1rem; font-size:1.2rem; }
-
     .price-box { background:#F2F3F5; border:3px solid #165DFF; border-radius:12px; padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
     .price-box .price { font-size:3rem; color:#FF7D00; font-weight:bold; }
 
@@ -128,6 +124,8 @@
         <a href="electronics-repair/index.html">Electronics Repair</a>
         <a href="stock-control/index.html">Stock Control</a>
         <a href="Supplier & Purchase Order System/index.html">Supplier & Purchase Order System</a>
+        <!-- ✅ NEW ADDED HERE -->
+        <a href="Job Card & Workshop Log System/index.html">Job Card & Workshop Log System</a>
       </div>
     </div>
     <button class="mkt-btn mkt-btn-signin" onclick="showLogin()">Sign In</button>
@@ -160,6 +158,8 @@
     <div class="mkt-card"><h4>🔧 Electronics Repair</h4><p>Log faults, parts used and repair history for phones, laptops and appliances.</p></div>
     <div class="mkt-card"><h4>📦 Stock Control</h4><p>Manage inventory, reorder levels, suppliers and costs for all your parts.</p></div>
     <div class="mkt-card"><h4>📋 Supplier & Purchase Order System</h4><p>Manage supplier relationships, create purchase orders and track deliveries.</p></div>
+    <!-- ✅ NEW ADDED HERE -->
+    <div class="mkt-card"><h4>🛠️ Job Card & Workshop Log System</h4><p>Create job cards, track time spent, materials used, labour costs and work status for every job.</p></div>
   </div>
 </section>
 
@@ -253,13 +253,19 @@
       <p>Supplier management & purchase orders</p>
       <a href="Supplier & Purchase Order System/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
+    <!-- ✅ NEW ADDED HERE -->
+    <div class="dashboard-card">
+      <h3>🛠️ Job Card & Workshop Log System</h3>
+      <p>Job cards, time tracking & work logs</p>
+      <a href="Job Card & Workshop Log System/index.html" class="mkt-btn mkt-btn-blue">Open</a>
+    </div>
   </div>
   <div style="text-align:center; margin-top:2rem;">
     <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Subscribe / Pay £32/month</button>
   </div>
 </section>
 
-<!-- ✅ Selection Popup — NOW HAS ALL 5 OPTIONS -->
+<!-- ✅ Selection Popup -->
 <div id="selectionModal" class="selection-popup">
   <div class="popup-content">
     <h4>Choose the software you want to subscribe to</h4>
@@ -284,10 +290,15 @@
       <small>Inventory, suppliers & costs — £32/month</small>
     </div>
 
-    <!-- ✅ ADDED THIS ONE — MISSING BEFORE -->
     <div class="option-item" onclick="selectSoftware('Supplier & Purchase Order System')">
       <strong>📋 Supplier & Purchase Order System</strong><br>
       <small>Supplier management & purchase orders — £32/month</small>
+    </div>
+
+    <!-- ✅ NEW ADDED HERE -->
+    <div class="option-item" onclick="selectSoftware('Job Card & Workshop Log System')">
+      <strong>🛠️ Job Card & Workshop Log System</strong><br>
+      <small>Job cards, time & cost tracking — £32/month</small>
     </div>
 
     <div class="close-btn">
@@ -337,7 +348,6 @@ function closeSelection() {
 }
 function selectSoftware(name) {
   closeSelection();
-  // Still uses the same £32 price, just passes the selected name for reference
   alert(`You selected: ${name}\nYou will be taken to payment for £32.00 per month.`);
   startPayment(name);
 }
@@ -408,10 +418,9 @@ async function checkSubscription() {
 }
 
 // ==============================================
-// ✅ PAYMENT — SAME PRICE, SAME LINK, NO CHANGES
+// ✅ PAYMENT — SAME LINK & PRICE
 // ==============================================
 async function startPayment(selectedName = "") {
-  // You can see what they chose, but it still uses the same £32 subscription
   console.log("Selected software:", selectedName);
   window.open('https://buy.stripe.com/7sYbJ28yyd2e9WUgxpbsc05', '_blank');
 }

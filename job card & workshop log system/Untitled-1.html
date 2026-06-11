@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Card & Workshop Log System</title>
+    <link rel="stylesheet" href="../style.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Supabase & Authentication -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
+        const supabase = supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #1D2129;
+            line-height: 1.6;
+        }
+
+        header {
+            background: #1D2129;
+            color: white;
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .back-link {
+            color: #FF7D00;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 5%;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            color: #165DFF;
+            margin-bottom: 1.5rem;
+            font-size: 1.6rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: #165DFF;
+            color: white;
+            border: none;
+            padding: 0.9rem 1.8rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #0052cc;
+        }
+
+        .btn-orange {
+            background: #FF7D00;
+        }
+
+        .btn-orange:hover {
+            background: #e67000;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eaecef;
+        }
+
+        th {
+            background-color: #f5f7fa;
+            font-weight: 600;
+            color: #1D2129;
+        }
+
+        .status-open {
+            color: #165DFF;
+            font-weight: 500;
+        }
+
+        .status-progress {
+            color: #FF7D00;
+            font-weight: 500;
+        }
+
+        .status-completed {
+            color: #24a148;
+            font-weight: 500;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .login-box {
+            max-width: 450px;
+            margin: 5rem auto;
+            background: white;
+            padding: 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .login-box h3 {
+            color: #165DFF;
+            margin-bottom: 1.5rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem 5%;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen" class="login-box">
+    <h3>Access Job Card & Workshop Log System</h3>
+    <input type="email" id="loginEmail" placeholder="Your Email">
+    <input type="password" id="loginPassword" placeholder="Your Password">
+    <button class="btn" onclick="login()">Sign In</button>
+    <p style="margin-top:1rem; font-size:0.9rem;">You need an active subscription or active trial to access this system.</p>
+    <p><a href="../index.html" class="back-link">← Back to main site</a></p>
+</div>
+
+<!-- Main App -->
+<div id="appContent" class="hidden">
+    <header>
+        <div class="header-title">🛠️ Job Card & Workshop Log System</div>
+        <div>
+            <a href="../index.html" class="back-link">← Back to Dashboard</a>
+            <button class="btn btn-orange" onclick="logout()" style="margin-left:1rem;">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- New Job Card Form -->
+        <div class="card">
+            <h2>Create New Job Card</h2>
+            <div class="form-grid">
+                <div>
+                    <label>Job Reference</label>
+                    <input type="text" id="jobRef" placeholder="e.g. JC-2026-001" required>
+                </div>
+                <div>
+                    <label>Customer Name</label>
+                    <input type="text" id="customerName" placeholder="Full name" required>
+                </div>
+                <div>
+                    <label>Contact Number</label>
+                    <input type="tel" id="customerContact" placeholder="Phone number">
+                </div>
+                <div>
+                    <label>Vehicle / Item Description</label>
+                    <input type="text" id="itemDesc" placeholder="Make, model, reg or device details">
+                </div>
+                <div>
+                    <label>Date Received</label>
+                    <input type="date" id="dateReceived" value="<?php echo new Date().toISOString().split('T')[0]; ?>" required>
+                </div>
+                <div>
+                    <label>Status</label>
+                    <select id="jobStatus">
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom:1.2rem;">
+                <label>Reported Fault / Work Required</label>
+                <textarea id="workRequired" placeholder="Describe what needs to be done..."></textarea>
+            </div>
+
+            <div style="margin-bottom:1.2rem;">
+                <label>Work Carried Out & Notes</label>
+                <textarea id="workDone" placeholder="Record work done, parts used, time spent..."></textarea>
+            </div>
+
+            <div class="form-grid">
+                <div>
+                    <label>Labour Hours</label>
+                    <input type="number" step="0.1" id="labourHours" placeholder="e.g. 2.5">
+                </div>
+                <div>
+                    <label>Labour Rate (£/hour)</label>
+                    <input type="number" step="0.01" id="labourRate" placeholder="e.g. 45.00">
+                </div>
+                <div>
+                    <label>Parts Cost (£)</label>
+                    <input type="number" step="0.01" id="partsCost" placeholder="e.g. 32.50">
+                </div>
+                <div>
+                    <label>Total Amount (£)</label>
+                    <input type="number" step="0.01" id="totalAmount" placeholder="Calculated automatically" readonly>
+                </div>
+            </div>
+
+            <button class="btn" onclick="saveJobCard()">Save Job Card</button>
+        </div>
+
+        <!-- Job List -->
+        <div class="card">
+            <h2>All Job Cards</h2>
+            <div class="table-container">
+                <table id="jobsTable">
+                    <thead>
+                        <tr>
+                            <th>Job Ref</th>
+                            <th>Customer</th>
+                            <th>Item</th>
+                            <th>Date Received</th>
+                            <th>Status</th>
+                            <th>Total (£)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobsList">
+                        <tr><td colspan="7" style="text-align:center; padding:2rem;">No job cards created yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 Build Tracker Solutions | Job Card & Workshop Log System
+    </footer>
+</div>
+
+<script>
+    // --- Auth & Access Control ---
+    let currentUser = null;
+
+    async function checkAccess() {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (!user || error) {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('appContent').classList.add('hidden');
+            return;
+        }
+
+        // Check subscription/trial status
+        const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('status, expires_at')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        const now = new Date();
+        if (!sub || (sub.status !== 'active' && new Date(sub.expires_at) < now)) {
+            alert("⚠️ Your access has expired or you do not have an active subscription. Please subscribe to use this system.");
+            window.location.href = "../index.html#pricing";
+            return;
+        }
+
+        currentUser = user;
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appContent').classList.remove('hidden');
+        calculateTotal();
+        loadJobs();
+    }
+
+    async function login() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) return alert("Login failed: " + error.message);
+        checkAccess();
+    }
+
+    async function logout() {
+        await supabase.auth.signOut();
+        window.location.reload();
+    }
+
+    // --- Calculate Total Cost ---
+    function calculateTotal() {
+        const hours = parseFloat(document.getElementById('labourHours').value) || 0;
+        const rate = parseFloat(document.getElementById('labourRate').value) || 0;
+        const parts = parseFloat(document.getElementById('partsCost').value) || 0;
+        const total = (hours * rate) + parts;
+        document.getElementById('totalAmount').value = total.toFixed(2);
+    }
+
+    // Auto update total when inputs change
+    document.getElementById('labourHours').addEventListener('input', calculateTotal);
+    document.getElementById('labourRate').addEventListener('input', calculateTotal);
+    document.getElementById('partsCost').addEventListener('input', calculateTotal);
+
+    // --- Save & Load Job Cards ---
+    async function saveJobCard() {
+        const jobData = {
+            user_id: currentUser.id,
+            job_ref: document.getElementById('jobRef').value,
+            customer_name: document.getElementById('customerName').value,
+            customer_contact: document.getElementById('customerContact').value,
+            item_description: document.getElementById('itemDesc').value,
+            date_received: document.getElementById('dateReceived').value,
+            status: document.getElementById('jobStatus').value,
+            work_required: document.getElementById('workRequired').value,
+            work_done: document.getElementById('workDone').value,
+            labour_hours: parseFloat(document.getElementById('labourHours').value) || 0,
+            labour_rate: parseFloat(document.getElementById('labourRate').value) || 0,
+            parts_cost: parseFloat(document.getElementById('partsCost').value) || 0,
+            total_amount: parseFloat(document.getElementById('totalAmount').value) || 0,
+            created_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase.from('job_cards').insert([jobData]);
+        if (error) return alert("Error saving: " + error.message);
+
+        alert("✅ Job card saved successfully!");
+        clearForm();
+        loadJobs();
+    }
+
+    async function loadJobs() {
+        const { data: jobs, error } = await supabase
+            .from('job_cards')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('date_received', { ascending: false });
+
+        const list = document.getElementById('jobsList');
+        if (error || !jobs || jobs.length === 0) {
+            list.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem;">No job cards created yet.</td></tr>';
+            return;
+        }
+
+        list.innerHTML = jobs.map(job => `
+            <tr>
+                <td>${job.job_ref}</td>
+                <td>${job.customer_name}</td>
+                <td>${job.item_description}</td>
+                <td>${new Date(job.date_received).toLocaleDateString()}</td>
+                <td class="${getStatusClass(job.status)}">${job.status}</td>
+                <td>£${job.total_amount.toFixed(2)}</td>
+                <td>
+                    <button class="btn" style="padding:0.4rem 0.8rem; font-size:0.8rem;" onclick="viewJob('${job.id}')">View</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function getStatusClass(status) {
+        switch(status) {
+            case 'Open': return 'status-open';
+            case 'In Progress': return 'status-progress';
+            case 'Completed': return 'status-completed';
+            default: return '';
+        }
+    }
+
+    function clearForm() {
+        document.getElementById('jobRef').value = '';
+        document.getElementById('customerName').value = '';
+        document.getElementById('customerContact').value = '';
+        document.getElementById('itemDesc').value = '';
+        document.getElementById('dateReceived').value = new Date().toISOString().split('T')[0];
+        document.getElementById('jobStatus').value = 'Open';
+        document.getElementById('workRequired').value = '';
+        document.getElementById('workDone').value = '';
+        document.getElementById('labourHours').value = '';
+        document.getElementById('labourRate').value = '';
+        document.getElementById('partsCost').value = '';
+        document.getElementById('totalAmount').value = '';
+    }
+
+    // Run on page load
+    window.onload = checkAccess;
+</script>
+
+</body>
+</html>
