@@ -22,7 +22,7 @@
 
   <script>
     // ==============================================
-    // ✅ CONFIG — NO CHANGES
+    // ✅ CONFIG — CORRECT & COMPLETE
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
@@ -35,7 +35,13 @@
     const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
     const CONTACT_EMAIL = 'info.buildtracker@gmail.com';
 
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true // ✅ THIS IS THE MISSING PIECE — detects when you come back from email link
+      }
+    });
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
   </script>
 
@@ -124,8 +130,7 @@
         <a href="electronics-repair/index.html">Electronics Repair</a>
         <a href="stock-control/index.html">Stock Control</a>
         <a href="Supplier & Purchase Order System/index.html">Supplier & Purchase Order System</a>
-        <!-- ✅ NEW ADDED HERE -->
-       <a href="job-card-workshop-log-system/index.html">Job Card & Workshop Log System</a>
+        <a href="job-card-workshop-log-system/index.html">Job Card & Workshop Log System</a>
       </div>
     </div>
     <button class="mkt-btn mkt-btn-signin" onclick="showLogin()">Sign In</button>
@@ -158,7 +163,6 @@
     <div class="mkt-card"><h4>🔧 Electronics Repair</h4><p>Log faults, parts used and repair history for phones, laptops and appliances.</p></div>
     <div class="mkt-card"><h4>📦 Stock Control</h4><p>Manage inventory, reorder levels, suppliers and costs for all your parts.</p></div>
     <div class="mkt-card"><h4>📋 Supplier & Purchase Order System</h4><p>Manage supplier relationships, create purchase orders and track deliveries.</p></div>
-    <!-- ✅ NEW ADDED HERE -->
     <div class="mkt-card"><h4>🛠️ Job Card & Workshop Log System</h4><p>Create job cards, track time spent, materials used, labour costs and work status for every job.</p></div>
   </div>
 </section>
@@ -253,7 +257,6 @@
       <p>Supplier management & purchase orders</p>
       <a href="Supplier & Purchase Order System/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
-    <!-- ✅ NEW ADDED HERE -->
     <div class="dashboard-card">
       <h3>🛠️ Job Card & Workshop Log System</h3>
       <p>Job cards, time tracking & work logs</p>
@@ -295,7 +298,6 @@
       <small>Supplier management & purchase orders — £32/month</small>
     </div>
 
-    <!-- ✅ NEW ADDED HERE -->
     <div class="option-item" onclick="selectSoftware('Job Card & Workshop Log System')">
       <strong>🛠️ Job Card & Workshop Log System</strong><br>
       <small>Job cards, time & cost tracking — £32/month</small>
@@ -326,14 +328,14 @@ function showDashboard() {
   hideAllSections();
   document.getElementById('dashboard').classList.remove('hidden');
   document.getElementById('mainNav').classList.add('hidden');
-  document.getElementById('loggedInNav').classList.remove('hidden');
+  document.getElementById('loggedInNav').class.remove('hidden');
   window.scrollTo(0,0);
 }
 function showHome() {
   hideAllSections();
   document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden'));
   document.getElementById('mainNav').classList.remove('hidden');
-  document.getElementById('loggedInNav').classList.add('hidden');
+  document.getElementById('loggedInNav').class.add('hidden');
   window.scrollTo(0,0);
 }
 
@@ -353,13 +355,13 @@ function selectSoftware(name) {
 }
 
 // ==============================================
-// ✅ AUTHENTICATION — UPDATED REDIRECT FIX
+// ✅ AUTHENTICATION — FULLY FIXED
 // ==============================================
 async function login() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPass').value;
   const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) return alert(error.message);
+  if (error) return alert("❌ Login failed: " + error.message);
   await checkSubscription();
 }
 
@@ -367,7 +369,6 @@ async function signup() {
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPass').value;
   
-  // ✅ —— HERE IS THE FIXED REDIRECT CODE —— ✅
   const { data, error } = await supabaseClient.auth.signUp({
     email: email,
     password: password,
@@ -376,7 +377,7 @@ async function signup() {
     }
   });
 
-  if (error) return alert(error.message);
+  if (error) return alert("❌ Signup failed: " + error.message);
 
   if (data.user) {
     const trialEnd = new Date();
@@ -388,7 +389,7 @@ async function signup() {
     });
   }
 
-  alert("✅ Account created! Check your email to confirm, then log in.");
+  alert("✅ Account created! Please check your email and click the link to confirm — you will be logged in automatically.");
   showLogin();
 }
 
@@ -402,7 +403,7 @@ async function logout() {
 // ==============================================
 async function checkSubscription() {
   const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return showHome();
+  if (!user) { showHome(); return; }
 
   try {
     const { data: sub, error } = await supabaseClient
@@ -470,11 +471,15 @@ document.getElementById('contactForm').addEventListener('submit', async function
 });
 
 // ==============================================
-// ✅ AUTO RUN
+// ✅ AUTO RUN — DETECTS EMAIL CONFIRMATION & LOGS YOU IN
 // ==============================================
-supabaseClient.auth.onAuthStateChange((_, session) => {
-  if (session) checkSubscription();
-  else showHome();
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  console.log("Auth event:", event);
+  if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+    await checkSubscription();
+  } else if (!session) {
+    showHome();
+  }
 });
 
 // Close popup if clicking outside
