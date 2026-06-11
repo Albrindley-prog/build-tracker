@@ -15,7 +15,7 @@
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
 
-    // ✅ CRITICAL FIX — SAME AS BEFORE: detects you are already logged in
+    // ✅ CRITICAL FIX — SHARES LOGIN WITH MAIN SITE
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         autoRefreshToken: true,
@@ -36,6 +36,7 @@
 
     .container { max-width:1200px; margin:2rem auto; padding:0 5%; }
     h1 { color:#165DFF; margin-bottom:2rem; text-align:center; }
+    h3 { color:#165DFF; margin-bottom:1rem; }
 
     .auth-box { max-width:400px; margin:3rem auto; background:white; padding:2rem; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1); text-align:center; }
     .auth-box input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid #ddd; border-radius:6px; font-size:1rem; }
@@ -57,7 +58,10 @@
     .job-item { background:white; padding:1.5rem; border-radius:8px; box-shadow:0 1px 5px rgba(0,0,0,0.08); margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
     .status-badge { padding:.3rem .8rem; border-radius:20px; font-size:.85rem; font-weight:500; }
     .status-open { background:#e3f2fd; color:#165DFF; }
-    .status-closed { background:#e8f5e9; color:#24a148; }
+    .status-waiting { background:#fff3e0; color:#ef6c00; }
+    .status-completed { background:#e8f5e9; color:#24a148; }
+    .status-invoiced { background:#f3e5f5; color:#7b1fa2; }
+    .empty-msg { text-align:center; color:#666; padding:2rem; }
   </style>
 </head>
 <body>
@@ -80,15 +84,15 @@
     <h1>Job Card & Workshop Log System</h1>
 
     <div class="job-card-form">
-      <h3 style="margin-bottom:1.5rem; color:#165DFF;">Create New Job Card</h3>
+      <h3>Create New Job Card</h3>
       <div class="form-row">
         <div class="form-group">
           <label>Job Reference / Number</label>
-          <input type="text" id="jobRef" placeholder="e.g. JOB-2026-001">
+          <input type="text" id="jobRef" placeholder="e.g. JOB-2026-001" required>
         </div>
         <div class="form-group">
           <label>Customer Name</label>
-          <input type="text" id="custName" placeholder="Full name">
+          <input type="text" id="custName" placeholder="Full name" required>
         </div>
       </div>
 
@@ -99,13 +103,13 @@
         </div>
         <div class="form-group">
           <label>Date Received</label>
-          <input type="date" id="dateReceived">
+          <input type="date" id="dateReceived" required>
         </div>
       </div>
 
       <div class="form-group" style="margin-bottom:1rem;">
         <label>Repair / Work Required</label>
-        <textarea id="workRequired" placeholder="Describe the problem or work to be done..."></textarea>
+        <textarea id="workRequired" placeholder="Describe the problem or work to be done..." required></textarea>
       </div>
 
       <div class="form-row">
@@ -138,22 +142,9 @@
     </div>
 
     <div class="job-list">
-      <h3 style="margin-bottom:1rem; color:#165DFF;">Current Jobs & Logs</h3>
+      <h3>Current Jobs & Logs</h3>
       <div id="jobsList">
-        <div class="job-item">
-          <div>
-            <strong>JOB-2026-001</strong> — John Smith — Ford Transit
-            <div style="font-size:.9rem; color:#666;">Brake repair — 2.5hrs labour</div>
-          </div>
-          <span class="status-badge status-open">In Progress</span>
-        </div>
-        <div class="job-item">
-          <div>
-            <strong>JOB-2026-002</strong> — ABC Ltd — Generator
-            <div style="font-size:.9rem; color:#666;">Service & oil change</div>
-          </div>
-          <span class="status-badge status-closed">Completed</span>
-        </div>
+        <div class="empty-msg">No jobs created yet — fill the form above and save your first job!</div>
       </div>
     </div>
   </div>
@@ -168,6 +159,7 @@ async function checkAuth() {
   if (user) {
     document.getElementById('authSection').classList.add('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
+    loadJobs(); // Load YOUR jobs from database
   } else {
     document.getElementById('authSection').classList.remove('hidden');
     document.getElementById('mainContent').classList.add('hidden');
@@ -182,11 +174,89 @@ async function login() {
   checkAuth();
 }
 
-function saveJobCard() {
-  alert("✅ Job card saved! This will connect to your database next.");
+// ==============================================
+// ✅ SAVE JOB TO DATABASE — TABLE NAME = job_card
+// ==============================================
+async function saveJobCard() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return alert("❌ Please log in first");
+
+  const jobData = {
+    user_id: user.id,
+    job_ref: document.getElementById('jobRef').value,
+    customer_name: document.getElementById('custName').value,
+    item_details: document.getElementById('itemDetails').value,
+    date_received: document.getElementById('dateReceived').value,
+    work_required: document.getElementById('workRequired').value,
+    time_spent: document.getElementById('timeSpent').value || null,
+    status: document.getElementById('status').value,
+    parts_used: document.getElementById('partsUsed').value,
+    notes: document.getElementById('notes').value
+  };
+
+  const { error } = await supabaseClient.from('job_card').insert(jobData);
+  if (error) {
+    alert("❌ Error saving: " + error.message);
+  } else {
+    alert("✅ Job card saved successfully!");
+    // Clear form
+    document.querySelectorAll('input, textarea, select').forEach(el => el.value = '');
+    loadJobs(); // Refresh list
+  }
 }
 
-// ✅ RUN ON PAGE LOAD — automatically signs you in if you are already logged in on main site
+// ==============================================
+// ✅ LOAD & SHOW YOUR JOBS — TABLE NAME = job_card
+// ==============================================
+async function loadJobs() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return;
+
+  const { data: jobs, error } = await supabaseClient
+    .from('job_card')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) return console.error("Load error:", error);
+
+  const listEl = document.getElementById('jobsList');
+  listEl.innerHTML = '';
+
+  if (jobs.length === 0) {
+    listEl.innerHTML = '<div class="empty-msg">No jobs created yet — fill the form above and save your first job!</div>';
+    return;
+  }
+
+  jobs.forEach(job => {
+    const statusClass = {
+      open: 'status-open',
+      waiting: 'status-waiting',
+      completed: 'status-completed',
+      invoiced: 'status-invoiced'
+    }[job.status] || 'status-open';
+
+    const statusText = {
+      open: 'In Progress',
+      waiting: 'Waiting for Parts',
+      completed: 'Completed',
+      invoiced: 'Invoiced'
+    }[job.status] || job.status;
+
+    const item = document.createElement('div');
+    item.className = 'job-item';
+    item.innerHTML = `
+      <div>
+        <strong>${job.job_ref}</strong> — ${job.customer_name} — ${job.item_details || 'No details'}
+        <div style="font-size:.9rem; color:#666;">${job.work_required.substring(0,60)}${job.work_required.length>60?'...':''}</div>
+      </div>
+      <span class="status-badge ${statusClass}">${statusText}</span>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
+// ✅ RUN ON PAGE LOAD
 supabaseClient.auth.onAuthStateChange(() => checkAuth());
 checkAuth();
 </script>
