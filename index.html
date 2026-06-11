@@ -353,7 +353,7 @@ function selectSoftware(name) {
 }
 
 // ==============================================
-// ✅ AUTHENTICATION
+// ✅ AUTHENTICATION — UPDATED REDIRECT FIX
 // ==============================================
 async function login() {
   const email = document.getElementById('loginEmail').value;
@@ -366,7 +366,16 @@ async function login() {
 async function signup() {
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPass').value;
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  
+  // ✅ —— HERE IS THE FIXED REDIRECT CODE —— ✅
+  const { data, error } = await supabaseClient.auth.signUp({
+    email: email,
+    password: password,
+    options: {
+      emailRedirectTo: "https://build-tracker.co.uk/"
+    }
+  });
+
   if (error) return alert(error.message);
 
   if (data.user) {
