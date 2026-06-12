@@ -388,13 +388,13 @@ function showDashboard() {
   hideAllSections();
   document.getElementById('dashboard').classList.remove('hidden');
   document.getElementById('mainNav').classList.add('hidden');
-  document.getElementById('loggedInNav').classList.remove('hidden');
+  document.getElementById('loggedInNav').class.remove('hidden');
   window.scrollTo(0,0);
 }
 function showHome() {
   hideAllSections();
   document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden'));
-  document.getElementById('mainNav').classList.remove('hidden');
+  document.getElementById('mainNav').class.remove('hidden');
   document.getElementById('loggedInNav').class.add('hidden');
   window.scrollTo(0,0);
 }
@@ -497,35 +497,40 @@ async function startPayment(selectedName = "") {
 }
 
 // ==============================================
-// ✅ CONTACT FORM
+// ✅ CONTACT FORM — FIXED & WORKING
 // ==============================================
 document.getElementById('contactForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   const status = document.getElementById('form-status');
   status.style.display = 'none';
+  status.className = '';
 
   const name = document.getElementById('contactName').value.trim();
   const email = document.getElementById('contactEmail').value.trim();
   const message = document.getElementById('contactMessage').value.trim();
 
   if (!name || !email || !message) {
-    status.textContent = "❌ Please fill all fields";
+    status.textContent = "❌ Please fill in all fields";
     status.className = 'error';
     status.style.display = 'block';
     return;
   }
 
   try {
-    const mailtoLink = `mailto:${CONTACT_EMAIL}?subject=Message from ${encodeURIComponent(name)}&body=From: ${encodeURIComponent(name)}%0AEmail: ${encodeURIComponent(email)}%0A%0A${encodeURIComponent(message)}`;
-    window.open(mailtoLink, '_blank');
+    // ✅ FIXED: Proper mailto link with correct encoding
+    const subject = `Message from Build Tracker Website: ${name}`;
+    const body = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
+    const mailtoLink = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    window.location.href = mailtoLink;
 
-    status.textContent = "✅ Message sent! Thank you.";
+    status.textContent = "✅ Message sent successfully!";
     status.className = 'success';
     status.style.display = 'block';
     this.reset();
 
   } catch (err) {
-    status.textContent = "❌ Failed to send — please email us directly.";
+    status.textContent = "❌ Could not send message — please email us directly";
     status.className = 'error';
     status.style.display = 'block';
   }
