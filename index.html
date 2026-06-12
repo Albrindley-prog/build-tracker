@@ -50,54 +50,81 @@
     * { margin:0; padding:0; box-sizing:border-box; font-family: 'DM Sans', sans-serif; }
     html, body { color:#1D2129; background:#fff; line-height:1.6; }
 
-    nav { background:#1D2129; color:white; padding:0.5rem 5%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; position:sticky; top:0; z-index:50; }
-    /* Logo container styling */
-    .logo { display:flex; align-items:center; text-decoration:none; }
-    .logo svg { height:50px; width:auto; } /* Controls logo size in nav */
+    /* ✅ UPDATED HEADER COLOURS — MATCHES LOGO PERFECTLY */
+    nav { 
+      background: #1E293B; /* Dark slate (matches "Build" text) */
+      color:white; 
+      padding:0.5rem 5%; 
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center; 
+      flex-wrap:wrap; 
+      gap:.5rem; 
+      position:sticky; 
+      top:0; 
+      z-index:50; 
+      border-bottom: 4px solid #0EA5E9; /* Bright blue from logo symbol */
+    }
+    /* ✅ Logo sizing & alignment */
+    .logo { 
+      display:flex; 
+      align-items:center; 
+      text-decoration:none; 
+    }
+    .logo svg { 
+      height:45px; 
+      width:auto; 
+    }
     nav a { color:white; text-decoration:none; margin:0 0.8rem; }
-    nav a:hover { color:#FF7D00; }
+    nav a:hover { color:#0EA5E9; } /* Hover matches logo blue */
     .nav-right { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
 
     .dropdown { position:relative; display:inline-block; }
     .dropbtn { background:transparent; color:white; border:none; padding:.6rem 1rem; font-size:1rem; cursor:pointer; }
     .dropdown-content { display:none; position:absolute; background:#fff; min-width:180px; box-shadow:0 8px 16px rgba(0,0,0,0.15); z-index:100; border-radius:4px; overflow:hidden; }
     .dropdown-content a { color:#1D2129; padding:.7rem 1rem; text-decoration:none; display:block; margin:0; }
-    .dropdown-content a:hover { background:#f5f5f5; color:#FF7D00; }
+    .dropdown-content a:hover { background:#f5f5f5; color:#0EA5E9; }
     .dropdown:hover .dropdown-content { display:block; }
-    .dropdown:hover .dropbtn { color:#FF7D00; }
+    .dropdown:hover .dropbtn { color:#0EA5E9; }
 
-    .mkt-btn { display:inline-block; background:#FF7D00; color:white; padding:.6rem 1.3rem; border-radius:6px; text-decoration:none; font-weight:bold; margin:.5rem; transition:opacity .2s; border:none; cursor:pointer; font-size:.9rem; }
+    .mkt-btn { display:inline-block; background:#0EA5E9; color:white; padding:.6rem 1.3rem; border-radius:6px; text-decoration:none; font-weight:bold; margin:.5rem; transition:opacity .2s; border:none; cursor:pointer; font-size:.9rem; }
     .mkt-btn:hover { opacity:.9; }
-    .mkt-btn-blue { background:#165DFF; }
-    .mkt-btn-blue:hover { background:#0052cc; opacity:1; }
-    .mkt-btn-green { background:#24a148; }
-    .mkt-btn-green:hover { background:#1e8e3e; }
+    .mkt-btn-blue { background:#0EA5E9; }
+    .mkt-btn-blue:hover { background:#0284C7; opacity:1; }
+    .mkt-btn-green { background:#22C55E; }
+    .mkt-btn-green:hover { background:#16A34A; }
     .mkt-btn-signin { background:transparent; border:2px solid rgba(255,255,255,.5); color:white; padding:.5rem 1.2rem; font-size:.9rem; margin:0; }
     .mkt-btn-signin:hover { border-color:white; opacity:1; }
 
-    .hero { background:linear-gradient(135deg,#165DFF 0%,#0038A8 100%); color:white; padding:4rem 5%; text-align:center; }
+    /* ✅ Blue bar below nav — now matches logo blue */
+    .header-divider {
+      height: 4px;
+      background: #0EA5E9;
+    }
+
+    .hero { background:linear-gradient(135deg,#0EA5E9 0%,#1E293B 100%); color:white; padding:4rem 5%; text-align:center; }
     .hero h1 { font-size:2.5rem; margin-bottom:.5rem; }
     .hero h2 { font-size:1.3rem; font-weight:normal; margin-bottom:2rem; opacity:.9; }
 
     .section { padding:3rem 5%; max-width:1200px; margin:0 auto; }
-    .section h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#165DFF; text-align:center; }
+    .section h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#0EA5E9; text-align:center; }
 
     .mkt-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:2rem; margin:2rem 0; }
     .mkt-card { background:#F2F3F5; padding:1.8rem; border-radius:8px; }
-    .mkt-card h4 { color:#165DFF; margin-bottom:1rem; font-size:1.2rem; }
+    .mkt-card h4 { color:#0EA5E9; margin-bottom:1rem; font-size:1.2rem; }
 
-    .price-box { background:#F2F3F5; border:3px solid #165DFF; border-radius:12px; padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
-    .price-box .price { font-size:3rem; color:#FF7D00; font-weight:bold; }
+    .price-box { background:#F2F3F5; border:3px solid #0EA5E9; border-radius:12px; padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
+    .price-box .price { font-size:3rem; color:#0EA5E9; font-weight:bold; }
 
     /* ✅ Selection Popup Style */
     .selection-popup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999; align-items:center; justify-content:center; }
     .popup-content { background:#fff; padding:2rem; border-radius:10px; max-width:450px; width:90%; max-height:90vh; overflow-y:auto; }
     .popup-content h4 { text-align:center; margin-bottom:1.5rem; color:#1D2129; }
     .option-item { padding:1rem; margin-bottom:1rem; border:2px solid #e2e8f0; border-radius:8px; cursor:pointer; transition:border 0.2s; }
-    .option-item:hover { border-color:#165DFF; }
+    .option-item:hover { border-color:#0EA5E9; }
     .close-btn { text-align:right; margin-top:1rem; }
 
-    footer { background:#1D2129; color:white; padding:2rem 5%; text-align:center; margin-top:3rem; }
+    footer { background:#1E293B; color:white; padding:2rem 5%; text-align:center; margin-top:3rem; }
 
     .hidden { display:none !important; }
     .auth-box { max-width:400px; margin:3rem auto; background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
@@ -116,7 +143,7 @@
 
 <div id="marketing-site">
 <nav>
-  <!-- ✅ NEW LOGO ADDED HERE -->
+  <!-- ✅ NEW LOGO — PERFECTLY SIZED -->
   <a href="#" class="logo" onclick="showHome(); return false;">
     <svg width="320" height="100" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <!-- Symbol -->
@@ -160,6 +187,9 @@
     <button class="mkt-btn mkt-btn-signin" onclick="logout()">Logout</button>
   </div>
 </nav>
+
+<!-- ✅ Blue divider bar — now matches logo blue -->
+<div class="header-divider"></div>
 
 <section id="home" class="hero">
   <h1>Build Tracker Solutions</h1>
@@ -212,12 +242,12 @@
   <h3>Get in touch</h3>
   <div class="mkt-grid">
     <div>
-      <h4 style="color:#165DFF;margin-bottom:1rem;">📞 Contact Details</h4>
+      <h4 style="color:#0EA5E9;margin-bottom:1rem;">📞 Contact Details</h4>
       <p><strong>Phone</strong>: 07540 799925<br>
-      <strong>Email</strong>: <a href="mailto:info.buildtracker@gmail.com" style="color:#165DFF; text-decoration:none;">info.buildtracker@gmail.com</a></p>
+      <strong>Email</strong>: <a href="mailto:info.buildtracker@gmail.com" style="color:#0EA5E9; text-decoration:none;">info.buildtracker@gmail.com</a></p>
     </div>
     <div>
-      <h4 style="color:#165DFF;margin-bottom:1rem;">✉️ Send us a message</h4>
+      <h4 style="color:#0EA5E9;margin-bottom:1rem;">✉️ Send us a message</h4>
       <form id="contactForm" style="display:flex;flex-direction:column;gap:1rem;">
         <input type="text" id="contactName" placeholder="Your Name" required>
         <input type="email" id="contactEmail" placeholder="Your Email" required>
@@ -231,17 +261,17 @@
 
 <section id="loginForm" class="section hidden">
   <div class="auth-box">
-    <h2 style="color:#165DFF; margin-bottom:1rem;">Sign In</h2>
+    <h2 style="color:#0EA5E9; margin-bottom:1rem;">Sign In</h2>
     <input type="email" id="loginEmail" placeholder="Email Address">
     <input type="password" id="loginPass" placeholder="Password">
     <button class="mkt-btn mkt-btn-blue" style="width:100%; margin-top:.5rem;" onclick="login()">Login</button>
-    <p style="margin-top:1rem; font-size:.9rem;">Don’t have an account? <a href="#" onclick="showSignup(); return false;" style="color:#165DFF; text-decoration:none;">Sign up here</a></p>
+    <p style="margin-top:1rem; font-size:.9rem;">Don’t have an account? <a href="#" onclick="showSignup(); return false;" style="color:#0EA5E9; text-decoration:none;">Sign up here</a></p>
   </div>
 </section>
 
 <section id="signupForm" class="section hidden">
   <div class="auth-box">
-    <h2 style="color:#FF7D00; margin-bottom:1rem;">Create Your Account</h2>
+    <h2 style="color:#0EA5E9; margin-bottom:1rem;">Create Your Account</h2>
     <input type="email" id="signupEmail" placeholder="Email Address">
     <input type="password" id="signupPass" placeholder="Create Password">
     <p style="margin:.8rem 0; font-size:.9rem;">Start your <strong>14 day free trial</strong>. After that, £32 per month for your chosen software.</p>
@@ -250,7 +280,7 @@
 </section>
 
 <section id="dashboard" class="section hidden">
-  <h2 style="text-align:center; color:#165DFF;">Your Dashboard</h2>
+  <h2 style="text-align:center; color:#0EA5E9;">Your Dashboard</h2>
   <div class="dashboard-grid">
     <div class="dashboard-card">
       <h3>🏗️ Build Tracker</h3>
