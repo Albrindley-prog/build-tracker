@@ -40,7 +40,7 @@
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true // THIS WAS MISSING BEFORE — NOW FIXED
+        detectSessionInUrl: true
       }
     });
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
@@ -50,9 +50,10 @@
     * { margin:0; padding:0; box-sizing:border-box; font-family: 'DM Sans', sans-serif; }
     html, body { color:#1D2129; background:#fff; line-height:1.6; }
 
-    nav { background:#1D2129; color:white; padding:1rem 5%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; position:sticky; top:0; z-index:50; }
-    nav .logo { font-size:1.3rem; font-weight:bold; cursor:pointer; text-decoration:none; color:white; }
-    nav .logo:hover { color:#FF7D00; }
+    nav { background:#1D2129; color:white; padding:0.5rem 5%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; position:sticky; top:0; z-index:50; }
+    /* Logo container styling */
+    .logo { display:flex; align-items:center; text-decoration:none; }
+    .logo svg { height:50px; width:auto; } /* Controls logo size in nav */
     nav a { color:white; text-decoration:none; margin:0 0.8rem; }
     nav a:hover { color:#FF7D00; }
     .nav-right { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
@@ -115,7 +116,23 @@
 
 <div id="marketing-site">
 <nav>
-  <a href="#" class="logo" onclick="showHome(); return false;">Build Tracker Solutions</a>
+  <!-- ✅ NEW LOGO ADDED HERE -->
+  <a href="#" class="logo" onclick="showHome(); return false;">
+    <svg width="320" height="100" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Symbol -->
+      <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#4B5563"/>
+      <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#22C55E"/>
+      <path d="M40 60 L40 20 L55 20 L55 60 Z" fill="#0EA5E9"/>
+      <rect x="42" y="26" width="11" height="4" fill="white"/>
+      <rect x="42" y="34" width="11" height="4" fill="white"/>
+      <rect x="42" y="42" width="11" height="4" fill="white"/>
+      <rect x="42" y="50" width="11" height="4" fill="white"/>
+      <!-- Text -->
+      <text x="75" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="600" fill="#1E293B">Build</text>
+      <text x="175" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="400" fill="#64748B">Tracker</text>
+      <text x="298" y="38" font-family="Arial, sans-serif" font-size="12" fill="#64748B">™</text>
+    </svg>
+  </a>
 
   <div class="nav-right" id="mainNav">
     <a href="#home" onclick="showHome(); return false;">Home</a>
@@ -132,6 +149,7 @@
         <a href="stock-control/index.html">Stock Control</a>
         <a href="Supplier & Purchase Order System/index.html">Supplier & Purchase Order System</a>
         <a href="job-card-workshop-log-system/index.html">Job Card & Workshop Log System</a>
+        <a href="quote-builder/build/index.html">Quote Builder</a>
       </div>
     </div>
     <button class="mkt-btn mkt-btn-signin" onclick="showLogin()">Sign In</button>
@@ -165,6 +183,7 @@
     <div class="mkt-card"><h4>📦 Stock Control</h4><p>Manage inventory, reorder levels, suppliers and costs for all your parts.</p></div>
     <div class="mkt-card"><h4>📋 Supplier & Purchase Order System</h4><p>Manage supplier relationships, create purchase orders and track deliveries.</p></div>
     <div class="mkt-card"><h4>🛠️ Job Card & Workshop Log System</h4><p>Create job cards, track time spent, materials used, labour costs and work status for every job.</p></div>
+    <div class="mkt-card"><h4>📄 Quote Builder</h4><p>Create professional quotes, send via link, track acceptance, and convert directly to job cards.</p></div>
   </div>
 </section>
 
@@ -263,6 +282,11 @@
       <p>Job cards, time tracking & work logs</p>
       <a href="job-card-workshop-log-system/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
+    <div class="dashboard-card">
+      <h3>📄 Quote Builder</h3>
+      <p>Quoting, estimates & client approvals</p>
+      <a href="quote-builder/build/index.html" class="mkt-btn mkt-btn-blue">Open</a>
+    </div>
   </div>
   <div style="text-align:center; margin-top:2rem;">
     <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Subscribe / Pay £32/month</button>
@@ -302,6 +326,11 @@
     <div class="option-item" onclick="selectSoftware('Job Card & Workshop Log System')">
       <strong>🛠️ Job Card & Workshop Log System</strong><br>
       <small>Job cards, time & cost tracking — £32/month</small>
+    </div>
+
+    <div class="option-item" onclick="selectSoftware('Quote Builder')">
+      <strong>📄 Quote Builder</strong><br>
+      <small>Professional quotes, PDF & client approval — £32/month</small>
     </div>
 
     <div class="close-btn">
