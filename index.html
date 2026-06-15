@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Build Tracker Solutions</title>
+  <title>Build Tracker Solutions | UK Workshop & Garage Software</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
@@ -20,9 +20,42 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://js.stripe.com/v3/"></script>
 
+  <!-- ✅ SCHEMA MARKUP FOR GOOGLE -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Build Tracker Solutions",
+    "operatingSystem": "Web browser",
+    "applicationCategory": "BusinessApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "32.00",
+      "priceCurrency": "GBP",
+      "description": "14-day free trial, then £32 per month"
+    },
+    "featureList": "Project tracking, job cards, quotes, stock control, purchase orders, workshop logs"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Build Tracker Solutions",
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "GB"
+    },
+    "telephone": "+44 7540 799925",
+    "email": "info.buildtracker@gmail.com",
+    "url": "https://build-tracker.co.uk",
+    "description": "UK software for garages, body shops, repair businesses and trades — track jobs, quotes, stock and progress."
+  }
+  </script>
+
   <script>
     // ==============================================
-    // ✅ CONFIG — CORRECT & MATCHES YOUR SUPABASE SETTINGS
+    // ✅ CONFIG — CORRECT & MATCHES YOUR SETTINGS
     // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
@@ -176,7 +209,7 @@
     <a href="#contact">Contact</a>
     <div class="dropdown">
       <button class="dropbtn">Open Software ▾</button>
-      <div class="dropdown-content">
+      <div class="dropdown-menu">
         <a href="build-tracker/index.html">Build Tracker</a>
         <a href="body-shop-pro/index.html">Body Shop Pro</a>
         <a href="electronics-repair/index.html">Electronics Repair</a>
@@ -199,8 +232,8 @@
 <div class="header-divider"></div>
 
 <section id="home" class="hero">
-  <h1>Build Tracker Solutions</h1>
-  <h2>Choose the software you need — simple pricing</h2>
+  <h1>Track builds, jobs & progress for UK garages & custom shops</h1>
+  <h2>Simple, reliable software to manage your whole workshop</h2>
   <p style="font-size:1.1rem;max-width:800px;margin:0 auto 2rem;">Select the tool that fits your business. All plans include a 14‑day free trial, then just £32 per month.</p>
   <ul style="list-style:none;margin-bottom:2rem;font-size:1.05rem;">
     <li>✅ Pick the software you want to use</li>
@@ -211,7 +244,7 @@
   <button class="mkt-btn mkt-btn-blue" onclick="openSelection()">Choose Software & Subscribe</button>
 </section>
 
-<section class="section">
+<section id="features" class="section">
   <h3>Our Software Options</h3>
   <div class="mkt-grid">
     <div class="mkt-card"><h4>🏗️ Build Tracker</h4><p>Track builds, renovations and projects from start to finish. Includes live client progress view.</p></div>
@@ -242,7 +275,29 @@
 
 <section id="about" class="section" style="background:#F2F3F5;">
   <h3>About Build Tracker Solutions</h3>
-  <p>UK‑made software for trade and service businesses. Simple, reliable and built to save you time every day.</p>
+  <p>UK‑made software for trade and service businesses. Simple, reliable and built to save you time every day. We build tools specifically for garages, body shops, repair centres and custom workshops — no complicated features, just what you need to run your business smoothly.</p>
+</section>
+
+<section id="faq" class="section">
+  <h3>Frequently Asked Questions</h3>
+  <div style="max-width:800px;margin:0 auto;">
+    <div style="margin-bottom:1.5rem;">
+      <h4 style="color:#0EA5E9;">Do I need to install anything?</h4>
+      <p>No — everything runs in your web browser. You can access it from any computer, tablet or phone with an internet connection.</p>
+    </div>
+    <div style="margin-bottom:1.5rem;">
+      <h4 style="color:#0EA5E9;">How does the free trial work?</h4>
+      <p>You get full access to your chosen software for 14 days completely free. At the end of the trial, you only pay £32/month if you want to keep using it — no hidden fees.</p>
+    </div>
+    <div style="margin-bottom:1.5rem;">
+      <h4 style="color:#0EA5E9;">Can I switch or add more tools later?</h4>
+      <p>Yes — you can add or change software packages at any time from your account dashboard.</p>
+    </div>
+    <div style="margin-bottom:1.5rem;">
+      <h4 style="color:#0EA5E9;">Can I cancel anytime?</h4>
+      <p>Absolutely — there are no long‑term contracts. Cancel whenever you want, no questions asked.</p>
+    </div>
+  </div>
 </section>
 
 <section id="contact" class="section">
@@ -395,14 +450,14 @@ function showDashboard() {
   hideAllSections();
   document.getElementById('dashboard').classList.remove('hidden');
   document.getElementById('mainNav').classList.add('hidden');
-  document.getElementById('loggedInNav').class.remove('hidden');
+  document.getElementById('loggedInNav').classList.remove('hidden');
   window.scrollTo(0,0);
 }
 function showHome() {
   hideAllSections();
   document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden'));
-  document.getElementById('mainNav').class.remove('hidden');
-  document.getElementById('loggedInNav').class.add('hidden');
+  document.getElementById('mainNav').classList.remove('hidden');
+  document.getElementById('loggedInNav').classList.add('hidden');
   window.scrollTo(0,0);
 }
 
