@@ -1,9 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Build Tracker Solutions | UK Workshop & Garage Software</title>
+  <title>Build Tracker Solutions | Car Build & Garage Software UK</title>
+
+  <!-- ✅ NEW SEO META TAGS -->
+  <meta name="description" content="Build Tracker Solutions: UK software for car build tracking, workshop job logs, restoration progress, and garage management. 14-day free trial.">
+  <meta name="keywords" content="car build tracking software UK, workshop job log system, restoration progress tracker, garage management tool UK, body shop software, stock control, job cards">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://build-tracker.co.uk/">
+
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
@@ -20,7 +27,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://js.stripe.com/v3/"></script>
 
-  <!-- ✅ SCHEMA MARKUP FOR GOOGLE -->
+  <!-- ✅ SCHEMA MARKUP - SOFTWARE + LOCAL BUSINESS -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -34,7 +41,7 @@
       "priceCurrency": "GBP",
       "description": "14-day free trial, then £32 per month"
     },
-    "featureList": "Project tracking, job cards, quotes, stock control, purchase orders, workshop logs"
+    "featureList": "Car build tracking, workshop job logs, restoration progress, garage management, stock control, quotes"
   }
   </script>
   <script type="application/ld+json">
@@ -42,39 +49,46 @@
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "name": "Build Tracker Solutions",
-    "address": {
-      "@type": "PostalAddress",
-      "addressCountry": "GB"
-    },
+    "description": "Software for car build tracking, workshop job logs, restoration progress tracking and garage management tools for UK garages and body shops.",
+    "url": "https://build-tracker.co.uk",
     "telephone": "+44 7540 799925",
     "email": "info.buildtracker@gmail.com",
-    "url": "https://build-tracker.co.uk",
-    "description": "UK software for garages, body shops, repair businesses and trades — track jobs, quotes, stock and progress."
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Cheshire East",
+      "addressRegion": "Cheshire",
+      "postalCode": "CW12",
+      "addressCountry": "GB"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 53.1937,
+      "longitude": -2.3936
+    },
+    "areaServed": {
+      "@type": "Country",
+      "name": "United Kingdom"
+    },
+    "openingHours": "Mo-Fr 09:00-17:00",
+    "sameAs": [
+      "https://www.yell.com/",
+      "https://www.freelindex.com/"
+    ]
   }
   </script>
 
   <script>
-    // ==============================================
-    // ✅ CONFIG — CORRECT & MATCHES YOUR SETTINGS
-    // ==============================================
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
-    
     const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
     const PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
-
     const SUCCESS_URL = 'https://build-tracker.co.uk/success.html';
     const CANCEL_URL = 'https://build-tracker.co.uk/cancelled.html';
     const EDGE_FUNCTION_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co/functions/v1/create-checkout-session';
     const CONTACT_EMAIL = 'info.buildtracker@gmail.com';
 
-    // ✅ CRITICAL FIX — detectSessionInUrl: true = AUTO-LOGIN AFTER EMAIL CONFIRMATION
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
     });
     const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
   </script>
@@ -83,9 +97,8 @@
     * { margin:0; padding:0; box-sizing:border-box; font-family: 'DM Sans', sans-serif; }
     html, body { color:#1D2129; background:#fff; line-height:1.6; }
 
-    /* ✅ HEADER COLOURS — MATCHES LOGO PERFECTLY */
     nav { 
-      background: #1E293B; /* Dark slate background */
+      background: #1E293B; 
       color:white; 
       padding:0.5rem 5%; 
       display:flex; 
@@ -96,23 +109,15 @@
       position:sticky; 
       top:0; 
       z-index:50; 
-      border-bottom: 4px solid #0EA5E9; /* Bright blue from logo symbol */
+      border-bottom: 4px solid #0EA5E9;
     }
-    /* ✅ Logo sizing & alignment */
-    .logo { 
-      display:flex; 
-      align-items:center; 
-      text-decoration:none; 
-    }
-    .logo svg { 
-      height:45px; 
-      width:auto; 
-    }
+    .logo { display:flex; align-items:center; text-decoration:none; }
+    .logo svg { height:45px; width:auto; }
     nav a { color:white; text-decoration:none; margin:0 0.8rem; }
-    nav a:hover { color:#0EA5E9; } /* Hover matches logo blue */
+    nav a:hover { color:#0EA5E9; }
     .nav-right { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
 
-    /* ✅ DROPDOWN MENU — KEPT EXACTLY AS ORIGINAL */
+    /* ✅ DROPDOWN KEPT EXACTLY */
     .dropdown { position:relative; display:inline-block; }
     .dropbtn { background:transparent; color:white; border:none; padding:.6rem 1rem; font-size:1rem; cursor:pointer; }
     .dropdown-content { display:none; position:absolute; background:#fff; min-width:180px; box-shadow:0 8px 16px rgba(0,0,0,0.15); z-index:100; border-radius:4px; overflow:hidden; }
@@ -130,11 +135,7 @@
     .mkt-btn-signin { background:transparent; border:2px solid rgba(255,255,255,.5); color:white; padding:.5rem 1.2rem; font-size:.9rem; margin:0; }
     .mkt-btn-signin:hover { border-color:white; opacity:1; }
 
-    /* ✅ Blue bar below nav — now matches logo blue */
-    .header-divider {
-      height: 4px;
-      background: #0EA5E9;
-    }
+    .header-divider { height: 4px; background: #0EA5E9; }
 
     .hero { background:linear-gradient(135deg,#0EA5E9 0%,#1E293B 100%); color:white; padding:4rem 5%; text-align:center; }
     .hero h1 { font-size:2.5rem; margin-bottom:.5rem; }
@@ -143,12 +144,7 @@
     .section { padding:3rem 5%; max-width:1200px; margin:0 auto; }
     .section h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#0EA5E9; text-align:center; }
 
-    /* ✅ ABOUT SECTION — TEXT CENTERED HERE */
-    #about p {
-      text-align: center;
-      max-width: 800px;
-      margin: 0 auto 1.5rem;
-    }
+    #about p { text-align: center; max-width: 800px; margin: 0 auto 1.5rem; }
 
     .mkt-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:2rem; margin:2rem 0; }
     .mkt-card { background:#F2F3F5; padding:1.8rem; border-radius:8px; }
@@ -157,7 +153,6 @@
     .price-box { background:#F2F3F5; border:3px solid #0EA5E9; border-radius:12px; padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
     .price-box .price { font-size:3rem; color:#0EA5E9; font-weight:bold; }
 
-    /* ✅ Selection Popup Style */
     .selection-popup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999; align-items:center; justify-content:center; }
     .popup-content { background:#fff; padding:2rem; border-radius:10px; max-width:450px; width:90%; max-height:90vh; overflow-y:auto; }
     .popup-content h4 { text-align:center; margin-bottom:1.5rem; color:#1D2129; }
@@ -184,10 +179,8 @@
 
 <div id="marketing-site">
 <nav>
-  <!-- ✅ UPDATED LOGO — ALL TEXT NOW WHITE -->
   <a href="#" class="logo" onclick="showHome(); return false;">
     <svg width="320" height="100" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Symbol (unchanged) -->
       <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#4B5563"/>
       <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#22C55E"/>
       <path d="M40 60 L40 20 L55 20 L55 60 Z" fill="#0EA5E9"/>
@@ -195,7 +188,6 @@
       <rect x="42" y="34" width="11" height="4" fill="white"/>
       <rect x="42" y="42" width="11" height="4" fill="white"/>
       <rect x="42" y="50" width="11" height="4" fill="white"/>
-      <!-- Text — CHANGED TO WHITE -->
       <text x="75" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="600" fill="#FFFFFF">Build</text>
       <text x="175" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="400" fill="#FFFFFF">Tracker</text>
       <text x="298" y="38" font-family="Arial, sans-serif" font-size="12" fill="#FFFFFF">™</text>
@@ -208,7 +200,7 @@
     <a href="#pricing">Pricing</a>
     <a href="#about">About</a>
     <a href="#contact">Contact</a>
-    <!-- ✅ DROPDOWN MENU — EXACTLY AS YOU HAD IT -->
+    <!-- ✅ ORIGINAL DROPDOWN MENU -->
     <div class="dropdown">
       <button class="dropbtn">Open Software ▾</button>
       <div class="dropdown-content">
@@ -230,32 +222,32 @@
   </div>
 </nav>
 
-<!-- ✅ Blue divider bar — matches logo blue -->
 <div class="header-divider"></div>
 
 <section id="home" class="hero">
-  <h1>Track builds, jobs & progress for UK garages & custom shops</h1>
-  <h2>Simple, reliable software to manage your whole workshop</h2>
-  <p style="font-size:1.1rem;max-width:800px;margin:0 auto 2rem;">Select the tool that fits your business. All plans include a 14‑day free trial, then just £32 per month.</p>
+  <!-- ✅ KEYWORDS ADDED NATURALLY -->
+  <h1>Car Build Tracking & Garage Management Software UK</h1>
+  <h2>Workshop job logs, restoration progress tracking and admin tools for garages, body shops and custom builders</h2>
+  <p style="font-size:1.1rem;max-width:800px;margin:0 auto 2rem;">Simple, reliable UK‑built software. All plans include a 14‑day free trial, then just £32 per month.</p>
   <ul style="list-style:none;margin-bottom:2rem;font-size:1.05rem;">
-    <li>✅ Pick the software you want to use</li>
-    <li>✅ No app download — works in any browser</li>
-    <li>✅ Send client access links easily</li>
+    <li>✅ Car build & restoration progress tracker</li>
+    <li>✅ Workshop job log system</li>
+    <li>✅ Garage management tool — works in any browser</li>
     <li>✅ <strong>14 days FREE trial — £32.00 per month after</strong></li>
   </ul>
   <button class="mkt-btn mkt-btn-blue" onclick="openSelection()">Choose Software & Subscribe</button>
 </section>
 
 <section id="features" class="section">
-  <h3>Our Software Options</h3>
+  <h3>Our Software Tools</h3>
   <div class="mkt-grid">
-    <div class="mkt-card"><h4>🏗️ Build Tracker</h4><p>Track builds, renovations and projects from start to finish. Includes live client progress view.</p></div>
-    <div class="mkt-card"><h4>🚗 Body Shop Pro</h4><p>Manage accident repairs, estimates, parts and job records — designed for bodyshops.</p></div>
+    <div class="mkt-card"><h4>🏗️ Build Tracker</h4><p>Car build tracking software and restoration progress log — keep every stage documented.</p></div>
+    <div class="mkt-card"><h4>🚗 Body Shop Pro</h4><p>Garage management tool for repairs, estimates, parts and job records.</p></div>
     <div class="mkt-card"><h4>🔧 Electronics Repair</h4><p>Log faults, parts used and repair history for phones, laptops and appliances.</p></div>
     <div class="mkt-card"><h4>📦 Stock Control</h4><p>Manage inventory, reorder levels, suppliers and costs for all your parts.</p></div>
-    <div class="mkt-card"><h4>📋 Supplier & Purchase Order System</h4><p>Manage supplier relationships, create purchase orders and track deliveries.</p></div>
-    <div class="mkt-card"><h4>🛠️ Job Card & Workshop Log System</h4><p>Create job cards, track time spent, materials used, labour costs and work status for every job.</p></div>
-    <div class="mkt-card"><h4>📄 Quote Builder</h4><p>Create professional quotes, send via link, track acceptance, and convert directly to job cards.</p></div>
+    <div class="mkt-card"><h4>📋 Purchase Order System</h4><p>Manage suppliers, create orders and track deliveries easily.</p></div>
+    <div class="mkt-card"><h4>🛠️ Job Card & Workshop Log</h4><p>Workshop job log system — track time, materials and costs for every job.</p></div>
+    <div class="mkt-card"><h4>📄 Quote Builder</h4><p>Create professional quotes, send via link and convert straight to jobs.</p></div>
   </div>
 </section>
 
@@ -263,21 +255,20 @@
   <h3>Simple Pricing</h3>
   <div class="price-box">
     <div class="price">£32.00</div>
-    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>Per software package — or start with one and add more later</small></div>
+    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>14‑day free trial included</small></div>
     <ul style="text-align:left;display:inline-block;margin-bottom:1.5rem;">
       <li>✅ Choose the tool you need</li>
-      <li>✅ 14‑day free trial included</li>
       <li>✅ Unlimited jobs & customers</li>
       <li>✅ Access from any device</li>
       <li>✅ Cancel anytime</li>
     </ul>
-    <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Select Your Software & Subscribe</button>
+    <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Select Your Software</button>
   </div>
 </section>
 
 <section id="about" class="section" style="background:#F2F3F5;">
   <h3>About Build Tracker Solutions</h3>
-  <p>UK‑made software for trade and service businesses. Simple, reliable and built to save you time every day. We build tools specifically for garages, body shops, repair centres and custom workshops — no complicated features, just what you need to run your business smoothly.</p>
+  <p>Based in Cheshire East, we create UK‑made software for trade and service businesses. Our car build tracking, workshop job log and garage management tools are built to save you time and reduce paperwork every day.</p>
 </section>
 
 <section id="faq" class="section">
@@ -285,19 +276,41 @@
   <div style="max-width:800px;margin:0 auto;">
     <div style="margin-bottom:1.5rem;">
       <h4 style="color:#0EA5E9;">Do I need to install anything?</h4>
-      <p>No — everything runs in your web browser. You can access it from any computer, tablet or phone with an internet connection.</p>
+      <p>No — everything runs in your web browser. Access from any computer, tablet or phone.</p>
     </div>
     <div style="margin-bottom:1.5rem;">
       <h4 style="color:#0EA5E9;">How does the free trial work?</h4>
-      <p>You get full access to your chosen software for 14 days completely free. At the end of the trial, you only pay £32/month if you want to keep using it — no hidden fees.</p>
+      <p>Full access for 14 days completely free. Pay only £32/month if you want to continue.</p>
     </div>
     <div style="margin-bottom:1.5rem;">
-      <h4 style="color:#0EA5E9;">Can I switch or add more tools later?</h4>
-      <p>Yes — you can add or change software packages at any time from your account dashboard.</p>
+      <h4 style="color:#0EA5E9;">Can I add more tools later?</h4>
+      <p>Yes — switch or add any software package whenever you need.</p>
     </div>
     <div style="margin-bottom:1.5rem;">
       <h4 style="color:#0EA5E9;">Can I cancel anytime?</h4>
-      <p>Absolutely — there are no long‑term contracts. Cancel whenever you want, no questions asked.</p>
+      <p>No long‑term contracts — cancel whenever you want, no questions asked.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ✅ NEW GUIDES / CONTENT SECTION -->
+<section id="guides" class="section" style="background:#F8FAFC;">
+  <h3>Workshop Guides & Tips</h3>
+  <div class="mkt-grid">
+    <div class="mkt-card">
+      <h4>🔧 How to Track a Full Restoration</h4>
+      <p>Keep parts, costs and progress organised with a simple restoration progress tracker.</p>
+      <a href="#" class="mkt-btn mkt-btn-blue">Read Guide</a>
+    </div>
+    <div class="mkt-card">
+      <h4>⏱️ Reduce Admin Time in Your Garage</h4>
+      <p>Cut paperwork using a proper workshop job log system and save hours every week.</p>
+      <a href="#" class="mkt-btn mkt-btn-blue">Read Guide</a>
+    </div>
+    <div class="mkt-card">
+      <h4>📋 Why Use a Garage Management Tool?</h4>
+      <p>Estimates, stock, jobs and invoices all in one place — built for UK garages.</p>
+      <a href="#" class="mkt-btn mkt-btn-blue">Read Guide</a>
     </div>
   </div>
 </section>
@@ -307,7 +320,8 @@
   <div class="mkt-grid">
     <div>
       <h4 style="color:#0EA5E9;margin-bottom:1rem;">📞 Contact Details</h4>
-      <p><strong>Phone</strong>: 07540 799925<br>
+      <p><strong>Location</strong>: Cheshire East, UK<br>
+      <strong>Phone</strong>: 07540 799925<br>
       <strong>Email</strong>: <a href="mailto:info.buildtracker@gmail.com" style="color:#0EA5E9; text-decoration:none;">info.buildtracker@gmail.com</a></p>
     </div>
     <div>
@@ -338,7 +352,7 @@
     <h2 style="color:#0EA5E9; margin-bottom:1rem;">Create Your Account</h2>
     <input type="email" id="signupEmail" placeholder="Email Address">
     <input type="password" id="signupPass" placeholder="Create Password">
-    <p style="margin:.8rem 0; font-size:.9rem;">Start your <strong>14 day free trial</strong>. After that, £32 per month for your chosen software.</p>
+    <p style="margin:.8rem 0; font-size:.9rem;">Start your <strong>14 day free trial</strong>. After that, £32 per month.</p>
     <button class="mkt-btn mkt-btn-blue" style="width:100%;" onclick="signup()">Create Account</button>
   </div>
 </section>
@@ -367,18 +381,18 @@
       <a href="stock-control/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
     <div class="dashboard-card">
-      <h3>📋 Supplier & Purchase Order System</h3>
-      <p>Supplier management & purchase orders</p>
+      <h3>📋 Purchase Order System</h3>
+      <p>Supplier management & orders</p>
       <a href="Supplier & Purchase Order System/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
     <div class="dashboard-card">
-      <h3>🛠️ Job Card & Workshop Log System</h3>
-      <p>Job cards, time tracking & work logs</p>
+      <h3>🛠️ Job Card & Workshop Log</h3>
+      <p>Job cards, time & cost tracking</p>
       <a href="job-card-workshop-log-system/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
     <div class="dashboard-card">
       <h3>📄 Quote Builder</h3>
-      <p>Quoting, estimates & client approvals</p>
+      <p>Quoting, estimates & approvals</p>
       <a href="quote-builder/build/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
   </div>
@@ -387,100 +401,37 @@
   </div>
 </section>
 
-<!-- ✅ Selection Popup -->
 <div id="selectionModal" class="selection-popup">
   <div class="popup-content">
     <h4>Choose the software you want to subscribe to</h4>
-
-    <div class="option-item" onclick="selectSoftware('Build Tracker')">
-      <strong>🏗️ Build Tracker</strong><br>
-      <small>Project tracking & live client updates — £32/month</small>
-    </div>
-
-    <div class="option-item" onclick="selectSoftware('Body Shop Pro')">
-      <strong>🚗 Body Shop Pro</strong><br>
-      <small>Repair jobs, estimates & parts — £32/month</small>
-    </div>
-
-    <div class="option-item" onclick="selectSoftware('Electronics Repair')">
-      <strong>🔧 Electronics Repair</strong><br>
-      <small>Repair logs, faults & history — £32/month</small>
-    </div>
-
-    <div class="option-item" onclick="selectSoftware('Stock Control')">
-      <strong>📦 Stock Control</strong><br>
-      <small>Inventory, suppliers & costs — £32/month</small>
-    </div>
-
-    <div class="option-item" onclick="selectSoftware('Supplier & Purchase Order System')">
-      <strong>📋 Supplier & Purchase Order System</strong><br>
-      <small>Supplier management & purchase orders — £32/month</small>
-    </div>
-
-    <div class="option-item" onclick="selectSoftware('Job Card & Workshop Log System')">
-      <strong>🛠️ Job Card & Workshop Log System</strong><br>
-      <small>Job cards, time & cost tracking — £32/month</small>
-    </div>
-
-    <div class="option-item" onclick="selectSoftware('Quote Builder')">
-      <strong>📄 Quote Builder</strong><br>
-      <small>Professional quotes, PDF & client approval — £32/month</small>
-    </div>
-
-    <div class="close-btn">
-      <button class="mkt-btn" onclick="closeSelection()">Cancel</button>
-    </div>
+    <div class="option-item" onclick="selectSoftware('Build Tracker')"><strong>🏗️ Build Tracker</strong><br><small>Car build & restoration tracking — £32/month</small></div>
+    <div class="option-item" onclick="selectSoftware('Body Shop Pro')"><strong>🚗 Body Shop Pro</strong><br><small>Garage management & repairs — £32/month</small></div>
+    <div class="option-item" onclick="selectSoftware('Electronics Repair')"><strong>🔧 Electronics Repair</strong><br><small>Repair logs & history — £32/month</small></div>
+    <div class="option-item" onclick="selectSoftware('Stock Control')"><strong>📦 Stock Control</strong><br><small>Inventory & suppliers — £32/month</small></div>
+    <div class="option-item" onclick="selectSoftware('Purchase Order System')"><strong>📋 Purchase Order System</strong><br><small>Supplier & order management — £32/month</small></div>
+    <div class="option-item" onclick="selectSoftware('Job Card & Workshop Log')"><strong>🛠️ Job Card & Workshop Log</strong><br><small>Workshop job log system — £32/month</small></div>
+    <div class="option-item" onclick="selectSoftware('Quote Builder')"><strong>📄 Quote Builder</strong><br><small>Quotes & estimates — £32/month</small></div>
+    <div class="close-btn"><button class="mkt-btn" onclick="closeSelection()">Cancel</button></div>
   </div>
 </div>
 
 <footer>
-  <p><strong>Build Tracker Solutions</strong> | info.buildtracker@gmail.com | 07540 799925</p>
+  <p><strong>Build Tracker Solutions</strong> | Cheshire East, UK | info.buildtracker@gmail.com | 07540 799925</p>
   <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
 </footer>
 </div>
 
 <script>
-// ==============================================
-// ✅ NAVIGATION
-// ==============================================
-function hideAllSections() {
-  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-}
+function hideAllSections() { document.querySelectorAll('.section').forEach(s => s.classList.add('hidden')); }
 function showLogin() { hideAllSections(); document.getElementById('loginForm').classList.remove('hidden'); window.scrollTo(0,0); }
 function showSignup() { hideAllSections(); document.getElementById('signupForm').classList.remove('hidden'); window.scrollTo(0,0); }
-function showDashboard() {
-  hideAllSections();
-  document.getElementById('dashboard').classList.remove('hidden');
-  document.getElementById('mainNav').classList.add('hidden');
-  document.getElementById('loggedInNav').classList.remove('hidden');
-  window.scrollTo(0,0);
-}
-function showHome() {
-  hideAllSections();
-  document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden'));
-  document.getElementById('mainNav').classList.remove('hidden');
-  document.getElementById('loggedInNav').classList.add('hidden');
-  window.scrollTo(0,0);
-}
+function showDashboard() { hideAllSections(); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('mainNav').classList.add('hidden'); document.getElementById('loggedInNav').classList.remove('hidden'); window.scrollTo(0,0); }
+function showHome() { hideAllSections(); document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden')); document.getElementById('mainNav').classList.remove('hidden'); document.getElementById('loggedInNav').classList.add('hidden'); window.scrollTo(0,0); }
 
-// ==============================================
-// ✅ SELECTION POPUP FUNCTIONS
-// ==============================================
-function openSelection() {
-  document.getElementById('selectionModal').style.display = 'flex';
-}
-function closeSelection() {
-  document.getElementById('selectionModal').style.display = 'none';
-}
-function selectSoftware(name) {
-  closeSelection();
-  alert(`You selected: ${name}\nYou will be taken to payment for £32.00 per month.`);
-  startPayment(name);
-}
+function openSelection() { document.getElementById('selectionModal').style.display = 'flex'; }
+function closeSelection() { document.getElementById('selectionModal').style.display = 'none'; }
+function selectSoftware(name) { closeSelection(); alert(`You selected: ${name}\nYou will be taken to payment for £32.00 per month.`); startPayment(name); }
 
-// ==============================================
-// ✅ AUTHENTICATION — 100% FIXED
-// ==============================================
 async function login() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPass').value;
@@ -492,132 +443,54 @@ async function login() {
 async function signup() {
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPass').value;
-  
-  // ✅ EXACT REDIRECT MATCHING YOUR SUPABASE SETTINGS
-  const { data, error } = await supabaseClient.auth.signUp({
-    email: email,
-    password: password,
-    options: {
-      emailRedirectTo: "https://build-tracker.co.uk/"
-    }
-  });
-
+  const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { emailRedirectTo: "https://build-tracker.co.uk/" } });
   if (error) return alert("❌ Signup failed: " + error.message);
-
   if (data.user) {
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 14);
-    await supabaseClient.from('subscriptions').insert({
-      user_id: data.user.id,
-      status: 'trial',
-      expires_at: trialEnd.toISOString()
-    });
+    const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 14);
+    await supabaseClient.from('subscriptions').insert({ user_id: data.user.id, status: 'trial', expires_at: trialEnd.toISOString() });
   }
-
   alert("✅ Account created! Check your email — click the link and you will be logged in automatically.");
   showLogin();
 }
 
-async function logout() {
-  await supabaseClient.auth.signOut();
-  location.reload();
-}
+async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
 
-// ==============================================
-// ✅ SUBSCRIPTION CHECK
-// ==============================================
 async function checkSubscription() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) { showHome(); return; }
-
   try {
-    const { data: sub, error } = await supabaseClient
-      .from('subscriptions')
-      .select('status, expires_at')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
+    const { data: sub } = await supabaseClient.from('subscriptions').select('status, expires_at').eq('user_id', user.id).maybeSingle();
     const now = new Date();
-    if (!sub) { showDashboard(); return; }
-    const expiry = new Date(sub.expires_at);
-
-    if (sub.status !== 'active' && now > expiry) {
-      alert("⚠️ Your trial has ended — please subscribe to continue.");
-    }
+    if (sub && sub.status !== 'active' && now > new Date(sub.expires_at)) { alert("⚠️ Your trial has ended — please subscribe to continue."); }
     showDashboard();
-
-  } catch (err) {
-    console.warn("Check error:", err);
-    showDashboard();
-  }
+  } catch (err) { console.warn(err); showDashboard(); }
 }
 
-// ==============================================
-// ✅ PAYMENT — SAME LINK & PRICE
-// ==============================================
 async function startPayment(selectedName = "") {
   console.log("Selected software:", selectedName);
   window.open('https://buy.stripe.com/7sYbJ28yyd2e9WUgxpbsc05', '_blank');
 }
 
-// ==============================================
-// ✅ CONTACT FORM — FIXED & WORKING
-// ==============================================
 document.getElementById('contactForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   const status = document.getElementById('form-status');
-  status.style.display = 'none';
-  status.className = '';
-
+  status.style.display = 'none'; status.className = '';
   const name = document.getElementById('contactName').value.trim();
   const email = document.getElementById('contactEmail').value.trim();
   const message = document.getElementById('contactMessage').value.trim();
-
-  if (!name || !email || !message) {
-    status.textContent = "❌ Please fill in all fields";
-    status.className = 'error';
-    status.style.display = 'block';
-    return;
-  }
-
-  try {
-    // ✅ FIXED: Proper mailto link with correct encoding
-    const subject = `Message from Build Tracker Website: ${name}`;
-    const body = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
-    const mailtoLink = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
-    window.location.href = mailtoLink;
-
-    status.textContent = "✅ Message sent successfully!";
-    status.className = 'success';
-    status.style.display = 'block';
-    this.reset();
-
-  } catch (err) {
-    status.textContent = "❌ Could not send message — please email us directly";
-    status.className = 'error';
-    status.style.display = 'block';
-  }
+  if (!name || !email || !message) { status.textContent = "❌ Please fill in all fields"; status.className = 'error'; status.style.display = 'block'; return; }
+  const subject = `Message from Build Tracker: ${name}`;
+  const body = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
+  window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  status.textContent = "✅ Message sent successfully!"; status.className = 'success'; status.style.display = 'block'; this.reset();
 });
 
-// ==============================================
-// ✅ AUTO-LOGIN AFTER EMAIL CONFIRMATION — CRITICAL
-// ==============================================
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
-  console.log("Auth event:", event);
-  // When user comes back from email link → auto-login & go to dashboard
-  if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-    await checkSubscription();
-  } else if (!session) {
-    showHome();
-  }
+  if (event === 'SIGNED_IN' || event === 'USER_UPDATED') await checkSubscription();
+  else if (!session) showHome();
 });
 
-// Close popup if clicking outside
-window.addEventListener('click', function(e) {
-  const modal = document.getElementById('selectionModal');
-  if (e.target === modal) closeSelection();
-});
+window.addEventListener('click', function(e) { const modal = document.getElementById('selectionModal'); if (e.target === modal) closeSelection(); });
 </script>
 
 </body>
