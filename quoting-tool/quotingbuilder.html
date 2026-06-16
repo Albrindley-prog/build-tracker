@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quoting & Estimating</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      background: #f5f5f4;
+      color: #1c1c1a;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Auth screens ── */
+    .auth-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1c1c1a;
+    }
+
+    .auth-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 40px 44px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+    }
+
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .auth-logo h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #1c1c1a;
+      margin-bottom: 4px;
+    }
+
+    .auth-logo p {
+      font-size: 13px;
+      color: #888780;
+    }
+
+    .auth-logo .logo-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      background: #185FA5;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      font-size: 22px;
+    }
+
+    .auth-tabs {
+      display: flex;
+      background: #f5f5f4;
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      background: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #888780;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .auth-tab.active {
+      background: #fff;
+      color: #1c1c1a;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .auth-error {
+      background: #FCEBEB;
+      border: 1px solid #f7c1c1;
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #A32D2D;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .auth-success {
+      background: #EAF3DE;
+      border: 1px solid #c2dfa0;
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #3B6D11;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .auth-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #888780;
+    }
+
+    /* ── Layout ── */
+    .page-wrapper { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 220px;
+      min-height: 100vh;
+      background: #1c1c1a;
+      color: #fff;
+      position: fixed;
+      top: 0; left: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 18px;
+      color: #ffffff;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .sidebar-logo {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-nav { padding: 12px 10px; flex: 1; }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .nav-link:hover  { background: rgba(255,255,255,0.07); color: #fff; }
+    .nav-link.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 500; }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .user-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #185FA5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .user-name  { font-size: 12px; font-weight: 500; color: #fff; }
+    .user-email { font-size: 11px; color: rgba(255,255,255,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+
+    .btn-logout {
+      width: 100%;
+      padding: 7px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: rgba(255,255,255,0.5);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-logout:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    .main-content { margin-left: 220px; padding: 28px 32px; min-height: 100vh; width: calc(100% - 220px); }
+
+    /* ── Cards ── */
+    .card { background: #fff; border: 1px solid #e8e8e6; border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
+
+    /* ── Metrics ── */
+    .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    .metric-card { background: #fff; border: 1px solid #e8e8e6; border-radius: 10px; padding: 16px 20px; }
+    .metric-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: #888780; margin-bottom: 6px; }
+    .metric-value { font-size: 24px; font-weight: 600; }
+    .metric-value.green { color: #3B6D11; }
+    .metric-value.blue  { color: #185FA5; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 500;
+      border: 1px solid #d4d4d0; background: #fff; color: #1c1c1a;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .btn:hover         { background: #f5f5f4; }
+    .btn:disabled      { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary       { background: #185FA5; color: #fff; border-color: #185FA5; }
+    .btn-primary:hover { background: #0C447C; }
+    .btn-success       { background: #3B6D11; color: #fff; border-color: #3B6D11; }
+    .btn-success:hover { background: #27500A; }
+    .btn-danger        { background: #FCEBEB; color: #A32D2D; border-color: #f7c1c1; }
+    .btn-danger:hover  { background: #f7c1c1; }
+    .btn-sm   { padding: 4px 10px; font-size: 12px; }
+    .btn-icon { padding: 7px 9px; }
+    .btn-full { width: 100%; justify-content: center; margin-bottom: 8px; }
+
+    /* ── Forms ── */
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12px; font-weight: 500; color: #5F5E5A; margin-bottom: 5px; }
+
+    input[type=text], input[type=email], input[type=number], input[type=date],
+    input[type=password], textarea, select {
+      width: 100%; padding: 8px 11px; font-size: 13px; font-family: inherit;
+      color: #1c1c1a; background: #fff; border: 1px solid #d4d4d0;
+      border-radius: 7px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s; appearance: none;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: #378ADD;
+      box-shadow: 0 0 0 3px rgba(55,138,221,0.12);
+    }
+
+    textarea { resize: vertical; line-height: 1.5; }
+
+    .input-prefix { position: relative; }
+    .input-prefix .prefix-sym {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: #888780; font-size: 13px; pointer-events: none;
+    }
+    .input-prefix input { padding-left: 22px; }
+
+    input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: #185FA5; }
+
+    /* ── Grids ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Table ── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      font-size: 11px; font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #888780; text-align: left;
+      padding: 8px 12px; border-bottom: 1px solid #e8e8e6; white-space: nowrap;
+    }
+    .data-table td { padding: 11px 12px; font-size: 13px; border-bottom: 1px solid #f0efed; vertical-align: middle; }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr { cursor: pointer; transition: background 0.1s; }
+    .data-table tbody tr:hover td { background: #fafaf9; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+    }
+    .badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; opacity:0.7; }
+    .badge-pending  { background: #FAEEDA; color: #854F0B; }
+    .badge-accepted { background: #EAF3DE; color: #3B6D11; }
+    .badge-declined { background: #FCEBEB; color: #A32D2D; }
+    .badge-expired  { background: #F1EFE8; color: #5F5E5A; }
+
+    /* ── Section title ── */
+    .section-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #888780; margin-bottom: 14px; }
+
+    /* ── Page header ── */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .page-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 2px; }
+    .page-header p  { font-size: 13px; color: #888780; }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid #e8e8e6; margin: 18px 0; }
+
+    /* ── Totals ── */
+    .totals-block { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .totals-row { display: flex; justify-content: space-between; gap: 40px; font-size: 13px; }
+    .totals-row .lbl { color: #888780; }
+    .totals-row .amt { font-weight: 500; min-width: 90px; text-align: right; }
+    .totals-row.total-final { font-size: 16px; font-weight: 600; border-top: 1px solid #e8e8e6; padding-top: 8px; margin-top: 4px; }
+    .discount-color { color: #A32D2D; }
+
+    /* ── Line items ── */
+    .line-items-grid { display: grid; grid-template-columns: 3fr 70px 100px 60px 36px; gap: 8px; align-items: center; }
+    .line-items-header { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 8px; border-bottom: 1px solid #e8e8e6; margin-bottom: 8px; }
+    .line-item-row { margin-bottom: 8px; }
+
+    /* ── Two-col builder ── */
+    .builder-layout { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+    .sidebar-panel { display: flex; flex-direction: column; gap: 12px; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 48px 20px; color: #888780; }
+    .empty-state p { font-size: 14px; margin-bottom: 4px; color: #5F5E5A; }
+
+    /* ── Back row ── */
+    .back-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; justify-content: space-between; }
+    .back-row-left { display: flex; align-items: center; gap: 12px; }
+    .back-row h1 { font-size: 20px; font-weight: 600; margin-bottom: 2px; }
+    .back-row p  { font-size: 13px; color: #888780; }
+
+    /* ── Status buttons ── */
+    .status-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 8px 12px; border-radius: 7px;
+      border: 1px solid #e8e8e6; background: #fff;
+      cursor: pointer; margin-bottom: 6px; font-size: 13px;
+      font-family: inherit; transition: background 0.1s;
+    }
+    .status-btn:hover   { background: #fafaf9; }
+    .status-btn.current { background: #f5f5f4; border-color: #d4d4d0; }
+
+    /* ── Info row ── */
+    .info-row { display: flex; gap: 32px; margin-bottom: 20px; flex-wrap: wrap; }
+    .info-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: #888780; margin-bottom: 3px; }
+    .info-value { font-size: 13px; font-weight: 500; }
+
+    /* ── Ref chip ── */
+    .ref-chip { font-size: 12px; font-weight: 500; color: #185FA5; background: #E6F1FB; padding: 2px 8px; border-radius: 4px; }
+
+    /* ── Error box ── */
+    .error-box { background: #FCEBEB; border: 1px solid #f7c1c1; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #A32D2D; white-space: pre-wrap; margin-bottom: 8px; }
+
+    /* ── Chip filters ── */
+    .chip-row { display: flex; gap: 8px; margin-bottom: 16px; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #d4d4d0; border-radius: 3px; }
+
+    /* ── Hidden ── */
+    .hidden { display: none !important; }
+
+    @media (max-width: 900px) {
+      .sidebar { width: 100%; min-height: auto; position: relative; }
+      .main-content { margin-left: 0; padding: 16px; width: 100%; }
+      .metrics-grid { grid-template-columns: repeat(2,1fr); }
+      .builder-layout { grid-template-columns: 1fr; }
+      .auth-box { margin: 16px; padding: 28px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════════════════════ -->
+<div id="screen-auth" class="auth-wrapper">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="logo-icon">📋</div>
+      <h1>Quoting & Estimating</h1>
+      <p>Sign in to your account</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create account</button>
+    </div>
+
+    <div id="auth-error"   class="auth-error"></div>
+    <div id="auth-success" class="auth-success"></div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input type="email" id="login-email" placeholder="you@yourbusiness.co.uk" onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doLogin()">Sign in</button>
+    </div>
+
+    <!-- Signup form -->
+    <div id="form-signup" class="hidden">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">First name</label>
+          <input type="text" id="signup-firstname" placeholder="John" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last name</label>
+          <input type="text" id="signup-lastname" placeholder="Smith" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input type="email" id="signup-email" placeholder="you@yourbusiness.co.uk" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="signup-password" placeholder="At least 6 characters" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm password</label>
+        <input type="password" id="signup-confirm" placeholder="Repeat your password" onkeydown="if(event.key==='Enter')doSignup()" />
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doSignup()">Create account</button>
+    </div>
+
+    <div class="auth-footer">Your data is saved in this browser only</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     APP
+════════════════════════════════════════════════════════════ -->
+<div id="screen-app" class="hidden">
+  <div class="page-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="#" onclick="showView('dashboard')" style="text-decoration:none;display:flex;align-items:center;">
+          <svg width="160" height="50" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#4B5563"/>
+            <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#22C55E"/>
+            <path d="M40 60 L40 20 L55 20 L55 60 Z" fill="#0EA5E9"/>
+            <rect x="42" y="26" width="11" height="4" fill="white"/>
+            <rect x="42" y="34" width="11" height="4" fill="white"/>
+            <rect x="42" y="42" width="11" height="4" fill="white"/>
+            <rect x="42" y="50" width="11" height="4" fill="white"/>
+            <text x="75" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="600" fill="#FFFFFF">Build</text>
+            <text x="175" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="400" fill="#FFFFFF">Tracker</text>
+            <text x="298" y="38" font-family="Arial, sans-serif" font-size="12" fill="#FFFFFF">&#x2122;</text>
+          </svg>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-link active" id="nav-dashboard" onclick="showView('dashboard')">⊞ &nbsp;Dashboard</button>
+        <button class="nav-link"        id="nav-new"       onclick="newQuote()">+ &nbsp;New Quote</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar">?</div>
+          <div>
+            <div class="user-name"  id="user-name">—</div>
+            <div class="user-email" id="user-email">—</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()">Sign out</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+
+      <!-- DASHBOARD -->
+      <div id="view-dashboard">
+        <div class="page-header">
+          <div>
+            <h1>Quoting &amp; Estimating</h1>
+            <p>Create, send, and track your quotes</p>
+          </div>
+          <button class="btn btn-primary" onclick="newQuote()">+ New quote</button>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card"><div class="metric-label">Total quotes</div><div class="metric-value" id="m-total">0</div></div>
+          <div class="metric-card"><div class="metric-label">Acceptance rate</div><div class="metric-value green" id="m-rate">0%</div></div>
+          <div class="metric-card"><div class="metric-label">Pipeline value</div><div class="metric-value blue" id="m-pipeline">£0.00</div></div>
+          <div class="metric-card"><div class="metric-label">Revenue won</div><div class="metric-value" id="m-won">£0.00</div></div>
+        </div>
+
+        <div class="chip-row">
+          <span class="badge" style="background:#F1EFE8;color:#5F5E5A" id="chip-all">All (0)</span>
+          <span class="badge badge-pending"  id="chip-pending">Pending (0)</span>
+          <span class="badge badge-accepted" id="chip-accepted">Accepted (0)</span>
+          <span class="badge badge-declined" id="chip-declined">Declined (0)</span>
+        </div>
+
+        <div class="card" style="padding:0">
+          <div id="quotes-empty" class="empty-state">
+            <p>No quotes yet</p>
+            <span>Click "New quote" to create your first one</span>
+          </div>
+          <table class="data-table" id="quotes-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Ref</th><th>Customer</th><th>Job title</th>
+                <th>Date</th><th>Expiry</th><th>Value (inc. VAT)</th>
+                <th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="quotes-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BUILDER -->
+      <div id="view-builder" class="hidden">
+        <div class="back-row">
+          <div class="back-row-left">
+            <button class="btn btn-icon" onclick="showView('dashboard')">←</button>
+            <div>
+              <h1 id="builder-title">New quote</h1>
+              <p id="builder-ref"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="builder-layout">
+          <div>
+            <div class="card">
+              <p class="section-title">Customer details</p>
+              <div class="grid-2" style="margin-bottom:12px">
+                <div class="form-group">
+                  <label class="form-label">Customer name *</label>
+                  <input type="text" id="f-customer" placeholder="e.g. James Hartley" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email address</label>
+                  <input type="email" id="f-email" placeholder="customer@email.com" />
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Phone number</label>
+                  <input type="text" id="f-phone" placeholder="07700 900000" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Job title / description *</label>
+                  <input type="text" id="f-title" placeholder="e.g. Kitchen Extension – 12 Oak Lane" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <p class="section-title">Line items</p>
+              <div class="line-items-grid line-items-header">
+                <span>Description</span><span>Qty</span><span>Unit price</span><span>VAT</span><span></span>
+              </div>
+              <div id="line-items-container"></div>
+              <button class="btn btn-sm" style="margin-top:8px" onclick="addItem()">+ Add item</button>
+              <hr class="divider" />
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Labour (£)</label>
+                  <div class="input-prefix"><span class="prefix-sym">£</span><input type="number" id="f-labour" min="0" step="0.01" placeholder="0.00" oninput="updateTotals()" /></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Discount (£)</label>
+                  <div class="input-prefix"><span class="prefix-sym">£</span><input type="number" id="f-discount" min="0" step="0.01" placeholder="0.00" oninput="updateTotals()" /></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <p class="section-title">Notes &amp; payment terms</p>
+              <textarea id="f-notes" rows="4" placeholder="e.g. 30% deposit on acceptance, balance on completion."></textarea>
+            </div>
+          </div>
+
+          <div class="sidebar-panel">
+            <div class="card">
+              <p class="section-title">Quote details</p>
+              <div class="form-group"><label class="form-label">Quote date</label><input type="date" id="f-date" /></div>
+              <div class="form-group"><label class="form-label">Valid until</label><input type="date" id="f-expiry" /></div>
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select id="f-status">
+                  <option value="pending">Pending</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="declined">Declined</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="card">
+              <p class="section-title">Quote summary</p>
+              <div class="totals-block">
+                <div class="totals-row"><span class="lbl">Subtotal</span><span class="amt" id="t-sub">£0.00</span></div>
+                <div class="totals-row" id="t-disc-row" style="display:none"><span class="lbl discount-color">Discount</span><span class="amt discount-color" id="t-disc">−£0.00</span></div>
+                <div class="totals-row"><span class="lbl">VAT (20%)</span><span class="amt" id="t-vat">£0.00</span></div>
+                <div class="totals-row total-final"><span class="lbl">Total</span><span class="amt" id="t-total" style="font-size:18px">£0.00</span></div>
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-full" onclick="saveQuote()">✓ Save quote</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUOTE VIEW -->
+      <div id="view-quote" class="hidden">
+        <div class="back-row">
+          <div class="back-row-left">
+            <button class="btn btn-icon" onclick="showView('dashboard')">←</button>
+            <div>
+              <h1 id="qv-title"></h1>
+              <p id="qv-sub"></p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="qv-badge"></span>
+            <button class="btn" onclick="editQuote()">✎ Edit</button>
+          </div>
+        </div>
+
+        <div class="builder-layout">
+          <div>
+            <div class="card">
+              <div class="info-row" id="qv-info"></div>
+              <hr class="divider" />
+              <table class="data-table">
+                <thead><tr><th>Description</th><th>Qty</th><th>Unit price</th><th>VAT</th><th style="text-align:right">Amount</th></tr></thead>
+                <tbody id="qv-items"></tbody>
+              </table>
+              <hr class="divider" />
+              <div class="totals-block" id="qv-totals"></div>
+            </div>
+            <div class="card" id="qv-notes-card" style="display:none">
+              <p class="section-title">Notes</p>
+              <p id="qv-notes" style="font-size:13px;color:#5F5E5A;line-height:1.6"></p>
+            </div>
+          </div>
+
+          <div class="sidebar-panel">
+            <div class="card">
+              <p class="section-title">Update status</p>
+              <div id="qv-status-btns"></div>
+            </div>
+            <div class="card">
+              <p class="section-title">Total value</p>
+              <p id="qv-total-big" style="font-size:26px;font-weight:600;margin-bottom:4px"></p>
+              <p style="font-size:12px;color:#888780">inc. VAT</p>
+            </div>
+            <div id="qv-error" class="error-box hidden"></div>
+            <button class="btn btn-full" id="btn-pdf" onclick="downloadPDF()">⬇ Download PDF</button>
+            <button class="btn btn-primary btn-full" id="btn-email" onclick="sendEmail()">↗ Send to customer</button>
+            <p id="no-email-msg" style="font-size:11px;color:#888780;text-align:center;margin-top:-4px;display:none">Add an email address to enable sending</p>
+            <button class="btn btn-success btn-full" onclick="alert('Connect this to your Job Card module.')">✓ Convert to job card</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// ⚙️  BUSINESS DETAILS — edit these before uploading
+// ════════════════════════════════════════════════════════════════
+const BUSINESS = {
+  name:    'Your Business Name',
+  address: 'Your Address, Town, Postcode',
+  phone:   '07000 000000',
+  email:   'you@yourbusiness.co.uk',
+  website: 'www.yourbusiness.co.uk',
+  vatNo:   '',
+};
+
+// ════════════════════════════════════════════════════════════════
+// ⚙️  EMAILJS — fill in after setting up at emailjs.com
+// ════════════════════════════════════════════════════════════════
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+
+// ════════════════════════════════════════════════════════════════
+// AUTH STATE
+// ════════════════════════════════════════════════════════════════
+let currentUser = null;
+
+function getUsers() {
+  return JSON.parse(localStorage.getItem('qt_users') || '{}');
+}
+
+function saveUsers(users) {
+  localStorage.setItem('qt_users', JSON.stringify(users));
+}
+
+function getSession() {
+  return localStorage.getItem('qt_session');
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  document.getElementById('form-login').classList.toggle('hidden',  tab !== 'login');
+  document.getElementById('form-signup').classList.toggle('hidden', tab !== 'signup');
+  clearAuthMessages();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+function showAuthSuccess(msg) {
+  const el = document.getElementById('auth-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function clearAuthMessages() {
+  document.getElementById('auth-error').style.display   = 'none';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+function doLogin() {
+  const email    = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+
+  if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
+
+  const users = getUsers();
+  const user  = users[email];
+
+  if (!user || user.password !== btoa(password)) {
+    showAuthError('Email or password is incorrect. Please try again.');
+    return;
+  }
+
+  localStorage.setItem('qt_session', email);
+  launchApp(user);
+}
+
+function doSignup() {
+  const firstName = document.getElementById('signup-firstname').value.trim();
+  const lastName  = document.getElementById('signup-lastname').value.trim();
+  const email     = document.getElementById('signup-email').value.trim().toLowerCase();
+  const password  = document.getElementById('signup-password').value;
+  const confirm   = document.getElementById('signup-confirm').value;
+
+  if (!firstName || !lastName) { showAuthError('Please enter your first and last name.'); return; }
+  if (!email)    { showAuthError('Please enter an email address.'); return; }
+  if (!email.includes('@')) { showAuthError('Please enter a valid email address.'); return; }
+  if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+  if (password !== confirm)  { showAuthError('Passwords do not match.'); return; }
+
+  const users = getUsers();
+  if (users[email]) { showAuthError('An account with this email already exists. Please sign in.'); return; }
+
+  const user = { firstName, lastName, email, password: btoa(password), quotes: [] };
+  users[email] = user;
+  saveUsers(users);
+
+  showAuthSuccess('Account created! Signing you in…');
+  setTimeout(() => {
+    localStorage.setItem('qt_session', email);
+    launchApp(user);
+  }, 800);
+}
+
+function doLogout() {
+  localStorage.removeItem('qt_session');
+  currentUser = null;
+  quotes = [];
+  document.getElementById('screen-app').classList.add('hidden');
+  document.getElementById('screen-auth').classList.remove('hidden');
+  document.getElementById('login-email').value    = '';
+  document.getElementById('login-password').value = '';
+  clearAuthMessages();
+  switchTab('login');
+}
+
+function launchApp(user) {
+  currentUser = user;
+  quotes = user.quotes || [];
+
+  // Set sidebar user info
+  const initials = (user.firstName[0] + user.lastName[0]).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent   = user.firstName + ' ' + user.lastName;
+  document.getElementById('user-email').textContent  = user.email;
+
+  document.getElementById('screen-auth').classList.add('hidden');
+  document.getElementById('screen-app').classList.remove('hidden');
+  showView('dashboard');
+}
+
+function persistQuotes() {
+  const users = getUsers();
+  if (users[currentUser.email]) {
+    users[currentUser.email].quotes = quotes;
+    saveUsers(users);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// APP STATE
+// ════════════════════════════════════════════════════════════════
+let quotes       = [];
+let editingId    = null;
+let viewingQuote = null;
+let itemCount    = 0;
+
+// ════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════
+function fmt(n) {
+  return '£' + parseFloat(n || 0).toLocaleString('en-GB', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function today()    { return new Date().toISOString().slice(0,10); }
+
+function in30Days() {
+  const d = new Date(); d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0,10);
+}
+
+function nextRef() { return 'QT-' + String(quotes.length + 1).padStart(3,'0'); }
+
+function calcTotals(items, labour, discount) {
+  const itemsTotal = items.reduce((s,i) => s + (parseFloat(i.qty)||0) * (parseFloat(i.unit)||0), 0);
+  const labourAmt  = parseFloat(labour)   || 0;
+  const discAmt    = parseFloat(discount) || 0;
+  const sub        = itemsTotal + labourAmt;
+  const afterDisc  = sub - discAmt;
+  const vat        = items.reduce((s,i) => i.vat ? s + (parseFloat(i.qty)||0)*(parseFloat(i.unit)||0)*0.2 : s, 0);
+  return { sub, disc: discAmt, afterDisc, vat, total: afterDisc + vat };
+}
+
+function badgeHTML(status, large) {
+  const labels = { pending:'Pending', accepted:'Accepted', declined:'Declined', expired:'Expired' };
+  const style  = large ? 'font-size:13px;padding:5px 12px' : '';
+  return `<span class="badge badge-${status}" style="${style}">${labels[status]??status}</span>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════════
+function showView(name) {
+  ['dashboard','builder','quote'].forEach(v => {
+    document.getElementById('view-'+v).classList.toggle('hidden', v !== name);
+  });
+  ['dashboard','new'].forEach(id => {
+    document.getElementById('nav-'+id).classList.toggle('active', id === (name==='dashboard'?'dashboard':'new'));
+  });
+  if (name === 'dashboard') { editingId = null; renderDashboard(); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════════════
+function renderDashboard() {
+  const accepted = quotes.filter(q => q.status==='accepted');
+  const pending  = quotes.filter(q => q.status==='pending');
+  const declined = quotes.filter(q => q.status==='declined');
+  const total    = quotes.length;
+  const rate     = total ? Math.round(accepted.length/total*100) : 0;
+  const pipeline = pending.reduce((s,q)=>s+calcTotals(q.items,q.labour,q.discount).total,0);
+  const won      = accepted.reduce((s,q)=>s+calcTotals(q.items,q.labour,q.discount).total,0);
+
+  document.getElementById('m-total').textContent    = total;
+  document.getElementById('m-rate').textContent     = rate + '%';
+  document.getElementById('m-pipeline').textContent = fmt(pipeline);
+  document.getElementById('m-won').textContent      = fmt(won);
+  document.getElementById('chip-all').textContent      = `All (${total})`;
+  document.getElementById('chip-pending').textContent  = `Pending (${pending.length})`;
+  document.getElementById('chip-accepted').textContent = `Accepted (${accepted.length})`;
+  document.getElementById('chip-declined').textContent = `Declined (${declined.length})`;
+
+  const empty = document.getElementById('quotes-empty');
+  const table = document.getElementById('quotes-table');
+  const tbody = document.getElementById('quotes-tbody');
+
+  if (total === 0) { empty.style.display=''; table.style.display='none'; return; }
+  empty.style.display='none'; table.style.display='';
+
+  tbody.innerHTML = quotes.map(q => {
+    const { total: qt } = calcTotals(q.items, q.labour, q.discount);
+    return `<tr onclick="openQuote(${q.id})">
+      <td><span class="ref-chip">${q.ref}</span></td>
+      <td style="font-weight:500">${q.customer}</td>
+      <td style="color:#5F5E5A">${q.title}</td>
+      <td style="color:#888780">${q.date}</td>
+      <td style="color:#888780">${q.expiry||'—'}</td>
+      <td style="font-weight:600">${fmt(qt)}</td>
+      <td>${badgeHTML(q.status)}</td>
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();openQuote(${q.id})">View</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// LINE ITEMS
+// ════════════════════════════════════════════════════════════════
+function addItem(item) {
+  const id   = itemCount++;
+  const desc = item ? item.desc : '';
+  const qty  = item ? item.qty  : 1;
+  const unit = item ? item.unit : '';
+  const vat  = item !== undefined ? item.vat : true;
+
+  const container = document.getElementById('line-items-container');
+  const row = document.createElement('div');
+  row.className = 'line-items-grid line-item-row';
+  row.id = 'item-row-' + id;
+  row.innerHTML = `
+    <input type="text"   class="item-desc" value="${desc}" placeholder="Description of work or materials" oninput="updateTotals()" />
+    <input type="number" class="item-qty"  value="${qty}"  min="1" step="1" style="text-align:center" oninput="updateTotals()" />
+    <div class="input-prefix"><span class="prefix-sym">£</span>
+      <input type="number" class="item-unit" value="${unit}" min="0" step="0.01" placeholder="0.00" oninput="updateTotals()" />
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center">
+      <input type="checkbox" class="item-vat" ${vat?'checked':''} onchange="updateTotals()" />
+    </div>
+    <button class="btn btn-sm btn-danger btn-icon" onclick="removeItem('${id}')" title="Remove">✕</button>
+  `;
+  container.appendChild(row);
+  updateTotals();
+}
+
+function removeItem(id) {
+  const row = document.getElementById('item-row-' + id);
+  if (row) row.remove();
+  updateTotals();
+}
+
+function getItems() {
+  return [...document.getElementById('line-items-container').querySelectorAll('.line-item-row')].map(row => ({
+    desc: row.querySelector('.item-desc').value,
+    qty:  row.querySelector('.item-qty').value,
+    unit: row.querySelector('.item-unit').value,
+    vat:  row.querySelector('.item-vat').checked,
+  }));
+}
+
+function updateTotals() {
+  const items    = getItems();
+  const labour   = document.getElementById('f-labour').value;
+  const discount = document.getElementById('f-discount').value;
+  const { sub, disc, vat, total } = calcTotals(items, labour, discount);
+
+  document.getElementById('t-sub').textContent   = fmt(sub);
+  document.getElementById('t-vat').textContent   = fmt(vat);
+  document.getElementById('t-total').textContent = fmt(total);
+
+  const discRow = document.getElementById('t-disc-row');
+  if (disc > 0) { discRow.style.display = ''; document.getElementById('t-disc').textContent = '−' + fmt(disc); }
+  else          { discRow.style.display = 'none'; }
+}
+
+// ════════════════════════════════════════════════════════════════
+// NEW / EDIT QUOTE
+// ════════════════════════════════════════════════════════════════
+function newQuote() {
+  editingId = null;
+  document.getElementById('builder-title').textContent = 'New quote';
+  document.getElementById('builder-ref').textContent   = nextRef();
+  ['f-customer','f-email','f-phone','f-title','f-labour','f-discount','f-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-date').value   = today();
+  document.getElementById('f-expiry').value = in30Days();
+  document.getElementById('f-status').value = 'pending';
+  document.getElementById('line-items-container').innerHTML = '';
+  itemCount = 0;
+  addItem();
+  showView('builder');
+}
+
+function editQuote() {
+  const q = viewingQuote;
+  editingId = q.id;
+  document.getElementById('builder-title').textContent = 'Edit quote';
+  document.getElementById('builder-ref').textContent   = q.ref;
+  document.getElementById('f-customer').value = q.customer;
+  document.getElementById('f-email').value    = q.email;
+  document.getElementById('f-phone').value    = q.phone;
+  document.getElementById('f-title').value    = q.title;
+  document.getElementById('f-date').value     = q.date;
+  document.getElementById('f-expiry').value   = q.expiry;
+  document.getElementById('f-status').value   = q.status;
+  document.getElementById('f-labour').value   = q.labour;
+  document.getElementById('f-discount').value = q.discount;
+  document.getElementById('f-notes').value    = q.notes;
+  document.getElementById('line-items-container').innerHTML = '';
+  itemCount = 0;
+  q.items.forEach(item => addItem(item));
+  showView('builder');
+}
+
+function saveQuote() {
+  const customer = document.getElementById('f-customer').value.trim();
+  const title    = document.getElementById('f-title').value.trim();
+  if (!customer || !title) { alert('Please enter a customer name and job title.'); return; }
+
+  const quote = {
+    id:       editingId ?? Date.now(),
+    ref:      editingId ? quotes.find(q=>q.id===editingId).ref : nextRef(),
+    customer,
+    email:    document.getElementById('f-email').value,
+    phone:    document.getElementById('f-phone').value,
+    title,
+    date:     document.getElementById('f-date').value,
+    expiry:   document.getElementById('f-expiry').value,
+    status:   document.getElementById('f-status').value,
+    items:    getItems(),
+    labour:   document.getElementById('f-labour').value,
+    discount: document.getElementById('f-discount').value,
+    notes:    document.getElementById('f-notes').value,
+  };
+
+  if (editingId) {
+    quotes = quotes.map(q => q.id === editingId ? quote : q);
+    viewingQuote = quote;
+  } else {
+    quotes.push(quote);
+  }
+
+  persistQuotes();
+  showView('dashboard');
+}
+
+// ════════════════════════════════════════════════════════════════
+// QUOTE VIEW
+// ════════════════════════════════════════════════════════════════
+function openQuote(id) {
+  const q = quotes.find(q => q.id === id);
+  if (!q) return;
+  viewingQuote = q;
+  renderQuoteView(q);
+  showView('quote');
+}
+
+function renderQuoteView(q) {
+  const { sub, disc, vat, total } = calcTotals(q.items, q.labour, q.discount);
+
+  document.getElementById('qv-title').textContent      = q.title;
+  document.getElementById('qv-sub').textContent        = q.ref + ' · ' + q.customer;
+  document.getElementById('qv-badge').innerHTML        = badgeHTML(q.status, true);
+  document.getElementById('qv-total-big').textContent  = fmt(total);
+
+  document.getElementById('qv-info').innerHTML = [
+    ['Customer', q.customer], ['Email', q.email||'—'], ['Phone', q.phone||'—'],
+    ['Quote date', q.date],   ['Valid until', q.expiry||'—'],
+  ].map(([l,v]) => `<div><div class="info-label">${l}</div><div class="info-value">${v}</div></div>`).join('');
+
+  document.getElementById('qv-items').innerHTML = q.items.map(item => {
+    const amt = (parseFloat(item.qty)||0)*(parseFloat(item.unit)||0);
+    return `<tr style="cursor:default">
+      <td>${item.desc||'—'}</td><td>${item.qty}</td><td>${fmt(item.unit)}</td>
+      <td>${item.vat?'20%':'0%'}</td><td style="text-align:right;font-weight:500">${fmt(amt)}</td>
+    </tr>`;
+  }).join('') + (parseFloat(q.labour) > 0
+    ? `<tr style="cursor:default"><td>Labour</td><td>—</td><td>—</td><td>—</td><td style="text-align:right;font-weight:500">${fmt(q.labour)}</td></tr>`
+    : '');
+
+  let h = `<div class="totals-row"><span class="lbl">Subtotal</span><span class="amt">${fmt(sub)}</span></div>`;
+  if (disc > 0) h += `<div class="totals-row"><span class="lbl discount-color">Discount</span><span class="amt discount-color">−${fmt(disc)}</span></div>`;
+  h += `<div class="totals-row"><span class="lbl">VAT (20%)</span><span class="amt">${fmt(vat)}</span></div>`;
+  h += `<div class="totals-row total-final"><span class="lbl">Total</span><span class="amt" style="font-size:18px">${fmt(total)}</span></div>`;
+  document.getElementById('qv-totals').innerHTML = h;
+
+  const notesCard = document.getElementById('qv-notes-card');
+  if (q.notes) { notesCard.style.display=''; document.getElementById('qv-notes').textContent = q.notes; }
+  else         { notesCard.style.display='none'; }
+
+  const noEmail  = document.getElementById('no-email-msg');
+  const btnEmail = document.getElementById('btn-email');
+  if (!q.email) { btnEmail.disabled=true; noEmail.style.display=''; }
+  else          { btnEmail.disabled=false; noEmail.style.display='none'; }
+
+  document.getElementById('qv-error').classList.add('hidden');
+  document.getElementById('qv-status-btns').innerHTML =
+    ['accepted','pending','declined','expired'].map(s => `
+      <button class="status-btn ${q.status===s?'current':''}" onclick="changeStatus('${s}')">
+        ${badgeHTML(s)}
+        ${q.status===s?'<span style="font-size:11px;color:#888780">current</span>':''}
+      </button>`).join('');
+}
+
+function changeStatus(status) {
+  viewingQuote = { ...viewingQuote, status };
+  quotes = quotes.map(q => q.id === viewingQuote.id ? viewingQuote : q);
+  persistQuotes();
+  renderQuoteView(viewingQuote);
+}
+
+// ════════════════════════════════════════════════════════════════
+// PDF EXPORT
+// ════════════════════════════════════════════════════════════════
+function downloadPDF() {
+  const btn = document.getElementById('btn-pdf');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const q = viewingQuote;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit:'mm', format:'a4' });
+    const PW=210, PH=297, ML=20, MR=20, MT=20, CW=170;
+    let y = MT;
+    const C = {
+      navy:[24,95,165], dark:[28,28,26], mid:[95,94,90], light:[136,135,128],
+      hairline:[232,232,230], pageBg:[245,245,244],
+      greenBg:[234,243,222], greenText:[59,109,17],
+      amberBg:[250,238,218], amberText:[133,79,11],
+      redBg:[252,235,235], redText:[163,45,45],
+    };
+    const sf=(size,w='normal',col=C.dark)=>{doc.setFontSize(size);doc.setFont('helvetica',w);doc.setTextColor(...col);};
+    const hl=(y2,x1=ML,x2=190,col=C.hairline,lw=0.3)=>{doc.setDrawColor(...col);doc.setLineWidth(lw);doc.line(x1,y2,x2,y2);};
+    const { sub, disc, vat, total } = calcTotals(q.items, q.labour, q.discount);
+
+    doc.setFillColor(...C.navy); doc.rect(0,0,PW,38,'F');
+    sf(18,'bold',[255,255,255]); doc.text(BUSINESS.name, ML, 16);
+    sf(20,'bold',[255,255,255]); doc.text('QUOTE', PW-MR, 17, {align:'right'});
+    sf(9,'normal',[180,210,240]); doc.text(q.ref, PW-MR, 23, {align:'right'});
+    y=48;
+    const col2X=ML+CW/2+10;
+    sf(9,'bold',C.mid); doc.text('From',ML,y);
+    sf(10,'bold',C.dark); doc.text(BUSINESS.name,ML,y+5);
+    sf(9,'normal',C.mid);
+    [BUSINESS.address,BUSINESS.phone,BUSINESS.email,BUSINESS.website,BUSINESS.vatNo?`VAT No: ${BUSINESS.vatNo}`:'']
+      .filter(Boolean).forEach((l,i)=>doc.text(l,ML,y+11+i*5));
+    sf(9,'bold',C.mid); doc.text('Quote details',col2X,y);
+    [['Quote ref',q.ref],['Date',q.date],['Valid until',q.expiry||'—']].forEach(([l,v],i)=>{
+      const ry=y+5+i*7; sf(8,'normal',C.light); doc.text(l,col2X,ry); sf(9,'bold',C.dark); doc.text(v,col2X+35,ry);
+    });
+    const ry=y+5+3*7;
+    const scol={accepted:{bg:C.greenBg,tx:C.greenText},pending:{bg:C.amberBg,tx:C.amberText},declined:{bg:C.redBg,tx:C.redText},expired:{bg:[241,239,232],tx:C.light}}[q.status]??{bg:C.amberBg,tx:C.amberText};
+    const slbl={accepted:'Accepted',pending:'Pending',declined:'Declined',expired:'Expired'}[q.status]??q.status;
+    sf(8,'normal',C.light); doc.text('Status',col2X,ry);
+    doc.setFillColor(...scol.bg); doc.roundedRect(col2X+35,ry-4.5,26,6,2,2,'F');
+    sf(8,'bold',scol.tx); doc.text(slbl,col2X+48,ry,{align:'center'});
+    y+=42; hl(y); y+=8;
+    sf(9,'bold',C.mid); doc.text('Bill to',ML,y); y+=5;
+    sf(11,'bold',C.dark); doc.text(q.customer||'—',ML,y); y+=5;
+    sf(9,'normal',C.mid);
+    if(q.email){doc.text(q.email,ML,y);y+=5;} if(q.phone){doc.text(q.phone,ML,y);y+=5;}
+    y+=4; sf(9,'bold',C.mid); doc.text('Job title',ML,y); y+=5;
+    sf(12,'bold',C.dark); doc.text(q.title||'—',ML,y); y+=10; hl(y); y+=8;
+    const cols={desc:{x:ML,w:82},qty:{x:ML+84},unit:{x:ML+102},vat:{x:ML+130}};
+    doc.setFillColor(...C.pageBg); doc.rect(ML,y-4,CW,8,'F');
+    sf(8,'bold',C.mid);
+    doc.text('Description',cols.desc.x,y); doc.text('Qty',cols.qty.x,y);
+    doc.text('Unit price',cols.unit.x,y); doc.text('VAT',cols.vat.x,y); doc.text('Amount',PW-MR,y,{align:'right'});
+    y+=3; hl(y,ML,PW-MR,C.hairline,0.4); y+=6;
+    q.items.forEach((item,i)=>{
+      if(y>PH-60){doc.addPage();y=MT;}
+      const amt=(parseFloat(item.qty)||0)*(parseFloat(item.unit)||0);
+      if(i%2===1){doc.setFillColor(250,250,249);doc.rect(ML,y-4,CW,7,'F');}
+      sf(9,'normal',C.dark);
+      const dl=doc.splitTextToSize(item.desc||'—',cols.desc.w);
+      doc.text(dl,cols.desc.x,y); doc.text(String(item.qty),cols.qty.x,y);
+      doc.text(fmt(item.unit),cols.unit.x,y); doc.text(item.vat?'20%':'0%',cols.vat.x,y);
+      doc.text(fmt(amt),PW-MR,y,{align:'right'}); y+=dl.length>1?5*dl.length:8;
+    });
+    if(parseFloat(q.labour)>0){
+      sf(9,'normal',C.dark); doc.text('Labour',cols.desc.x,y); doc.text('—',cols.qty.x,y);
+      doc.text('—',cols.unit.x,y); doc.text('—',cols.vat.x,y); doc.text(fmt(q.labour),PW-MR,y,{align:'right'}); y+=8;
+    }
+    hl(y,ML,PW-MR); y+=8;
+    const tX=ML+CW*0.55, tX2=PW-MR;
+    [['Subtotal',fmt(sub),false],...(disc>0?[['Discount','−'+fmt(disc),true]]:[]),['VAT (20%)',fmt(vat),false]].forEach(([l,v,id])=>{
+      sf(9,'normal',id?C.redText:C.mid); doc.text(l,tX,y); sf(9,'bold',id?C.redText:C.dark); doc.text(v,tX2,y,{align:'right'}); y+=7;
+    });
+    doc.setFillColor(...C.navy); doc.roundedRect(tX-4,y-5,tX2-tX+8,10,2,2,'F');
+    sf(9,'normal',[200,220,240]); doc.text('Total (inc. VAT)',tX,y+1.5);
+    sf(11,'bold',[255,255,255]); doc.text(fmt(total),tX2,y+1.5,{align:'right'}); y+=18;
+    if(q.notes){
+      if(y>PH-50){doc.addPage();y=MT;} hl(y);y+=8;
+      sf(9,'bold',C.mid); doc.text('Notes & payment terms',ML,y); y+=6;
+      sf(9,'normal',C.mid); const nl=doc.splitTextToSize(q.notes,CW); doc.text(nl,ML,y);
+    }
+    doc.setFillColor(...C.pageBg); doc.rect(0,PH-18,PW,18,'F');
+    sf(8,'normal',C.light);
+    doc.text(`${BUSINESS.name}  ·  ${BUSINESS.phone}  ·  ${BUSINESS.email}`, PW/2, PH-8, {align:'center'});
+    if(BUSINESS.vatNo) doc.text(`VAT Reg: ${BUSINESS.vatNo}`, PW/2, PH-3.5, {align:'center'});
+    doc.save(`${q.ref}-${(q.customer||'quote').replace(/\s+/g,'-')}.pdf`);
+  } catch(e) {
+    showError('PDF error: ' + e.message);
+  } finally {
+    btn.disabled=false; btn.textContent='⬇ Download PDF';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// EMAIL
+// ════════════════════════════════════════════════════════════════
+async function sendEmail() {
+  if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
+    showError('EmailJS is not set up yet.\n\nOpen the HTML file and fill in your\nEMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID\nand EMAILJS_PUBLIC_KEY at the top of the script.');
+    return;
+  }
+  const btn = document.getElementById('btn-email');
+  btn.disabled=true; btn.textContent='Sending…'; clearError();
+  try {
+    const q = viewingQuote;
+    const { sub, disc, vat, total } = calcTotals(q.items, q.labour, q.discount);
+    const rows = q.items.map(i => {
+      const amt=(parseFloat(i.qty)||0)*(parseFloat(i.unit)||0);
+      return `  ${i.desc.padEnd(36)} ${String(i.qty).padStart(3)}  ${fmt(i.unit).padStart(10)}  ${fmt(amt).padStart(10)}`;
+    });
+    if(parseFloat(q.labour)>0) rows.push(`  ${'Labour'.padEnd(36)}       ${''.padStart(10)}  ${fmt(q.labour).padStart(10)}`);
+    const sep='─'.repeat(66);
+    const lineItems=[sep,`  ${'Description'.padEnd(36)} Qty  ${'Unit price'.padStart(10)}  ${'Amount'.padStart(10)}`,
+      sep,...rows,sep,`  ${'Subtotal'.padEnd(52)} ${fmt(sub).padStart(10)}`,
+      ...(disc>0?[`  ${'Discount'.padEnd(52)} -${fmt(disc).padStart(9)}`]:[]),
+      `  ${'VAT (20%)'.padEnd(52)} ${fmt(vat).padStart(10)}`,sep,
+      `  ${'TOTAL (inc. VAT)'.padEnd(52)} ${fmt(total).padStart(10)}`,sep].join('\n');
+
+    if (!window.emailjs) {
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+        s.onload=res; s.onerror=rej; document.head.appendChild(s);
+      });
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+    }
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email:q.email, customer_name:q.customer, quote_ref:q.ref, job_title:q.title,
+      total:fmt(total), expiry:q.expiry||'Please contact us', line_items:lineItems,
+      notes:q.notes?'Notes:\n'+q.notes:'',
+      business_name:BUSINESS.name, business_phone:BUSINESS.phone, business_email:BUSINESS.email,
+    });
+    btn.textContent='✓ Email sent!'; btn.className='btn btn-success btn-full';
+    setTimeout(()=>{ btn.textContent='↗ Send to customer'; btn.className='btn btn-primary btn-full'; btn.disabled=false; },5000);
+  } catch(e) {
+    showError('Email failed: '+(e.text||e.message||'Unknown error'));
+    btn.disabled=false; btn.textContent='↗ Send to customer';
+  }
+}
+
+function showError(msg) { const el=document.getElementById('qv-error'); el.textContent=msg; el.classList.remove('hidden'); }
+function clearError()   { document.getElementById('qv-error').classList.add('hidden'); }
+
+// ════════════════════════════════════════════════════════════════
+// INIT — check for existing session
+// ════════════════════════════════════════════════════════════════
+(function init() {
+  const session = getSession();
+  if (session) {
+    const users = getUsers();
+    const user  = users[session];
+    if (user) { launchApp(user); return; }
+  }
+  // No session — show auth screen
+})();
+</script>
+</body>
+</html>
