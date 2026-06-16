@@ -333,17 +333,17 @@
     <div class="mkt-card">
       <h4>🔧 How to Track a Full Restoration</h4>
       <p>Keep parts, costs and progress organised with a simple restoration progress tracker.</p>
-      <a href="#" class="mkt-btn mkt-btn-blue">Read Guide</a>
+      <a href="/guides/restoration-tracking.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
     </div>
     <div class="mkt-card">
-      <h4>⏱️ Reduce Admin Time in Your Garage</h4>
+      <h4>⏱️ 5 Ways to Cut Workshop Admin Time</h4>
       <p>Cut paperwork using a proper workshop job log system and save hours every week.</p>
-      <a href="#" class="mkt-btn mkt-btn-blue">Read Guide</a>
+      <a href="/guides/cut-workshop-admin-time.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
     </div>
     <div class="mkt-card">
       <h4>📋 Why Use a Garage Management Tool?</h4>
       <p>Estimates, stock, jobs and invoices all in one place — built for UK garages.</p>
-      <a href="#" class="mkt-btn mkt-btn-blue">Read Guide</a>
+      <a href="/guides/garage-management-benefits.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
     </div>
   </div>
 </section>
@@ -481,8 +481,8 @@
 function hideAllSections() { document.querySelectorAll('.section').forEach(s => s.classList.add('hidden')); }
 function showLogin() { hideAllSections(); document.getElementById('loginForm').classList.remove('hidden'); window.scrollTo(0,0); }
 function showSignup() { hideAllSections(); document.getElementById('signupForm').classList.remove('hidden'); window.scrollTo(0,0); }
-function showDashboard() { hideAllSections(); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('mainNav').classList.add('hidden'); document.getElementById('loggedInNav').classList.remove('hidden'); window.scrollTo(0,0); }
-function showHome() { hideAllSections(); document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden')); document.getElementById('mainNav').classList.remove('hidden'); document.getElementById('loggedInNav').classList.add('hidden'); window.scrollTo(0,0); }
+function showDashboard() { hideAllSections(); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('mainNav').classList.add('hidden'); document.getElementById('loggedInNav').class.remove('hidden'); window.scrollTo(0,0); }
+function showHome() { hideAllSections(); document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden')); document.getElementById('mainNav').classList.remove('hidden'); document.getElementById('loggedInNav').class.add('hidden'); window.scrollTo(0,0); }
 
 // Popups
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
@@ -499,7 +499,7 @@ function sendGuide() {
     return;
   }
   const subject = 'Your Guide: 5 Ways to Cut Workshop Admin Time';
-  const body = `Hi,\n\nThanks for requesting our guide. You can download it here: https://build-tracker.co.uk/guides/cut-admin-time.pdf\n\nBest regards,\nBuild Tracker Solutions`;
+  const body = `Hi,\n\nThanks for requesting our guide. You can download it here: https://build-tracker.co.uk/guides/cut-workshop-admin-time.pdf\n\nBest regards,\nBuild Tracker Solutions`;
   window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   alert('Check your inbox — we’ve sent the guide straight to you!');
 }
