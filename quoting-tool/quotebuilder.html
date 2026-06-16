@@ -67,6 +67,17 @@
       font-size: 22px;
     }
 
+    .trial-notice {
+      background: #EAF3DE;
+      color: #3B6D11;
+      font-size: 12px;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
     .auth-tabs {
       display: flex;
       background: #f5f5f4;
@@ -180,6 +191,17 @@
     .sidebar-footer {
       padding: 12px 16px;
       border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .trial-banner {
+      background: #EAF3DE;
+      color: #3B6D11;
+      font-size: 11px;
+      text-align: center;
+      padding: 6px 8px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-weight: 500;
     }
 
     .user-chip {
@@ -387,7 +409,6 @@
   </style>
 </head>
 <body>
-
 <!-- ════════════════════════════════════════════════════════════
      AUTH SCREEN
 ════════════════════════════════════════════════════════════ -->
@@ -398,6 +419,9 @@
       <h1>Quoting & Estimating</h1>
       <p>Sign in to your account</p>
     </div>
+
+    <!-- ✅ 14‑DAY TRIAL NOTICE HERE -->
+    <div class="trial-notice">🎉 You are on a 14‑day free trial — all features unlocked!</div>
 
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
@@ -450,7 +474,6 @@
     <div class="auth-footer">Your data is saved in this browser only</div>
   </div>
 </div>
-
 <!-- ════════════════════════════════════════════════════════════
      APP
 ════════════════════════════════════════════════════════════ -->
@@ -479,6 +502,9 @@
         <button class="nav-link"        id="nav-new"       onclick="newQuote()">+ &nbsp;New Quote</button>
       </nav>
       <div class="sidebar-footer">
+        <!-- ✅ 14‑DAY TRIAL BANNER IN SIDEBAR -->
+        <div class="trial-banner">📅 14‑day trial — 12 days remaining</div>
+
         <div class="user-chip">
           <div class="user-avatar" id="user-avatar">?</div>
           <div>
@@ -492,7 +518,6 @@
 
     <!-- Main -->
     <main class="main-content">
-
       <!-- DASHBOARD -->
       <div id="view-dashboard">
         <div class="page-header">
@@ -686,7 +711,6 @@
     </main>
   </div>
 </div>
-
 <script>
 // ════════════════════════════════════════════════════════════════
 // ⚙️  BUSINESS DETAILS — edit these before uploading
@@ -706,6 +730,11 @@ const BUSINESS = {
 const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
 const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
 const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+
+// ════════════════════════════════════════════════════════════════
+// ⚙️  TRIAL SETTINGS
+// ════════════════════════════════════════════════════════════════
+const TRIAL_DAYS = 14;
 
 // ════════════════════════════════════════════════════════════════
 // AUTH STATE
@@ -785,7 +814,13 @@ function doSignup() {
   const users = getUsers();
   if (users[email]) { showAuthError('An account with this email already exists. Please sign in.'); return; }
 
-  const user = { firstName, lastName, email, password: btoa(password), quotes: [] };
+  // Set trial start date on signup
+  const user = { 
+    firstName, lastName, email, 
+    password: btoa(password), 
+    quotes: [],
+    trialStart: new Date().toISOString()
+  };
   users[email] = user;
   saveUsers(users);
 
@@ -811,6 +846,22 @@ function doLogout() {
 function launchApp(user) {
   currentUser = user;
   quotes = user.quotes || [];
+
+  // Calculate and show trial days remaining
+  if (user.trialStart) {
+    const start = new Date(user.trialStart);
+    const now = new Date();
+    const daysUsed = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.max(0, TRIAL_DAYS - daysUsed);
+    const banner = document.querySelector('.trial-banner');
+    if (daysLeft > 0) {
+      banner.textContent = `📅 14‑day trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
+    } else {
+      banner.textContent = '⏳ Trial expired — upgrade to continue';
+      banner.style.background = '#FCEBEB';
+      banner.style.color = '#A32D2D';
+    }
+  }
 
   // Set sidebar user info
   const initials = (user.firstName[0] + user.lastName[0]).toUpperCase();
