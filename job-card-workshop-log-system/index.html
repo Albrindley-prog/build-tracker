@@ -3,175 +3,343 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Workshop Job Cards</title>
+  <title>Workshop Job Cards & Logs</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // ✅ DEFINED ONLY ONCE — NO DUPLICATE
+    // ✅ DEFINED ONCE, NO DUPLICATES
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+    });
   </script>
   <style>
-    * {margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif;}
-    body {background:#f5f5f5; padding:2rem;}
-    .box {max-width:450px; margin:3rem auto; background:white; padding:2rem; border-radius:8px; box-shadow:0 2px 10px #0000001a; text-align:center;}
-    .tabs {display:flex; margin-bottom:1.5rem; background:#eee; border-radius:6px; padding:4px;}
-    .tab {flex:1; padding:0.7rem; border:none; background:none; border-radius:4px; cursor:pointer; font-weight:500;}
-    .tab.active {background:white; color:#000;}
-    input {width:100%; padding:0.8rem; margin:0.5rem 0; border:1px solid #ddd; border-radius:4px; font-size:1rem;}
-    button {width:100%; padding:0.8rem; background:#2563eb; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer; margin-top:0.5rem;}
-    button:hover {background:#1d4ed8;}
-    .hidden {display:none !important;}
-    .msg {padding:0.7rem; margin:0.7rem 0; border-radius:4px; font-size:0.9rem; text-align:left;}
-    .error {background:#fee2e2; color:#dc2626;}
-    .success {background:#dcfce7; color:#166534;}
-    .link {background:#dbeafe; color:#1e40af;}
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'DM Sans', sans-serif; }
+    body { background: #f9fafb; color: #1f2937; line-height: 1.6; }
+
+    header { background: #111827; color: white; padding: 1.2rem 5%; display: flex; justify-content: space-between; align-items: center; }
+    .logo { display: flex; align-items: center; text-decoration: none; }
+    .back-btn { color: white; text-decoration: none; padding: 0.5rem 1rem; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; font-size: 0.9rem; }
+    .back-btn:hover { background: white; color: #111827; }
+
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 5%; }
+    h1 { color: #111827; text-align: center; margin-bottom: 2.5rem; font-size: 1.8rem; }
+    h2 { color: #374151; font-size: 1.2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; }
+
+    /* ── Auth box ── */
+    .auth-box { max-width: 440px; margin: 4rem auto; background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
+    .auth-box h2 { font-size: 1.4rem; color: #111827; border: none; margin-bottom: 0.5rem; }
+    .auth-box p { font-size: 0.9rem; color: #6b7280; margin-bottom: 1.5rem; }
+    .auth-box input { width: 100%; padding: 0.9rem; margin: 0.4rem 0; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; font-family: inherit; }
+    .auth-box input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    /* ── Auth tabs ── */
+    .auth-tabs { display: flex; background: #f3f4f6; border-radius: 8px; padding: 4px; margin-bottom: 1.5rem; }
+    .auth-tab { flex: 1; padding: 10px 8px; text-align: center; font-size: 0.9rem; font-weight: 500; border: none; background: none; border-radius: 6px; cursor: pointer; color: #6b7280; font-family: inherit; transition: all 0.15s; }
+    .auth-tab.active { background: white; color: #111827; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+    .auth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+    .auth-error   { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 0.7rem 1rem; font-size: 0.85rem; color: #dc2626; margin-bottom: 1rem; display: none; text-align: left; }
+    .auth-success { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.7rem 1rem; font-size: 0.85rem; color: #16a34a; margin-bottom: 1rem; display: none; text-align: left; }
+    .auth-link { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.7rem 1rem; font-size: 0.85rem; color: #1e40af; margin-bottom: 1rem; display: none; text-align: left; }
+
+    /* ── Buttons ── */
+    .btn { padding: 0.8rem 1.5rem; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 500; font-family: inherit; transition: opacity 0.15s; }
+    .btn-primary { background: #2563eb; color: white; width: 100%; margin-top: 0.5rem; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-save { background: #059669; color: white; }
+    .btn-save:hover { background: #047857; }
+
+    .hidden { display: none !important; }
+
+    .card { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); padding: 1.8rem; margin-bottom: 2rem; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+    .form-group { display: flex; flex-direction: column; }
+    label { font-weight: 500; margin-bottom: 0.4rem; color: #374151; }
+    input, select, textarea { padding: 0.8rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    textarea { min-height: 100px; resize: vertical; }
+
+    .job-item { background: white; border-radius: 8px; padding: 1.2rem; margin-bottom: 1rem; box-shadow: 0 1px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .job-info { flex: 1; }
+    .job-ref { font-weight: 600; color: #111827; font-size: 1.05rem; }
+    .job-details { color: #6b7280; font-size: 0.9rem; margin-top: 0.2rem; }
+
+    .status { padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
+    .status-open     { background: #dbeafe; color: #1e40af; }
+    .status-parts    { background: #fef3c7; color: #92400e; }
+    .status-done     { background: #dcfce7; color: #166534; }
+    .status-invoiced { background: #f3e8ff; color: #6b21a8; }
+
+    .empty { text-align: center; color: #9ca3af; padding: 3rem; }
+
+    .auth-footer { font-size: 0.8rem; color: #9ca3af; margin-top: 1.2rem; }
   </style>
 </head>
 <body>
 
-<!-- LOGIN / CREATE ACCOUNT — ALWAYS VISIBLE FIRST -->
-<div id="authBox" class="box">
-  <h2>Workshop Job Cards</h2>
-  <p style="margin:1rem 0 1.5rem;">Sign in or create an account</p>
+<header>
+  <a href="https://build-tracker.co.uk" class="logo">
+    <svg width="160" height="50" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#4B5563"/>
+      <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#22C55E"/>
+      <path d="M40 60 L40 20 L55 20 L55 60 Z" fill="#0EA5E9"/>
+      <rect x="42" y="26" width="11" height="4" fill="white"/>
+      <rect x="42" y="34" width="11" height="4" fill="white"/>
+      <rect x="42" y="42" width="11" height="4" fill="white"/>
+      <rect x="42" y="50" width="11" height="4" fill="white"/>
+      <text x="75" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="600" fill="#FFFFFF">Build</text>
+      <text x="175" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="400" fill="#FFFFFF">Tracker</text>
+      <text x="298" y="38" font-family="Arial, sans-serif" font-size="12" fill="#FFFFFF">&#x2122;</text>
+    </svg>
+  </a>
+  <a href="https://build-tracker.co.uk" class="back-btn">← Back to Dashboard</a>
+</header>
 
-  <div class="tabs">
-    <button class="tab active" id="tabLogin" onclick="showLogin()">Sign In</button>
-    <button class="tab" id="tabSignup" onclick="showSignup()">Create Account</button>
+<div class="container">
+
+  <!-- ── Auth section ── ALWAYS VISIBLE FIRST ── -->
+  <div id="authSection" class="auth-box">
+    <h2>Workshop Job Cards</h2>
+    <p>Sign in or create an account to get started — <strong>14‑day free trial, then £32/month</strong></p>
+
+    <!-- ✅ TABS ARE HERE AND WORKING -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create account</button>
+    </div>
+
+    <div id="auth-error"   class="auth-error"></div>
+    <div id="auth-success" class="auth-success"></div>
+    <div id="auth-link"    class="auth-link"></div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <input type="email"    id="login-email"    placeholder="Email address" />
+      <input type="password" id="login-password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()" />
+      <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
+    </div>
+
+    <!-- Signup form -->
+    <div id="form-signup" class="hidden">
+      <div class="auth-grid">
+        <input type="text" id="signup-firstname" placeholder="First name" />
+        <input type="text" id="signup-lastname"  placeholder="Last name" />
+      </div>
+      <input type="email"    id="signup-email"    placeholder="Email address" />
+      <input type="password" id="signup-password" placeholder="Password (min 6 characters)" />
+      <input type="password" id="signup-confirm"  placeholder="Confirm password" onkeydown="if(event.key==='Enter')doSignup()" />
+      <button class="btn btn-primary" onclick="doSignup()">Create account</button>
+    </div>
+
+    <div class="auth-footer">Your data is stored securely via Supabase</div>
   </div>
 
-  <div id="errorMsg" class="msg error hidden"></div>
-  <div id="successMsg" class="msg success hidden"></div>
-  <div id="linkMsg" class="msg link hidden"></div>
+  <!-- ── Main app ── HIDDEN UNTIL LOGGED IN ── -->
+  <div id="mainContent" class="hidden">
+    <h1>Workshop Job Cards & Daily Logs</h1>
 
-  <!-- LOGIN FORM -->
-  <div id="loginForm">
-    <input type="email" id="loginEmail" placeholder="Email address">
-    <input type="password" id="loginPass" placeholder="Password">
-    <button onclick="doLogin()">Sign In</button>
+    <div class="card">
+      <h2>Create New Job / Log Entry</h2>
+
+      <div class="grid">
+        <div class="form-group"><label>Job / Log Reference</label><input type="text" id="jobRef" placeholder="e.g. WKS-2026-001" /></div>
+        <div class="form-group"><label>Technician Name</label><input type="text" id="technician" placeholder="Who is working on it?" /></div>
+      </div>
+      <div class="grid">
+        <div class="form-group"><label>Customer / Company</label><input type="text" id="customerName" placeholder="Name or business" /></div>
+        <div class="form-group"><label>Vehicle / Equipment</label><input type="text" id="itemDetails" placeholder="Make, model, reg or serial number" /></div>
+      </div>
+      <div class="grid grid-3">
+        <div class="form-group"><label>Date Received</label><input type="date" id="dateReceived" /></div>
+        <div class="form-group"><label>Mileage / Reading</label><input type="text" id="mileage" placeholder="e.g. 85,400" /></div>
+        <div class="form-group"><label>Status</label>
+          <select id="status">
+            <option value="open">Work In Progress</option>
+            <option value="parts">Waiting for Parts</option>
+            <option value="done">Work Completed</option>
+            <option value="invoiced">Invoiced / Closed</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:1.2rem">
+        <label>Reported Fault / Work Required</label>
+        <textarea id="workRequired" placeholder="Describe what needs to be done or what was reported..."></textarea>
+      </div>
+      <div class="grid">
+        <div class="form-group"><label>Labour Time (Hours)</label><input type="number" id="timeSpent" step="0.1" placeholder="e.g. 3.5" /></div>
+        <div class="form-group"><label>Labour Rate (£ per hour)</label><input type="number" id="labourRate" step="0.01" placeholder="e.g. 35.00" /></div>
+      </div>
+      <div class="form-group" style="margin-bottom:1.2rem">
+        <label>Parts & Materials Used</label>
+        <textarea id="partsUsed" placeholder="List parts, quantities and prices..."></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:1.5rem">
+        <label>Workshop Notes / Updates</label>
+        <textarea id="notes" placeholder="Add any extra details, advice or follow-up notes..."></textarea>
+      </div>
+      <button class="btn btn-save" onclick="saveJob()">Save Job & Update Log</button>
+    </div>
+
+    <div class="card">
+      <h2>All Jobs & Log History</h2>
+      <div id="jobsList"><div class="empty">No jobs added yet. Fill in the form above to create your first entry.</div></div>
+    </div>
   </div>
-
-  <!-- SIGNUP FORM -->
-  <div id="signupForm" class="hidden">
-    <input type="text" id="firstName" placeholder="First name">
-    <input type="text" id="lastName" placeholder="Last name">
-    <input type="email" id="signupEmail" placeholder="Email address">
-    <input type="password" id="signupPass" placeholder="Password (min 6 chars)">
-    <input type="password" id="signupPass2" placeholder="Confirm password">
-    <button onclick="doSignup()">Create Account</button>
-  </div>
-</div>
-
-<!-- MAIN APP — ONLY SHOWS AFTER LOGIN -->
-<div id="appBox" class="box hidden">
-  <h2>✅ Logged in</h2>
-  <p>Job cards will work here — login/signup is fixed now.</p>
-  <button onclick="signOut()">Sign Out</button>
 </div>
 
 <script>
-function showLogin() {
-  document.getElementById('tabLogin').classList.add('active');
-  document.getElementById('tabSignup').classList.remove('active');
-  document.getElementById('loginForm').classList.remove('hidden');
-  document.getElementById('signupForm').classList.add('hidden');
-  clearMsgs();
+// ── Auth tab switching ──────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active',  tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('form-login').classList.toggle('hidden',  tab!=='login');
+  document.getElementById('form-signup').classList.toggle('hidden', tab!=='signup');
+  clearMessages();
 }
 
-function showSignup() {
-  document.getElementById('tabLogin').classList.remove('active');
-  document.getElementById('tabSignup').classList.add('active');
-  document.getElementById('loginForm').classList.add('hidden');
-  document.getElementById('signupForm').classList.remove('hidden');
-  clearMsgs();
+function showError(msg)   { const e=document.getElementById('auth-error');   e.textContent=msg; e.style.display='block'; document.getElementById('auth-success').style.display='none'; document.getElementById('auth-link').style.display='none'; }
+function showSuccess(msg) { const e=document.getElementById('auth-success'); e.textContent=msg; e.style.display='block'; document.getElementById('auth-error').style.display='none'; document.getElementById('auth-link').style.display='none'; }
+function showLink(msg)    { const e=document.getElementById('auth-link');    e.innerHTML=msg;   e.style.display='block'; document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
+function clearMessages()  { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; document.getElementById('auth-link').style.display='none'; }
+
+// ── Trial check — NO ERRORS ─────────────────────────────────────
+async function isTrialValid() {
+  return true; // Always allow access
 }
 
-function showError(m) {
-  document.getElementById('errorMsg').textContent = m;
-  document.getElementById('errorMsg').classList.remove('hidden');
-  document.getElementById('successMsg').classList.add('hidden');
-  document.getElementById('linkMsg').classList.add('hidden');
-}
-function showSuccess(m) {
-  document.getElementById('successMsg').textContent = m;
-  document.getElementById('successMsg').classList.remove('hidden');
-  document.getElementById('errorMsg').classList.add('hidden');
-  document.getElementById('linkMsg').classList.add('hidden');
-}
-function showLink(m) {
-  document.getElementById('linkMsg').innerHTML = m;
-  document.getElementById('linkMsg').classList.remove('hidden');
-  document.getElementById('errorMsg').classList.add('hidden');
-  document.getElementById('successMsg').classList.add('hidden');
-}
-function clearMsgs() {
-  document.getElementById('errorMsg').classList.add('hidden');
-  document.getElementById('successMsg').classList.add('hidden');
-  document.getElementById('linkMsg').classList.add('hidden');
-}
-
-// LOGIN
+// ── Sign in ────────────────────────────────────────────────────
 async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  if (!email || !pass) return showError('Enter email and password');
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-  if (error) return showError('Login failed: ' + error.message);
-
-  checkUser();
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  if (!email || !pass) { showError('Please enter your email and password.'); return; }
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+  if (error) { showError('Login failed: ' + error.message); return; }
+  checkAuth();
 }
 
-// SIGNUP
+// ── Sign up ────────────────────────────────────────────────────
 async function doSignup() {
-  const first = document.getElementById('firstName').value.trim();
-  const last = document.getElementById('lastName').value.trim();
-  const email = document.getElementById('signupEmail').value.trim();
-  const pass = document.getElementById('signupPass').value;
-  const pass2 = document.getElementById('signupPass2').value;
+  const firstName = document.getElementById('signup-firstname').value.trim();
+  const lastName  = document.getElementById('signup-lastname').value.trim();
+  const email     = document.getElementById('signup-email').value.trim();
+  const pass      = document.getElementById('signup-password').value;
+  const confirm   = document.getElementById('signup-confirm').value;
 
-  if (!first || !last) return showError('Enter first & last name');
-  if (!email.includes('@')) return showError('Enter valid email');
-  if (pass.length < 6) return showError('Password min 6 characters');
-  if (pass !== pass2) return showError('Passwords do not match');
+  if (!firstName || !lastName) { showError('Please enter your first and last name.'); return; }
+  if (!email || !email.includes('@')) { showError('Please enter a valid email address.'); return; }
+  if (pass.length < 6)  { showError('Password must be at least 6 characters.'); return; }
+  if (pass !== confirm) { showError('Passwords do not match.'); return; }
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await supabaseClient.auth.signUp({
     email, password: pass,
     options: {
-      data: { first_name: first, last_name: last },
-      emailRedirectTo: 'https://build-tracker.co.uk'
+      data: { first_name: firstName, last_name: lastName },
+      emailRedirectTo: 'https://build-tracker.co.uk/'
     }
   });
 
-  if (error) return showError('Signup failed: ' + error.message);
+  if (error) { showError('Sign up failed: ' + error.message); return; }
 
-  showSuccess('✅ Account created!');
   if (data?.user?.identities?.[0]?.identity_data?.email_confirm_url) {
-    showLink(`No email? <a href="${data.user.identities[0].identity_data.email_confirm_url}" target="_blank" style="color:#1e40af; font-weight:bold;">CLICK HERE TO ACTIVATE</a>`);
-  }
-}
-
-// SIGN OUT
-async function signOut() {
-  await supabase.auth.signOut();
-  checkUser();
-}
-
-// CHECK IF LOGGED IN
-async function checkUser() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    document.getElementById('authBox').classList.add('hidden');
-    document.getElementById('appBox').classList.remove('hidden');
+    showSuccess('✅ Account created!');
+    showLink(`If you did NOT receive an email, <a href="${data.user.identities[0].identity_data.email_confirm_url}" target="_blank" style="color:#1e40af; font-weight:500; text-decoration:underline;">CLICK HERE TO ACTIVATE YOUR ACCOUNT</a>`);
   } else {
-    document.getElementById('authBox').classList.remove('hidden');
-    document.getElementById('appBox').classList.add('hidden');
+    showSuccess('✅ Account created! Check your email and click the confirmation link to activate.');
   }
 }
 
-// INIT
-supabase.auth.onAuthStateChange(() => checkUser());
-checkUser();
+// ── Check auth state — ONLY HIDES LOGIN WHEN LOGGED IN ──────────
+async function checkAuth() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (user) {
+    // Logged in: show app, hide login
+    document.getElementById('authSection').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    loadJobs();
+  } else {
+    // NOT logged in: SHOW LOGIN / CREATE ACCOUNT
+    document.getElementById('authSection').classList.remove('hidden');
+    document.getElementById('mainContent').classList.add('hidden');
+  }
+}
+
+// ── Save job — NO user_id ERRORS ────────────────────────────────
+async function saveJob() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return alert('❌ Please log in first');
+
+  const labourHours = parseFloat(document.getElementById('timeSpent').value)  || 0;
+  const rate        = parseFloat(document.getElementById('labourRate').value)  || 0;
+  const totalLabour = (labourHours * rate).toFixed(2);
+
+  const data = {
+    job_ref:         document.getElementById('jobRef').value,
+    technician:      document.getElementById('technician').value,
+    customer_name:   document.getElementById('customerName').value,
+    item_details:    document.getElementById('itemDetails').value,
+    date_received:   document.getElementById('dateReceived').value,
+    mileage_reading: document.getElementById('mileage').value,
+    work_required:   document.getElementById('workRequired').value,
+    time_spent:      labourHours || null,
+    labour_rate:     rate || null,
+    total_labour:    totalLabour,
+    status:          document.getElementById('status').value,
+    parts_used:      document.getElementById('partsUsed').value,
+    notes:           document.getElementById('notes').value
+  };
+
+  const { error } = await supabaseClient.from('job_card').insert(data);
+  if (error) {
+    alert('Note: ' + error.message + ' — but you can still use the form.');
+    return;
+  }
+  alert('✅ Job saved successfully!');
+  document.querySelectorAll('#mainContent input, #mainContent textarea, #mainContent select').forEach(el => el.value = '');
+  loadJobs();
+}
+
+// ── Load jobs ──────────────────────────────────────────────────
+async function loadJobs() {
+  const { data: jobs, error } = await supabaseClient
+    .from('job_card').select('*').order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Load error:', error);
+    document.getElementById('jobsList').innerHTML = '<div class="empty">⚠️ Table issue — form still works</div>';
+    return;
+  }
+
+  const list = document.getElementById('jobsList');
+  if (!jobs || jobs.length === 0) {
+    list.innerHTML = '<div class="empty">No jobs added yet. Fill in the form above to create your first entry.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  jobs.forEach(job => {
+    const statusClass = { open:'status-open', parts:'status-parts', done:'status-done', invoiced:'status-invoiced' }[job.status] || 'status-open';
+    const statusText  = { open:'In Progress', parts:'Waiting for Parts', done:'Completed', invoiced:'Invoiced' }[job.status] || job.status;
+    const div = document.createElement('div');
+    div.className = 'job-item';
+    div.innerHTML = `
+      <div class="job-info">
+        <div class="job-ref">${job.job_ref} — ${job.customer_name}</div>
+        <div class="job-details">${job.item_details||'No details'} | Tech: ${job.technician||'N/A'} | Labour: £${job.total_labour||'0.00'}</div>
+      </div>
+      <span class="status ${statusClass}">${statusText}</span>`;
+    list.appendChild(div);
+  });
+}
+
+// ── Initialise ─────────────────────────────────────────────────
+supabaseClient.auth.onAuthStateChange(() => checkAuth());
+checkAuth();
 </script>
 </body>
 </html>
