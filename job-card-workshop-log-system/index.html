@@ -104,7 +104,7 @@
   <!-- ── Auth section ── -->
   <div id="authSection" class="auth-box">
     <h2>Workshop Job Cards</h2>
-    <p>Sign in or create an account to get started</p>
+    <p>Sign in or create an account to get started — <strong>14‑day free trial, then £32/month</strong></p>
 
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
@@ -190,6 +190,48 @@
 </div>
 
 <script>
+// ── Auto‑create tables on first run ─────────────────────────────
+async function setupDatabase() {
+  try {
+    // Create subscriptions table
+    await supabaseClient.rpc('create_table_if_not_exists', {
+      table_name: 'subscriptions',
+      table_definition: `
+        id uuid primary key default gen_random_uuid(),
+        user_id uuid references auth.users(id) not null,
+        status text not null default 'trial',
+        expires_at timestamptz not null,
+        created_at timestamptz default now()
+      `
+    });
+
+    // Create job_card table
+    await supabaseClient.rpc('create_table_if_not_exists', {
+      table_name: 'job_card',
+      table_definition: `
+        id uuid primary key default gen_random_uuid(),
+        user_id uuid references auth.users(id) not null,
+        job_ref text,
+        technician text,
+        customer_name text,
+        item_details text,
+        date_received date,
+        mileage_reading text,
+        work_required text,
+        time_spent numeric,
+        labour_rate numeric,
+        total_labour text,
+        status text default 'open',
+        parts_used text,
+        notes text,
+        created_at timestamptz default now()
+      `
+    });
+  } catch (e) {
+    // Ignore if already exists or RPC not available — will still work
+  }
+}
+
 // ── Auth tab switching ──────────────────────────────────────────
 function switchTab(tab) {
   document.getElementById('tab-login').classList.toggle('active',  tab==='login');
@@ -202,6 +244,22 @@ function switchTab(tab) {
 function showError(msg)   { const e=document.getElementById('auth-error');   e.textContent=msg; e.style.display='block'; document.getElementById('auth-success').style.display='none'; }
 function showSuccess(msg) { const e=document.getElementById('auth-success'); e.textContent=msg; e.style.display='block'; document.getElementById('auth-error').style.display='none'; }
 function clearMessages()  { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
+
+// ── Check if trial is still valid ───────────────────────────────
+async function isTrialValid(userId) {
+  const {data: sub, error} = await supabaseClient
+    .from('subscriptions')
+    .select('expires_at, status')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error || !sub) return false;
+  if (sub.status !== 'trial') return true; // paid or active
+
+  const now = new Date();
+  const end = new Date(sub.expires_at);
+  return now < end;
+}
 
 // ── Sign in ────────────────────────────────────────────────────
 async function doLogin() {
@@ -236,12 +294,14 @@ async function doSignup() {
 
   if (error) { showError('Sign up failed: ' + error.message); return; }
 
-  // Insert trial record
+  // Insert 14‑day trial record
   if (data.user) {
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 14);
     await supabaseClient.from('subscriptions').insert({
-      user_id: data.user.id, status: 'trial', expires_at: trialEnd.toISOString()
+      user_id: data.user.id,
+      status: 'trial',
+      expires_at: trialEnd.toISOString()
     });
   }
 
@@ -252,6 +312,13 @@ async function doSignup() {
 async function checkAuth() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (user) {
+    const valid = await isTrialValid(user.id);
+    if (!valid) {
+      document.getElementById('authSection').classList.remove('hidden');
+      document.getElementById('mainContent').classList.add('hidden');
+      showError('⏳ Your 14‑day trial has ended. Please subscribe for £32/month to continue — visit build-tracker.co.uk for details.');
+      return;
+    }
     document.getElementById('authSection').classList.add('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
     loadJobs();
@@ -326,6 +393,8 @@ async function loadJobs() {
   });
 }
 
+// ── Initialise ─────────────────────────────────────────────────
+setupDatabase();
 supabaseClient.auth.onAuthStateChange(() => checkAuth());
 checkAuth();
 </script>
