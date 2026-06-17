@@ -30,7 +30,7 @@
     .auth-box { max-width: 440px; margin: 4rem auto; background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
     .auth-box h2 { font-size: 1.4rem; color: #111827; border: none; margin-bottom: 0.5rem; }
     .auth-box p { font-size: 0.9rem; color: #6b7280; margin-bottom: 1.5rem; }
-    .auth-box input { width: 100%; padding: 0.9rem; margin: 0.4rem 0; border: 1px solid #d1d5db; border-radius: 6px font-size: 1rem; font-family: inherit; }
+    .auth-box input { width: 100%; padding: 0.9rem; margin: 0.4rem 0; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; font-family: inherit; }
     .auth-box input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 
     /* ── Auth tabs ── */
@@ -199,7 +199,7 @@ async function setupDatabase() {
       table_name: 'subscriptions',
       table_definition: `
         id uuid primary key default gen_random_uuid(),
-        user_id uuid references auth.users(id) not null,
+        user_id uuid references auth.users(id) not null unique,
         status text not null default 'trial',
         expires_at timestamptz not null,
         created_at timestamptz default now()
@@ -250,11 +250,20 @@ async function isTrialValid(userId) {
     .select('expires_at, status')
     .eq('user_id', userId)
     .maybeSingle();
-  if (error || !sub) return false;
-  if (sub.status !== 'trial') return true;
-  const now = new Date();
-  const end = new Date(sub.expires_at);
-  return now < end;
+
+  // ✅ If no record or expired → SET NEW 14-DAY TRIAL FROM TODAY
+  if (error || !sub || new Date(sub.expires_at) < new Date()) {
+    const newEnd = new Date();
+    newEnd.setDate(newEnd.getDate() + 14);
+    await supabaseClient.from('subscriptions').upsert({
+      user_id: userId,
+      status: 'trial',
+      expires_at: newEnd.toISOString()
+    });
+    return true;
+  }
+
+  return sub.status === 'trial' ? new Date() < new Date(sub.expires_at) : true;
 }
 
 // ── Sign in ────────────────────────────────────────────────────
@@ -284,25 +293,23 @@ async function doSignup() {
     email, password: pass,
     options: {
       data: { first_name: firstName, last_name: lastName },
-      emailRedirectTo: 'https://build-tracker.co.uk/',
-      shouldCreateUser: true
+      emailRedirectTo: 'https://build-tracker.co.uk/'
     }
   });
 
   if (error) { showError('Sign up failed: ' + error.message); return; }
 
-  // Insert 14‑day trial record
+  // ✅ Always set NEW 14-day trial TODAY
   if (data.user) {
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 14);
-    await supabaseClient.from('subscriptions').insert({
+    await supabaseClient.from('subscriptions').upsert({
       user_id: data.user.id,
       status: 'trial',
       expires_at: trialEnd.toISOString()
     });
   }
 
-  // ✅ Fixed: Show link directly if email not sent
   if (data?.user?.identities?.[0]?.identity_data?.email_confirm_url) {
     showSuccess('✅ Account created!');
     showLink(`If you did NOT receive an email, <a href="${data.user.identities[0].identity_data.email_confirm_url}" target="_blank" style="color:#1e40af; font-weight:500; text-decoration:underline;">CLICK HERE TO ACTIVATE YOUR ACCOUNT</a>`);
