@@ -338,8 +338,11 @@ input,select,textarea{font-family:inherit}
 const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
 
-// ✅ FIXED: Define HDR properly here
-const HDR = { 'Content-Type': 'application/json', 'apikey': SB_KEY };
+// Define base headers for API calls
+const HDR = {
+  'Content-Type': 'application/json',
+  'apikey': SB_KEY   // ✅ Use the variable, no quotes
+};
 const BASE_HDR = HDR;
 const sbAuth = supabase.createClient(SB_URL, SB_KEY);
 
