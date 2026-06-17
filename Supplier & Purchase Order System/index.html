@@ -8,26 +8,91 @@
   <script src="https://js.stripe.com/v3/"></script>
 
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'DM Sans', sans-serif; }
-    :root {
-      --bg: #0f1117; --bg2: #181c27; --bg3: #1e2333;
-      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
-      --text: #f0f2f8; --text2: #8b92a8;
-      --mint: #00b493; --mint-dark: #008a70; --mint-light: #e6f9f4; --mint-glow: rgba(0, 180, 147, 0.3);
-      --green: #22c55e; --red: #ef4444; --amber: #f59e0b; --purple: #a855f7; --blue-light: #3b82f6;
-      --radius: 10px; --shadow: 0 4px 12px rgba(0,0,0,0.25); --shadow-mint: 0 4px 16px var(--mint-glow);
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'DM Sans', sans-serif;
     }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at top right, rgba(0, 180, 147, 0.08), transparent 60%); }
-    .container { max-width: 1200px; margin: 0 auto; }
+    :root {
+      --bg: #0f1117;
+      --bg2: #181c27;
+      --bg3: #1e2333;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.15);
+      --text: #f0f2f8;
+      --text2: #8b92a8;
+      --mint: #00b493;
+      --mint-dark: #008a70;
+      --mint-light: #e6f9f4;
+      --mint-glow: rgba(0, 180, 147, 0.3);
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --purple: #a855f7;
+      --blue-light: #3b82f6;
+      --radius: 10px;
+      --shadow: 0 4px 12px rgba(0,0,0,0.25);
+      --shadow-mint: 0 4px 16px var(--mint-glow);
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      background-image: radial-gradient(circle at top right, rgba(0, 180, 147, 0.08), transparent 60%);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
     .hidden { display: none !important; }
 
     /* --- AUTH & BILLING --- */
-    .auth-box, .billing-box { max-width: 450px; margin: 60px auto; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow); text-align: center; }
-    .auth-box h2, .billing-box h2 { color: var(--mint); margin-bottom: 20px; text-shadow: 0 0 8px var(--mint-glow); }
-    .auth-box input, .billing-box input { width: 100%; padding: 12px; margin: 8px 0; background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-size: 14px; }
-    .auth-box input:focus, .billing-box input:focus { outline: none; border-color: var(--mint); box-shadow: 0 0 0 3px var(--mint-glow); }
-    .auth-box p, .billing-box p { margin: 12px 0; font-size: 14px; color: var(--text2); }
-    .trial-info { background: rgba(0, 180, 147, 0.1); border: 1px solid var(--mint); border-radius: 6px; padding: 10px; margin: 15px 0; color: var(--mint); font-weight: 500; }
+    .auth-box, .billing-box {
+      max-width: 450px;
+      margin: 60px auto;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .auth-box h2, .billing-box h2 {
+      color: var(--mint);
+      margin-bottom: 20px;
+      text-shadow: 0 0 8px var(--mint-glow);
+    }
+    .auth-box input, .billing-box input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .auth-box input:focus, .billing-box input:focus {
+      outline: none;
+      border-color: var(--mint);
+      box-shadow: 0 0 0 3px var(--mint-glow);
+    }
+    .auth-box p, .billing-box p {
+      margin: 12px 0;
+      font-size: 14px;
+      color: var(--text2);
+    }
+    .trial-info {
+      background: rgba(0, 180, 147, 0.1);
+      border: 1px solid var(--mint);
+      border-radius: 6px;
+      padding: 10px;
+      margin: 15px 0;
+      color: var(--mint);
+      font-weight: 500;
+    }
 
     /* --- MAIN INTERFACE --- */
     .header {
@@ -42,32 +107,87 @@
       box-shadow: var(--shadow);
       border-left: 4px solid var(--mint);
     }
-    /* Logo + title grouped together on the left */
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .header-title {
+    .logo {
       font-size: 20px;
       font-weight: 600;
       color: var(--mint);
       text-shadow: 0 0 8px var(--mint-glow);
     }
-    .user-bar { display: flex; gap: 12px; align-items: center; }
-    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow); transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-mint); border-color: var(--mint); }
-    .card h3 { margin-bottom: 16px; font-size: 18px; color: var(--mint); }
-    .grid-2, .grid-3, .grid-4 { display: grid; gap: 12px; margin-bottom: 12px; }
+    .user-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-mint);
+      border-color: var(--mint);
+    }
+    .card h3 {
+      margin-bottom: 16px;
+      font-size: 18px;
+      color: var(--mint);
+    }
+    .grid-2, .grid-3, .grid-4 {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
     .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
     .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
     .grid-2 { grid-template-columns: 1fr 1fr; }
-    label { font-size: 13px; color: var(--text2); margin-bottom: 6px; display: block; }
-    input, select, textarea { width: 100%; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-size: 14px; transition: all 0.3s ease; }
-    input:focus, select:focus { outline: none; border-color: var(--mint); box-shadow: 0 0 0 3px var(--mint-glow); background: var(--bg2); }
-    .btn { padding: 10px 16px; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-    .btn-primary { background: linear-gradient(135deg, var(--mint) 0%, var(--mint-dark) 100%); color: white; }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--mint-glow); opacity: 0.95; }
+    label {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 6px;
+      display: block;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--mint);
+      box-shadow: 0 0 0 3px var(--mint-glow);
+      background: var(--bg2);
+    }
+    .btn {
+      padding: 10px 16px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .btn-primary { 
+      background: linear-gradient(135deg, var(--mint) 0%, var(--mint-dark) 100%); 
+      color: white; 
+    }
+    .btn-primary:hover { 
+      transform: translateY(-1px); 
+      box-shadow: 0 4px 12px var(--mint-glow); 
+      opacity: 0.95;
+    }
     .btn-success { background: var(--green); color: white; }
     .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); }
     .btn-danger { background: var(--red); color: white; }
@@ -76,15 +196,52 @@
     .btn-warning:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
     .btn-sm { padding: 6px 10px; font-size: 12px; }
     .btn-xs { padding: 4px 8px; font-size: 11px; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-    .tab { padding: 10px 18px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.3s ease; }
-    .tab.active { background: linear-gradient(135deg, var(--mint) 0%, var(--mint-dark) 100%); color: white; border-color: var(--mint); box-shadow: 0 4px 12px var(--mint-glow); }
-    .tab:hover:not(.active) { border-color: var(--mint); color: var(--mint); }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); transition: background 0.2s ease; }
-    tr:hover td { background: rgba(0, 180, 147, 0.05); }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 10px 18px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, var(--mint) 0%, var(--mint-dark) 100%);
+      color: white;
+      border-color: var(--mint);
+      box-shadow: 0 4px 12px var(--mint-glow);
+    }
+    .tab:hover:not(.active) {
+      border-color: var(--mint);
+      color: var(--mint);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s ease;
+    }
+    tr:hover td {
+      background: rgba(0, 180, 147, 0.05);
+    }
     th { color: var(--text2); font-weight: 500; }
-    .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+    .badge {
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
     .badge-draft { background: rgba(139, 146, 168, 0.2); color: var(--text2); }
     .badge-sent { background: var(--mint-glow); color: var(--mint); }
     .badge-confirmed { background: rgba(168, 85, 247, 0.2); color: var(--purple); }
@@ -92,17 +249,78 @@
     .badge-invoiced { background: rgba(249, 115, 22, 0.15); color: var(--amber); }
     .badge-overdue { background: rgba(239, 68, 68, 0.2); color: var(--red); }
     .search-bar { margin-bottom: 16px; }
-    .search-bar input { border-left: 3px solid var(--mint); }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--bg2); border: 1px solid var(--green); color: var(--green); padding: 10px 20px; border-radius: 20px; transition: 0.3s; z-index: 999; box-shadow: var(--shadow); }
+    .search-bar input {
+      border-left: 3px solid var(--mint);
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--bg2);
+      border: 1px solid var(--green);
+      color: var(--green);
+      padding: 10px 20px;
+      border-radius: 20px;
+      transition: 0.3s;
+      z-index: 999;
+      box-shadow: var(--shadow);
+    }
     .toast.show { transform: translateX(-50%) translateY(0); }
-    .back-link { color: var(--mint); text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; transition: all 0.3s ease; }
-    .back-link:hover { text-shadow: 0 0 8px var(--mint-glow); transform: translateX(-2px); }
-    .item-row { display: grid; grid-template-columns: 3fr 1fr 1fr 100px 100px 80px; gap: 8px; align-items: end; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); transition: background 0.2s ease; }
-    .item-row:hover { background: rgba(0, 180, 147, 0.03); }
-    .history-note { font-size: 11px; color: var(--mint); margin-top: 2px; font-weight: 500; }
-    .alert-box { background: rgba(245, 158, 11, 0.1); border: 1px solid var(--amber); border-radius: var(--radius); padding: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-    .attachment-item { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); }
-    @media(max-width: 768px) { .grid-2, .grid-3, .grid-4, .item-row { grid-template-columns: 1fr; } table { display: block; overflow-x: auto; } }
+    .back-link {
+      color: var(--mint);
+      text-decoration: none;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 16px;
+      transition: all 0.3s ease;
+    }
+    .back-link:hover {
+      text-shadow: 0 0 8px var(--mint-glow);
+      transform: translateX(-2px);
+    }
+    .item-row {
+      display: grid;
+      grid-template-columns: 3fr 1fr 1fr 100px 100px 80px;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s ease;
+    }
+    .item-row:hover {
+      background: rgba(0, 180, 147, 0.03);
+    }
+    .history-note {
+      font-size: 11px;
+      color: var(--mint);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+    .alert-box {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid var(--amber);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .attachment-item {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    @media(max-width: 768px) {
+      .grid-2, .grid-3, .grid-4, .item-row { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
   </style>
 </head>
 <body>
@@ -140,25 +358,7 @@
     <a href="../index.html" class="back-link">← Back to Main Site</a>
 
     <div class="header">
-      <!-- ── Logo + title side by side ── -->
-      <div class="header-left">
-        <a href="https://build-tracker.co.uk" style="display:flex;align-items:center;text-decoration:none;">
-          <svg width="130" height="42" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#4B5563"/>
-            <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#22C55E"/>
-            <path d="M40 60 L40 20 L55 20 L55 60 Z" fill="#0EA5E9"/>
-            <rect x="42" y="26" width="11" height="4" fill="white"/>
-            <rect x="42" y="34" width="11" height="4" fill="white"/>
-            <rect x="42" y="42" width="11" height="4" fill="white"/>
-            <rect x="42" y="50" width="11" height="4" fill="white"/>
-            <text x="75" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="600" fill="#FFFFFF">Build</text>
-            <text x="175" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="400" fill="#FFFFFF">Tracker</text>
-            <text x="298" y="38" font-family="Arial, sans-serif" font-size="12" fill="#FFFFFF">&#x2122;</text>
-          </svg>
-        </a>
-        <div class="header-title">🤝 Supplier & Purchase Orders</div>
-      </div>
-
+      <div class="logo">🤝 Supplier & Purchase Orders</div>
       <div class="user-bar">
         <span id="trial-days"></span>
         <button class="btn btn-sm" onclick="showBilling()">Billing</button>
@@ -182,15 +382,24 @@
       <div id="reorder-list"></div>
       <button class="btn btn-success mt-2" onclick="createReorderPO()">Create PO for Selected Items</button>
     </div>
-
     <!-- NEW / EDIT PO FORM -->
     <div class="card" id="po-form" style="display: none;">
       <h3 id="po-form-title">New Purchase Order</h3>
       <div class="grid-4">
-        <div><label>Supplier</label><select id="po-supplier"></select></div>
-        <div><label>Order Date</label><input type="date" id="po-date"></div>
-        <div><label>PO Number (Auto)</label><input type="text" id="po-ref" placeholder="Auto generated" readonly></div>
-        <div><label>Payment Terms</label>
+        <div>
+          <label>Supplier</label>
+          <select id="po-supplier"></select>
+        </div>
+        <div>
+          <label>Order Date</label>
+          <input type="date" id="po-date">
+        </div>
+        <div>
+          <label>PO Number (Auto)</label>
+          <input type="text" id="po-ref" placeholder="Auto generated" readonly>
+        </div>
+        <div>
+          <label>Payment Terms</label>
           <select id="po-payment-terms">
             <option value="30">30 Days</option>
             <option value="60">60 Days</option>
@@ -200,8 +409,12 @@
         </div>
       </div>
       <div class="grid-3">
-        <div><label>Due Date</label><input type="date" id="po-due-date"></div>
-        <div><label>Status</label>
+        <div>
+          <label>Due Date</label>
+          <input type="date" id="po-due-date">
+        </div>
+        <div>
+          <label>Status</label>
           <select id="po-status">
             <option value="draft">Draft</option>
             <option value="sent">Sent to Supplier</option>
@@ -210,7 +423,8 @@
             <option value="invoiced">Invoiced / Complete</option>
           </select>
         </div>
-        <div><label>Delivery Checked?</label>
+        <div>
+          <label>Delivery Checked?</label>
           <select id="po-goods-in">
             <option value="no">Not Checked</option>
             <option value="partial">Partial Delivery</option>
@@ -218,9 +432,11 @@
           </select>
         </div>
       </div>
+
       <h4 style="margin:16px 0 8px;">Order Items <small style="color:var(--mint)">(Last price shown below)</small></h4>
       <div id="po-items"></div>
       <button class="btn btn-sm btn-primary" onclick="addPOItem()">+ Add Item</button>
+
       <div class="grid-2" style="margin-top:16px;">
         <div>
           <label>Notes / Delivery Instructions</label>
@@ -230,9 +446,12 @@
           <label>Attachments</label>
           <input type="file" id="po-attachment-file" multiple>
           <div id="po-attachments-list" class="mt-2"></div>
-          <div style="margin-top:12px;"><label>Total: <strong id="po-total">£0.00</strong></label></div>
+          <div style="margin-top:12px;">
+            <label>Total: <strong id="po-total">£0.00</strong></label>
+          </div>
         </div>
       </div>
+
       <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
         <button class="btn btn-success" onclick="savePO()">Save Order</button>
         <button class="btn btn-warning" onclick="hidePOForm()">Cancel</button>
@@ -245,15 +464,28 @@
     <div class="card" id="supplier-form" style="display: none;">
       <h3 id="sup-form-title">Add Supplier</h3>
       <div class="grid-2">
-        <div><label>Company Name</label><input type="text" id="sup-name" placeholder="Supplier Ltd"></div>
-        <div><label>Contact Person</label><input type="text" id="sup-contact" placeholder="Joe Bloggs"></div>
+        <div>
+          <label>Company Name</label>
+          <input type="text" id="sup-name" placeholder="Supplier Ltd">
+        </div>
+        <div>
+          <label>Contact Person</label>
+          <input type="text" id="sup-contact" placeholder="Joe Bloggs">
+        </div>
       </div>
       <div class="grid-2">
-        <div><label>Email</label><input type="email" id="sup-email" placeholder="orders@supplier.co.uk"></div>
-        <div><label>Phone</label><input type="text" id="sup-phone" placeholder="01234 567890"></div>
+        <div>
+          <label>Email</label>
+          <input type="email" id="sup-email" placeholder="orders@supplier.co.uk">
+        </div>
+        <div>
+          <label>Phone</label>
+          <input type="text" id="sup-phone" placeholder="01234 567890">
+        </div>
       </div>
       <div class="grid-3">
-        <div><label>Payment Terms</label>
+        <div>
+          <label>Payment Terms</label>
           <select id="sup-terms">
             <option value="30">30 Days</option>
             <option value="60">60 Days</option>
@@ -261,10 +493,19 @@
             <option value="0">Due On Receipt</option>
           </select>
         </div>
-        <div><label>Account Number</label><input type="text" id="sup-account" placeholder="ACC-12345"></div>
-        <div><label>Lead Time (Days)</label><input type="number" id="sup-lead" min="0" placeholder="7"></div>
+        <div>
+          <label>Account Number</label>
+          <input type="text" id="sup-account" placeholder="ACC-12345">
+        </div>
+        <div>
+          <label>Lead Time (Days)</label>
+          <input type="number" id="sup-lead" min="0" placeholder="7">
+        </div>
       </div>
-      <div><label>Address & Notes</label><textarea id="sup-address" rows="2" placeholder="Address, opening times, etc..."></textarea></div>
+      <div>
+        <label>Address & Notes</label>
+        <textarea id="sup-address" rows="2" placeholder="Address, opening times, etc..."></textarea>
+      </div>
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button class="btn btn-success" onclick="saveSupplier()">Save Supplier</button>
         <button class="btn btn-warning" onclick="toggleSupplierForm()">Cancel</button>
@@ -275,7 +516,18 @@
     <div class="card" id="po-view">
       <h3>All Purchase Orders</h3>
       <table>
-        <thead><tr><th>PO Ref</th><th>Supplier</th><th>Date</th><th>Due Date</th><th>Status</th><th>Goods In</th><th>Total</th><th>Actions</th></tr></thead>
+        <thead>
+          <tr>
+            <th>PO Ref</th>
+            <th>Supplier</th>
+            <th>Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Goods In</th>
+            <th>Total</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
         <tbody id="po-list"></tbody>
       </table>
     </div>
@@ -283,7 +535,16 @@
     <div class="card" id="supplier-view" style="display: none;">
       <h3>Supplier List</h3>
       <table>
-        <thead><tr><th>Name</th><th>Contact</th><th>Terms</th><th>Lead Time</th><th>Email / Phone</th><th>Actions</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Terms</th>
+            <th>Lead Time</th>
+            <th>Email / Phone</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
         <tbody id="supplier-list"></tbody>
       </table>
     </div>
@@ -291,7 +552,16 @@
     <div class="card" id="goodsin-view" style="display: none;">
       <h3>Goods In / Delivery Check</h3>
       <table>
-        <thead><tr><th>PO Ref</th><th>Supplier</th><th>Expected</th><th>Status</th><th>Checked</th><th>Actions</th></tr></thead>
+        <thead>
+          <tr>
+            <th>PO Ref</th>
+            <th>Supplier</th>
+            <th>Expected</th>
+            <th>Status</th>
+            <th>Checked</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
         <tbody id="goodsin-list"></tbody>
       </table>
     </div>
@@ -306,12 +576,24 @@
   <div class="toast" id="toast"></div>
 
   <script>
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
+// --------------------------
+// CONFIGURATION
+// --------------------------
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ'; // ← Replace with your live Stripe key
 const TRIAL_DAYS = 14;
+const MONTHLY_PRICE = 32.00;
+const CURRENCY = 'gbp';
+
+// --------------------------
+// GLOBAL VARIABLES
+// --------------------------
 let currentUser = null;
 let stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 let elements, card;
 
+// --------------------------
+// AUTH & BILLING SYSTEM
+// --------------------------
 function toggleAuth() {
   document.getElementById('login-form').classList.toggle('hidden');
   document.getElementById('signup-form').classList.toggle('hidden');
@@ -321,7 +603,14 @@ function signup() {
   const email = document.getElementById('signup-email').value.trim();
   const pass = document.getElementById('signup-pass').value.trim();
   if(!email || !pass) return showToast('Please fill in all fields','error');
-  const user = { email, password: btoa(pass), signupDate: new Date().toISOString(), subscribed: false, lastPayment: null };
+
+  const user = {
+    email,
+    password: btoa(pass), // simple encode — replace with proper hash in production
+    signupDate: new Date().toISOString(),
+    subscribed: false,
+    lastPayment: null
+  };
   localStorage.setItem(`user_${email}`, JSON.stringify(user));
   currentUser = user;
   showToast('Account created — your 14‑day free trial starts now!');
@@ -333,8 +622,10 @@ function login() {
   const pass = document.getElementById('login-pass').value.trim();
   const stored = localStorage.getItem(`user_${email}`);
   if(!stored) return showToast('Account not found — please sign up','error');
+
   const user = JSON.parse(stored);
   if(user.password !== btoa(pass)) return showToast('Incorrect password','error');
+
   currentUser = user;
   checkAccess();
 }
@@ -371,21 +662,36 @@ function showBilling() {
   const days = daysRemaining();
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app-screen').classList.add('hidden');
+  
   const trialBox = document.getElementById('billing-trial');
-  if(days > 0) { trialBox.classList.remove('hidden'); trialBox.textContent = `${days} days of free trial remaining`; }
-  else { trialBox.classList.add('hidden'); }
+  if(days > 0) {
+    trialBox.classList.remove('hidden');
+    trialBox.textContent = `${days} days of free trial remaining`;
+  } else {
+    trialBox.classList.add('hidden');
+  }
+
   document.getElementById('billing-screen').classList.remove('hidden');
+
   if(!elements) {
     elements = stripe.elements();
-    card = elements.create('card', { style: { base: { color: '#f0f2f8', fontSize: '14px', background: '#1e2333' } } });
+    card = elements.create('card', {
+      style: {
+        base: { color: '#f0f2f8', fontSize: '14px', background: '#1e2333' }
+      }
+    });
     card.mount('#stripe-card-element');
   }
+
   document.getElementById('subscribe-btn').onclick = async () => {
     const {error} = await stripe.createPaymentMethod({ type: 'card', card });
     if(error) return showToast(error.message, 'error');
+
+    // --- In production: send paymentMethod to your server to create subscription ---
     currentUser.subscribed = true;
     currentUser.lastPayment = new Date().toISOString();
     localStorage.setItem(`user_${currentUser.email}`, JSON.stringify(currentUser));
+    
     showToast('Subscription successful — thank you!');
     checkAccess();
   };
@@ -400,235 +706,664 @@ function showToast(msg, type='success') {
   setTimeout(() => el.classList.remove('show'), 2500);
 }
 
-let suppliers = [], purchaseOrders = [], priceHistory = [], editPOid = null, editSupid = null, currentTab = 'po', nextPONumber = 1;
+// --------------------------
+// NEXT PART = APP CORE LOGIC
+// --------------------------
+// --------------------------
+// APP GLOBAL DATA
+// --------------------------
+let suppliers = [];
+let purchaseOrders = [];
+let priceHistory = [];
+let editPOid = null;
+let editSupid = null;
+let currentTab = 'po';
+let nextPONumber = 1;
 
-function initApp() { loadData(); populateSupplierDropdown(); renderCurrentView(); }
+// --------------------------
+// INITIALISE APP
+// --------------------------
+function initApp() {
+  loadData();
+  populateSupplierDropdown();
+  renderCurrentView();
+}
 
 function loadData() {
-  const p = `user_${currentUser.email}_`;
-  suppliers = JSON.parse(localStorage.getItem(p+'suppliers')) || [];
-  purchaseOrders = JSON.parse(localStorage.getItem(p+'orders')) || [];
-  priceHistory = JSON.parse(localStorage.getItem(p+'prices')) || [];
-  nextPONumber = JSON.parse(localStorage.getItem(p+'nextPO')) || 1;
+  // Load data specific to current user
+  const userPrefix = `user_${currentUser.email}_`;
+  suppliers = JSON.parse(localStorage.getItem(userPrefix + 'suppliers')) || [];
+  purchaseOrders = JSON.parse(localStorage.getItem(userPrefix + 'orders')) || [];
+  priceHistory = JSON.parse(localStorage.getItem(userPrefix + 'prices')) || [];
+  nextPONumber = JSON.parse(localStorage.getItem(userPrefix + 'nextPO')) || 1;
 }
 
 function saveData() {
-  const p = `user_${currentUser.email}_`;
-  localStorage.setItem(p+'suppliers', JSON.stringify(suppliers));
-  localStorage.setItem(p+'orders', JSON.stringify(purchaseOrders));
-  localStorage.setItem(p+'prices', JSON.stringify(priceHistory));
-  localStorage.setItem(p+'nextPO', JSON.stringify(nextPONumber));
+  const userPrefix = `user_${currentUser.email}_`;
+  localStorage.setItem(userPrefix + 'suppliers', JSON.stringify(suppliers));
+  localStorage.setItem(userPrefix + 'orders', JSON.stringify(purchaseOrders));
+  localStorage.setItem(userPrefix + 'prices', JSON.stringify(priceHistory));
+  localStorage.setItem(userPrefix + 'nextPO', JSON.stringify(nextPONumber));
 }
 
+// --------------------------
+// TABS & VIEWS
+// --------------------------
 function switchTab(tab) {
   currentTab = tab;
+  // Update tab styles
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
-  ['po-view','supplier-view','goodsin-view','pricehistory-view','reorder-panel','po-form','supplier-form'].forEach(id => document.getElementById(id).style.display = 'none');
-  if(tab==='po') document.getElementById('po-view').style.display='block';
-  if(tab==='suppliers') document.getElementById('supplier-view').style.display='block';
-  if(tab==='goodsin') document.getElementById('goodsin-view').style.display='block';
-  if(tab==='pricehistory') document.getElementById('pricehistory-view').style.display='block';
+  
+  // Hide all views
+  document.getElementById('po-view').style.display = 'none';
+  document.getElementById('supplier-view').style.display = 'none';
+  document.getElementById('goodsin-view').style.display = 'none';
+  document.getElementById('pricehistory-view').style.display = 'none';
+  document.getElementById('reorder-panel').style.display = 'none';
+  document.getElementById('po-form').style.display = 'none';
+  document.getElementById('supplier-form').style.display = 'none';
+
+  // Show selected view
+  if(tab === 'po') document.getElementById('po-view').style.display = 'block';
+  if(tab === 'suppliers') document.getElementById('supplier-view').style.display = 'block';
+  if(tab === 'goodsin') document.getElementById('goodsin-view').style.display = 'block';
+  if(tab === 'pricehistory') document.getElementById('pricehistory-view').style.display = 'block';
+
   renderCurrentView();
 }
 
 function renderCurrentView() {
-  const s = document.getElementById('search').value.toLowerCase();
-  if(currentTab==='po') renderPOList(s);
-  if(currentTab==='suppliers') renderSupplierList(s);
-  if(currentTab==='goodsin') renderGoodsInList(s);
-  if(currentTab==='pricehistory') renderPriceHistory(s);
+  const searchTerm = document.getElementById('search').value.toLowerCase();
+  if(currentTab === 'po') renderPOList(searchTerm);
+  if(currentTab === 'suppliers') renderSupplierList(searchTerm);
+  if(currentTab === 'goodsin') renderGoodsInList(searchTerm);
+  if(currentTab === 'pricehistory') renderPriceHistory(searchTerm);
 }
 
-function toggleSupplierForm(id=null) {
-  const form=document.getElementById('supplier-form');
-  form.style.display=form.style.display==='block'?'none':'block';
-  editSupid=id;
+// --------------------------
+// SUPPLIER FUNCTIONS
+// --------------------------
+function toggleSupplierForm(id = null) {
+  const form = document.getElementById('supplier-form');
+  form.style.display = form.style.display === 'block' ? 'none' : 'block';
+  editSupid = id;
+
   if(id) {
-    document.getElementById('sup-form-title').textContent='Edit Supplier';
-    const s=suppliers.find(s=>s.id===id);
-    if(s) { document.getElementById('sup-name').value=s.name; document.getElementById('sup-contact').value=s.contact; document.getElementById('sup-email').value=s.email; document.getElementById('sup-phone').value=s.phone; document.getElementById('sup-terms').value=s.terms; document.getElementById('sup-account').value=s.account; document.getElementById('sup-lead').value=s.leadTime; document.getElementById('sup-address').value=s.address; }
+    document.getElementById('sup-form-title').textContent = 'Edit Supplier';
+    const s = suppliers.find(s => s.id === id);
+    if(s) {
+      document.getElementById('sup-name').value = s.name;
+      document.getElementById('sup-contact').value = s.contact;
+      document.getElementById('sup-email').value = s.email;
+      document.getElementById('sup-phone').value = s.phone;
+      document.getElementById('sup-terms').value = s.terms;
+      document.getElementById('sup-account').value = s.account;
+      document.getElementById('sup-lead').value = s.leadTime;
+      document.getElementById('sup-address').value = s.address;
+    }
   } else {
-    document.getElementById('sup-form-title').textContent='Add Supplier';
-    ['sup-name','sup-contact','sup-email','sup-phone','sup-account','sup-address'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('sup-terms').value='30'; document.getElementById('sup-lead').value='7';
+    document.getElementById('sup-form-title').textContent = 'Add Supplier';
+    document.getElementById('sup-name').value = '';
+    document.getElementById('sup-contact').value = '';
+    document.getElementById('sup-email').value = '';
+    document.getElementById('sup-phone').value = '';
+    document.getElementById('sup-terms').value = '30';
+    document.getElementById('sup-account').value = '';
+    document.getElementById('sup-lead').value = '7';
+    document.getElementById('sup-address').value = '';
   }
 }
 
 function saveSupplier() {
-  const data={id:editSupid||Date.now().toString(),name:document.getElementById('sup-name').value.trim(),contact:document.getElementById('sup-contact').value.trim(),email:document.getElementById('sup-email').value.trim(),phone:document.getElementById('sup-phone').value.trim(),terms:document.getElementById('sup-terms').value,account:document.getElementById('sup-account').value.trim(),leadTime:document.getElementById('sup-lead').value||'0',address:document.getElementById('sup-address').value.trim()};
-  if(!data.name) return showToast('Company name is required','error');
-  if(editSupid) { const idx=suppliers.findIndex(s=>s.id===editSupid); if(idx!==-1) suppliers[idx]=data; } else { suppliers.push(data); }
-  saveData(); populateSupplierDropdown(); toggleSupplierForm(); showToast('Supplier saved successfully');
+  const data = {
+    id: editSupid || Date.now().toString(),
+    name: document.getElementById('sup-name').value.trim(),
+    contact: document.getElementById('sup-contact').value.trim(),
+    email: document.getElementById('sup-email').value.trim(),
+    phone: document.getElementById('sup-phone').value.trim(),
+    terms: document.getElementById('sup-terms').value,
+    account: document.getElementById('sup-account').value.trim(),
+    leadTime: document.getElementById('sup-lead').value || '0',
+    address: document.getElementById('sup-address').value.trim()
+  };
+
+  if(!data.name) return showToast('Company name is required', 'error');
+
+  if(editSupid) {
+    const idx = suppliers.findIndex(s => s.id === editSupid);
+    if(idx !== -1) suppliers[idx] = data;
+  } else {
+    suppliers.push(data);
+  }
+
+  saveData();
+  populateSupplierDropdown();
+  toggleSupplierForm();
+  showToast('Supplier saved successfully');
 }
 
 function deleteSupplier(id) {
   if(!confirm('Delete this supplier?')) return;
-  suppliers=suppliers.filter(s=>s.id!==id); saveData(); renderCurrentView(); populateSupplierDropdown(); showToast('Supplier deleted');
+  suppliers = suppliers.filter(s => s.id !== id);
+  saveData();
+  renderCurrentView();
+  populateSupplierDropdown();
+  showToast('Supplier deleted');
 }
 
-function renderSupplierList(search='') {
-  const tbody=document.getElementById('supplier-list'); tbody.innerHTML='';
-  suppliers.filter(s=>s.name.toLowerCase().includes(search)||s.contact.toLowerCase().includes(search)).forEach(s=>{
-    const row=document.createElement('tr');
-    row.innerHTML=`<td>${s.name}</td><td>${s.contact}</td><td>${s.terms} Days</td><td>${s.leadTime} Days</td><td>${s.email}<br>${s.phone}</td><td><button class="btn btn-sm btn-primary" onclick="toggleSupplierForm('${s.id}')">Edit</button> <button class="btn btn-sm btn-danger" onclick="deleteSupplier('${s.id}')">Del</button></td>`;
-    tbody.appendChild(row);
-  });
+function renderSupplierList(search = '') {
+  const tbody = document.getElementById('supplier-list');
+  tbody.innerHTML = '';
+
+  suppliers
+    .filter(s => s.name.toLowerCase().includes(search) || s.contact.toLowerCase().includes(search))
+    .forEach(s => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${s.name}</td>
+        <td>${s.contact}</td>
+        <td>${s.terms} Days</td>
+        <td>${s.leadTime} Days</td>
+        <td>${s.email}<br>${s.phone}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="toggleSupplierForm('${s.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteSupplier('${s.id}')">Del</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
 }
 
 function populateSupplierDropdown() {
-  document.querySelectorAll('#po-supplier').forEach(el=>{ el.innerHTML=suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); });
+  const els = document.querySelectorAll('#po-supplier');
+  els.forEach(el => {
+    el.innerHTML = suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  });
 }
 
+// --------------------------
+// PURCHASE ORDER FUNCTIONS
+// --------------------------
 function showNewPO() {
-  editPOid=null;
-  document.getElementById('po-form-title').textContent='New Purchase Order';
-  document.getElementById('po-form').style.display='block';
-  const today=new Date().toISOString().split('T')[0];
-  document.getElementById('po-date').value=today;
-  document.getElementById('po-ref').value=`PO-${new Date().getFullYear()}-${String(nextPONumber).padStart(4,'0')}`;
-  document.getElementById('po-status').value='draft';
-  document.getElementById('po-goods-in').value='no';
-  document.getElementById('po-items').innerHTML='';
-  document.getElementById('po-notes').value='';
-  document.getElementById('po-total').textContent='£0.00';
-  addPOItem();
+  editPOid = null;
+  document.getElementById('po-form-title').textContent = 'New Purchase Order';
+  document.getElementById('po-form').style.display = 'block';
+  
+  // Set defaults
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('po-date').value = today;
+  document.getElementById('po-ref').value = `PO-${new Date().getFullYear()}-${String(nextPONumber).padStart(4,'0')}`;
+  document.getElementById('po-status').value = 'draft';
+  document.getElementById('po-goods-in').value = 'no';
+  document.getElementById('po-items').innerHTML = '';
+  document.getElementById('po-notes').value = '';
+  document.getElementById('po-total').textContent = '£0.00';
+  
+  addPOItem(); // add first item row
 }
 
 function showEditPO(id) {
-  editPOid=id;
-  document.getElementById('po-form-title').textContent='Edit Purchase Order';
-  document.getElementById('po-form').style.display='block';
-  const po=purchaseOrders.find(p=>p.id===id); if(!po) return;
-  document.getElementById('po-supplier').value=po.supplierId; document.getElementById('po-date').value=po.date; document.getElementById('po-ref').value=po.ref; document.getElementById('po-payment-terms').value=po.paymentTerms; document.getElementById('po-due-date').value=po.dueDate; document.getElementById('po-status').value=po.status; document.getElementById('po-goods-in').value=po.goodsIn; document.getElementById('po-notes').value=po.notes;
-  document.getElementById('po-items').innerHTML='';
-  po.items.forEach(item=>addPOItem(item)); updateTotal();
+  editPOid = id;
+  document.getElementById('po-form-title').textContent = 'Edit Purchase Order';
+  document.getElementById('po-form').style.display = 'block';
+  
+  const po = purchaseOrders.find(p => p.id === id);
+  if(!po) return;
+
+  document.getElementById('po-supplier').value = po.supplierId;
+  document.getElementById('po-date').value = po.date;
+  document.getElementById('po-ref').value = po.ref;
+  document.getElementById('po-payment-terms').value = po.paymentTerms;
+  document.getElementById('po-due-date').value = po.dueDate;
+  document.getElementById('po-status').value = po.status;
+  document.getElementById('po-goods-in').value = po.goodsIn;
+  document.getElementById('po-notes').value = po.notes;
+  
+  // Load items
+  document.getElementById('po-items').innerHTML = '';
+  po.items.forEach(item => addPOItem(item));
+  updateTotal();
 }
 
-function hidePOForm() { document.getElementById('po-form').style.display='none'; }
+function hidePOForm() {
+  document.getElementById('po-form').style.display = 'none';
+}
 
-function addPOItem(data={}) {
-  const id=Date.now()+Math.random();
-  const lastPrice=data.name?getLastPrice(document.getElementById('po-supplier').value,data.name):null;
-  const row=document.createElement('div'); row.className='item-row'; row.dataset.id=id;
-  row.innerHTML=`
-    <div><label>Description / Part</label><input type="text" class="item-name" value="${data.name||''}" placeholder="Item name or part number">${lastPrice?`<small class="history-note">Last paid: £${lastPrice.toFixed(2)}</small>`:''}</div>
-    <div><label>Qty</label><input type="number" class="item-qty" min="1" value="${data.qty||1}"></div>
-    <div><label>Unit Price (£)</label><input type="number" class="item-price" min="0" step="0.01" value="${data.price||0}"></div>
-    <div><label>Total</label><input type="text" class="item-line-total" value="£0.00" readonly></div>
-    <div><label>Notes</label><input type="text" class="item-notes" value="${data.notes||''}" placeholder="Size/colour etc"></div>
-    <div style="text-align:right;"><button class="btn btn-sm btn-danger" onclick="this.closest('.item-row').remove();updateTotal()">✕</button></div>`;
-  const qty=row.querySelector('.item-qty'),price=row.querySelector('.item-price'),lineTotal=row.querySelector('.item-line-total');
-  function updateLine(){const t=(parseFloat(qty.value)||0)*(parseFloat(price.value)||0);lineTotal.value='£'+t.toFixed(2);updateTotal();}
-  qty.addEventListener('input',updateLine); price.addEventListener('input',updateLine);
-  document.getElementById('po-items').appendChild(row); updateTotal();
+function addPOItem(data = {}) {
+  const id = Date.now() + Math.random();
+  const lastPrice = data.name ? getLastPrice(document.getElementById('po-supplier').value, data.name) : null;
+
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.dataset.id = id;
+  row.innerHTML = `
+    <div>
+      <label>Description / Part</label>
+      <input type="text" class="item-name" value="${data.name || ''}" placeholder="Item name or part number">
+      ${lastPrice ? `<small class="history-note">Last paid: £${lastPrice.toFixed(2)}</small>` : ''}
+    </div>
+    <div>
+      <label>Qty</label>
+      <input type="number" class="item-qty" min="1" value="${data.qty || 1}">
+    </div>
+    <div>
+      <label>Unit Price (£)</label>
+      <input type="number" class="item-price" min="0" step="0.01" value="${data.price || 0}">
+    </div>
+    <div>
+      <label>Total</label>
+      <input type="text" class="item-line-total" value="£0.00" readonly>
+    </div>
+    <div>
+      <label>Notes</label>
+      <input type="text" class="item-notes" value="${data.notes || ''}" placeholder="Size/colour etc">
+    </div>
+    <div style="text-align:right;">
+      <button class="btn btn-sm btn-danger" onclick="this.closest('.item-row').remove();updateTotal()">✕</button>
+    </div>
+  `;
+
+  // Add calculation listeners
+  const qty = row.querySelector('.item-qty');
+  const price = row.querySelector('.item-price');
+  const lineTotal = row.querySelector('.item-line-total');
+  
+  function updateLine() {
+    const total = (parseFloat(qty.value) || 0) * (parseFloat(price.value) || 0);
+    lineTotal.value = '£' + total.toFixed(2);
+    updateTotal();
+  }
+
+  qty.addEventListener('input', updateLine);
+  price.addEventListener('input', updateLine);
+  
+  document.getElementById('po-items').appendChild(row);
+  updateTotal();
 }
 
 function updateTotal() {
-  let total=0;
-  document.querySelectorAll('.item-row').forEach(row=>{total+=(parseFloat(row.querySelector('.item-qty').value)||0)*(parseFloat(row.querySelector('.item-price').value)||0);});
-  document.getElementById('po-total').textContent='£'+total.toFixed(2);
+  let total = 0;
+  document.querySelectorAll('.item-row').forEach(row => {
+    const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+    total += qty * price;
+  });
+  document.getElementById('po-total').textContent = '£' + total.toFixed(2);
 }
 
-function getLastPrice(supplierId,itemName) {
-  const matches=priceHistory.filter(p=>p.supplierId===supplierId&&p.name.toLowerCase()===itemName.toLowerCase());
-  return matches.length?matches.sort((a,b)=>new Date(b.date)-new Date(a.date))[0].price:null;
+function getLastPrice(supplierId, itemName) {
+  const matches = priceHistory.filter(p => p.supplierId === supplierId && p.name.toLowerCase() === itemName.toLowerCase());
+  return matches.length ? matches.sort((a,b) => new Date(b.date) - new Date(a.date))[0].price : null;
 }
 
 function savePO() {
-  const items=[];
-  document.querySelectorAll('.item-row').forEach(row=>{const name=row.querySelector('.item-name').value.trim();if(name){items.push({name,qty:parseFloat(row.querySelector('.item-qty').value)||0,price:parseFloat(row.querySelector('.item-price').value)||0,notes:row.querySelector('.item-notes').value.trim()});}});
-  if(!items.length) return showToast('Add at least one item','error');
-  const data={id:editPOid||Date.now().toString(),supplierId:document.getElementById('po-supplier').value,date:document.getElementById('po-date').value,ref:document.getElementById('po-ref').value,paymentTerms:document.getElementById('po-payment-terms').value,dueDate:document.getElementById('po-due-date').value,status:document.getElementById('po-status').value,goodsIn:document.getElementById('po-goods-in').value,notes:document.getElementById('po-notes').value,items,total:parseFloat(document.getElementById('po-total').textContent.replace('£',''))};
-  items.forEach(i=>{priceHistory.push({supplierId:data.supplierId,name:i.name,price:i.price,date:data.date});});
-  if(editPOid){const idx=purchaseOrders.findIndex(p=>p.id===editPOid);if(idx!==-1)purchaseOrders[idx]=data;}else{purchaseOrders.push(data);nextPONumber++;}
-  saveData(); hidePOForm(); showToast('Order saved successfully');
+  const items = [];
+  document.querySelectorAll('.item-row').forEach(row => {
+    const name = row.querySelector('.item-name').value.trim();
+    if(name) {
+      items.push({
+        name,
+        qty: parseFloat(row.querySelector('.item-qty').value) || 0,
+        price: parseFloat(row.querySelector('.item-price').value) || 0,
+        notes: row.querySelector('.item-notes').value.trim()
+      });
+    }
+  });
+
+  if(!items.length) return showToast('Add at least one item', 'error');
+
+  const data = {
+    id: editPOid || Date.now().toString(),
+    supplierId: document.getElementById('po-supplier').value,
+    date: document.getElementById('po-date').value,
+    ref: document.getElementById('po-ref').value,
+    paymentTerms: document.getElementById('po-payment-terms').value,
+    dueDate: document.getElementById('po-due-date').value,
+    status: document.getElementById('po-status').value,
+    goodsIn: document.getElementById('po-goods-in').value,
+    notes: document.getElementById('po-notes').value,
+    items,
+    total: parseFloat(document.getElementById('po-total').textContent.replace('£',''))
+  };
+
+  // Save price history
+  items.forEach(i => {
+    priceHistory.push({
+      supplierId: data.supplierId,
+      name: i.name,
+      price: i.price,
+      date: data.date
+    });
+  });
+
+  if(editPOid) {
+    const idx = purchaseOrders.findIndex(p => p.id === editPOid);
+    if(idx !== -1) purchaseOrders[idx] = data;
+  } else {
+    purchaseOrders.push(data);
+    nextPONumber++;
+  }
+
+  saveData();
+  hidePOForm();
+  showToast('Order saved successfully');
 }
 
 function deletePO(id) {
   if(!confirm('Delete this order?')) return;
-  purchaseOrders=purchaseOrders.filter(p=>p.id!==id); saveData(); renderCurrentView(); showToast('Order deleted');
+  purchaseOrders = purchaseOrders.filter(p => p.id !== id);
+  saveData();
+  renderCurrentView();
+  showToast('Order deleted');
 }
 
-function renderPOList(search='') {
-  const tbody=document.getElementById('po-list'); tbody.innerHTML='';
-  purchaseOrders.filter(p=>p.ref.toLowerCase().includes(search)||getSupplierName(p.supplierId).toLowerCase().includes(search)).forEach(p=>{
-    const isOverdue=new Date()>new Date(p.dueDate)&&p.status!=='delivered'&&p.status!=='invoiced';
-    const row=document.createElement('tr'); row.className=isOverdue?'overdue':'';
-    row.innerHTML=`<td>${p.ref}</td><td>${getSupplierName(p.supplierId)}</td><td>${p.date}</td><td>${p.dueDate}</td><td><span class="badge badge-${p.status}">${p.status}</span></td><td><span class="badge badge-${p.goodsIn}">${p.goodsIn}</span></td><td>£${p.total.toFixed(2)}</td><td><button class="btn btn-sm btn-primary" onclick="showEditPO('${p.id}')">Edit</button> <button class="btn btn-sm btn-danger" onclick="deletePO('${p.id}')">Del</button></td>`;
-    tbody.appendChild(row);
+function renderPOList(search = '') {
+  const tbody = document.getElementById('po-list');
+  tbody.innerHTML = '';
+
+  purchaseOrders
+    .filter(p => p.ref.toLowerCase().includes(search) || getSupplierName(p.supplierId).toLowerCase().includes(search))
+    .forEach(p => {
+      const isOverdue = new Date() > new Date(p.dueDate) && p.status !== 'delivered' && p.status !== 'invoiced';
+      const row = document.createElement('tr');
+      row.className = isOverdue ? 'overdue' : '';
+      row.innerHTML = `
+        <td>${p.ref}</td>
+        <td>${getSupplierName(p.supplierId)}</td>
+        <td>${p.date}</td>
+        <td>${p.dueDate}</td>
+        <td><span class="badge badge-${p.status}">${p.status}</span></td>
+        <td><span class="badge badge-${p.goodsIn}">${p.goodsIn}</span></td>
+        <td>£${p.total.toFixed(2)}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="showEditPO('${p.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePO('${p.id}')">Del</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+}
+
+function getSupplierName(id) {
+  const s = suppliers.find(s => s.id === id);
+  return s ? s.name : 'Unknown';
+}
+
+// --------------------------
+// GOODS IN & PRICE HISTORY
+// --------------------------
+function renderGoodsInList(search = '') {
+  const tbody = document.getElementById('goodsin-list');
+  tbody.innerHTML = '';
+
+  purchaseOrders
+    .filter(p => p.status !== 'invoiced' && (p.ref.toLowerCase().includes(search) || getSupplierName(p.supplierId).toLowerCase().includes(search)))
+    .forEach(p => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${p.ref}</td>
+        <td>${getSupplierName(p.supplierId)}</td>
+        <td>${p.dueDate}</td>
+        <td><span class="badge badge-${p.status}">${p.status}</span></td>
+        <td><span class="badge badge-${p.goodsIn}">${p.goodsIn}</span></td>
+        <td>
+          <select onchange="updateGoodsIn('${p.id}', this.value)">
+            <option value="no" ${p.goodsIn==='no'?'selected':''}>Not Checked</option>
+            <option value="partial" ${p.goodsIn==='partial'?'selected':''}>Partial</option>
+            <option value="yes" ${p.goodsIn==='yes'?'selected':''}>Full</option>
+          </select>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+}
+
+function updateGoodsIn(id, val) {
+  const po = purchaseOrders.find(p => p.id === id);
+  if(po) {
+    po.goodsIn = val;
+    if(val === 'yes') po.status = 'delivered';
+    saveData();
+    renderCurrentView();
+  }
+}
+
+function renderPriceHistory(search = '') {
+  const content = document.getElementById('pricehistory-content');
+  content.innerHTML = '';
+
+  const filtered = priceHistory.filter(p => 
+    p.name.toLowerCase().includes(search) || getSupplierName(p.supplierId).toLowerCase().includes(search)
+  );
+
+  if(!filtered.length) {
+    content.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px;">No price history found</p>';
+    return;
+  }
+
+  let html = '<table style="width:100%;margin-top:10px;"><thead><tr><th>Date</th><th>Supplier</th><th>Item</th><th>Price</th></tr></thead><tbody>';
+  filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(p => {
+    html += `
+      <tr>
+        <td>${p.date}</td>
+        <td>${getSupplierName(p.supplierId)}</td>
+        <td>${p.name}</td>
+        <td>£${p.price.toFixed(2)}</td>
+      </tr>
+    `;
   });
-}
-
-function getSupplierName(id) { const s=suppliers.find(s=>s.id===id); return s?s.name:'Unknown'; }
-
-function renderGoodsInList(search='') {
-  const tbody=document.getElementById('goodsin-list'); tbody.innerHTML='';
-  purchaseOrders.filter(p=>p.status!=='invoiced'&&(p.ref.toLowerCase().includes(search)||getSupplierName(p.supplierId).toLowerCase().includes(search))).forEach(p=>{
-    const row=document.createElement('tr');
-    row.innerHTML=`<td>${p.ref}</td><td>${getSupplierName(p.supplierId)}</td><td>${p.dueDate}</td><td><span class="badge badge-${p.status}">${p.status}</span></td><td><span class="badge badge-${p.goodsIn}">${p.goodsIn}</span></td><td><select onchange="updateGoodsIn('${p.id}',this.value)"><option value="no" ${p.goodsIn==='no'?'selected':''}>Not Checked</option><option value="partial" ${p.goodsIn==='partial'?'selected':''}>Partial</option><option value="yes" ${p.goodsIn==='yes'?'selected':''}>Full</option></select></td>`;
-    tbody.appendChild(row);
-  });
-}
-
-function updateGoodsIn(id,val) {
-  const po=purchaseOrders.find(p=>p.id===id);
-  if(po){po.goodsIn=val;if(val==='yes')po.status='delivered';saveData();renderCurrentView();}
-}
-
-function renderPriceHistory(search='') {
-  const content=document.getElementById('pricehistory-content');
-  const filtered=priceHistory.filter(p=>p.name.toLowerCase().includes(search)||getSupplierName(p.supplierId).toLowerCase().includes(search));
-  if(!filtered.length){content.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px;">No price history found</p>';return;}
-  let html='<table style="width:100%;margin-top:10px;"><thead><tr><th>Date</th><th>Supplier</th><th>Item</th><th>Price</th></tr></thead><tbody>';
-  filtered.sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(p=>{html+=`<tr><td>${p.date}</td><td>${getSupplierName(p.supplierId)}</td><td>${p.name}</td><td>£${p.price.toFixed(2)}</td></tr>`;});
-  html+='</tbody></table>'; content.innerHTML=html;
-}
-
+  html += '</tbody></table>';
+  content.innerHTML = html;
+}    
+// --------------------------
+// PRINT, EMAIL & EXPORT
+// --------------------------
 function printPO() {
-  const poId=editPOid; if(!poId) return showToast('Save order first before printing','error');
-  const po=purchaseOrders.find(p=>p.id===poId); const supplier=suppliers.find(s=>s.id===po.supplierId); if(!po||!supplier) return;
-  const printWin=window.open('','','width=800,height=600');
-  printWin.document.write(`<html><head><title>Purchase Order ${po.ref}</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#000;background:#fff;}.header{text-align:center;margin-bottom:30px;border-bottom:2px solid #00b493;padding-bottom:10px;}.header h1{color:#00b493;margin:0;font-size:24px;}.details{display:flex;justify-content:space-between;margin-bottom:20px;}.box{width:48%;}table{width:100%;border-collapse:collapse;margin:20px 0;}th,td{border:1px solid #ccc;padding:8px;text-align:left;}th{background:#f5f5f5;}.total{text-align:right;font-size:18px;font-weight:bold;color:#00b493;margin-top:10px;}.footer{margin-top:40px;font-size:12px;color:#666;}</style></head><body><div class="header"><h1>PURCHASE ORDER</h1><p>Reference: ${po.ref}</p></div><div class="details"><div class="box"><strong>Supplier:</strong><br>${supplier.name}<br>${supplier.address.replace(/\n/g,'<br>')}<br>Contact: ${supplier.contact}<br>Email: ${supplier.email}</div><div class="box"><strong>Order Details:</strong><br>Date: ${po.date}<br>Due Date: ${po.dueDate}<br>Payment Terms: ${po.paymentTerms} Days<br>Status: ${po.status}</div></div><table><thead><tr><th>Item / Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead><tbody>${po.items.map(i=>`<tr><td>${i.name} ${i.notes?`<small>(${i.notes})</small>`:''}</td><td>${i.qty}</td><td>£${i.price.toFixed(2)}</td><td>£${(i.qty*i.price).toFixed(2)}</td></tr>`).join('')}</tbody></table><div class="total">Total: £${po.total.toFixed(2)}</div><div class="notes"><strong>Notes:</strong><br>${po.notes||'None'}</div><div class="footer">System: Supplier & Purchase Order Manager | Generated: ${new Date().toLocaleDateString()}</div></body></html>`);
-  printWin.document.close(); printWin.focus(); printWin.print();
+  // Create printable view
+  const poId = editPOid;
+  if(!poId) return showToast('Save order first before printing', 'error');
+  
+  const po = purchaseOrders.find(p => p.id === poId);
+  const supplier = suppliers.find(s => s.id === po.supplierId);
+  if(!po || !supplier) return;
+
+  const printWin = window.open('', '', 'width=800,height=600');
+  printWin.document.write(`
+    <html>
+    <head>
+      <title>Purchase Order ${po.ref}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #000; background: #fff; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #00b493; padding-bottom: 10px; }
+        .header h1 { color: #00b493; margin: 0; font-size: 24px; }
+        .details { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .box { width: 48%; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f5f5f5; }
+        .total { text-align: right; font-size: 18px; font-weight: bold; color: #00b493; margin-top: 10px; }
+        .footer { margin-top: 40px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>PURCHASE ORDER</h1>
+        <p>Reference: ${po.ref}</p>
+      </div>
+
+      <div class="details">
+        <div class="box">
+          <strong>Supplier:</strong><br>
+          ${supplier.name}<br>
+          ${supplier.address.replace(/\n/g, '<br>')}<br>
+          Contact: ${supplier.contact}<br>
+          Email: ${supplier.email}
+        </div>
+        <div class="box">
+          <strong>Order Details:</strong><br>
+          Date: ${po.date}<br>
+          Due Date: ${po.dueDate}<br>
+          Payment Terms: ${po.paymentTerms} Days<br>
+          Status: ${po.status}
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Item / Description</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${po.items.map(i => `
+            <tr>
+              <td>${i.name} ${i.notes ? `<small>(${i.notes})</small>` : ''}</td>
+              <td>${i.qty}</td>
+              <td>£${i.price.toFixed(2)}</td>
+              <td>£${(i.qty * i.price).toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div class="total">
+        Total: £${po.total.toFixed(2)}
+      </div>
+
+      <div class="notes">
+        <strong>Notes:</strong><br>
+        ${po.notes || 'None'}
+      </div>
+
+      <div class="footer">
+        System: Supplier & Purchase Order Manager | Generated: ${new Date().toLocaleDateString()}
+      </div>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
+  printWin.focus();
+  printWin.print();
 }
 
 function emailPO() {
-  const poId=editPOid; if(!poId) return showToast('Save order first before emailing','error');
-  const po=purchaseOrders.find(p=>p.id===poId); const supplier=suppliers.find(s=>s.id===po.supplierId); if(!po||!supplier) return;
-  const subject=encodeURIComponent(`Purchase Order: ${po.ref}`);
-  const body=encodeURIComponent(`Dear ${supplier.contact},\n\nPlease find attached / below our official purchase order:\n\nOrder Reference: ${po.ref}\nOrder Date: ${po.date}\nDelivery Due: ${po.dueDate}\nTotal Value: £${po.total.toFixed(2)}\n\nItems:\n${po.items.map(i=>`- ${i.name} | Qty: ${i.qty} | £${i.price.toFixed(2)} each`).join('\n')}\n\nNotes: ${po.notes||'None'}\n\nPlease confirm receipt and delivery date.\n\nThank you,\nYour Team`);
+  const poId = editPOid;
+  if(!poId) return showToast('Save order first before emailing', 'error');
+
+  const po = purchaseOrders.find(p => p.id === poId);
+  const supplier = suppliers.find(s => s.id === po.supplierId);
+  if(!po || !supplier) return;
+
+  const subject = encodeURIComponent(`Purchase Order: ${po.ref}`);
+  const body = encodeURIComponent(
+    `Dear ${supplier.contact},\n\n` +
+    `Please find attached / below our official purchase order:\n\n` +
+    `Order Reference: ${po.ref}\n` +
+    `Order Date: ${po.date}\n` +
+    `Delivery Due: ${po.dueDate}\n` +
+    `Total Value: £${po.total.toFixed(2)}\n\n` +
+    `Items:\n` +
+    po.items.map(i => `- ${i.name} | Qty: ${i.qty} | £${i.price.toFixed(2)} each`).join('\n') +
+    `\n\nNotes: ${po.notes || 'None'}\n\n` +
+    `Please confirm receipt and delivery date.\n\n` +
+    `Thank you,\nYour Team`
+  );
+
   window.open(`mailto:${supplier.email}?subject=${subject}&body=${body}`);
 }
 
+// --------------------------
+// REORDER SUGGESTIONS
+// --------------------------
 function showAutoReorder() {
-  document.getElementById('reorder-panel').style.display='block';
-  document.getElementById('po-form').style.display='none';
-  const allItems=[];
-  purchaseOrders.forEach(po=>{po.items.forEach(i=>{const exists=allItems.find(x=>x.name.toLowerCase()===i.name.toLowerCase()&&x.supplierId===po.supplierId);if(!exists){allItems.push({name:i.name,supplierId:po.supplierId,lastPrice:i.price,lastDate:po.date});}});});
-  const threeMonthsAgo=new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
-  const reorderList=allItems.filter(i=>new Date(i.lastDate)>=threeMonthsAgo);
-  const listEl=document.getElementById('reorder-list');
-  if(!reorderList.length){listEl.innerHTML='<p style="color:var(--mint);">✅ No items need reordering right now</p>';return;}
-  listEl.innerHTML=reorderList.map(i=>`<div class="alert-box"><div><strong>${i.name}</strong><br>Supplier: ${getSupplierName(i.supplierId)} | Last price: £${i.lastPrice.toFixed(2)} | Last ordered: ${new Date(i.lastDate).toLocaleDateString()}</div><label><input type="checkbox" class="reorder-check" data-item='${JSON.stringify(i)}'> Select</label></div>`).join('');
+  document.getElementById('reorder-panel').style.display = 'block';
+  document.getElementById('po-form').style.display = 'none';
+
+  // Get all items that have been ordered before
+  const allItems = [];
+  purchaseOrders.forEach(po => {
+    po.items.forEach(i => {
+      const exists = allItems.find(x => x.name.toLowerCase() === i.name.toLowerCase() && x.supplierId === po.supplierId);
+      if(!exists) {
+        allItems.push({ name: i.name, supplierId: po.supplierId, lastPrice: i.price, lastDate: po.date });
+      }
+    });
+  });
+
+  // Simple reorder logic: show items ordered in last 3 months
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  const reorderList = allItems.filter(i => new Date(i.lastDate) >= threeMonthsAgo);
+
+  const listEl = document.getElementById('reorder-list');
+  if(!reorderList.length) {
+    listEl.innerHTML = '<p style="color:var(--mint);">✅ No items need reordering right now</p>';
+    return;
+  }
+
+  listEl.innerHTML = reorderList.map(i => {
+    const supName = getSupplierName(i.supplierId);
+    return `
+      <div class="alert-box">
+        <div>
+          <strong>${i.name}</strong><br>
+          Supplier: ${supName} | Last price: £${i.lastPrice.toFixed(2)} | Last ordered: ${new Date(i.lastDate).toLocaleDateString()}
+        </div>
+        <label><input type="checkbox" class="reorder-check" data-item='${JSON.stringify(i)}'> Select</label>
+      </div>
+    `;
+  }).join('');
 }
 
 function createReorderPO() {
-  const checks=document.querySelectorAll('.reorder-check:checked');
-  if(!checks.length) return showToast('Select at least one item to reorder','error');
-  const groups={};
-  checks.forEach(cb=>{const item=JSON.parse(cb.dataset.item);if(!groups[item.supplierId])groups[item.supplierId]=[];groups[item.supplierId].push(item);});
-  const supplierId=Object.keys(groups)[0]; const items=groups[supplierId];
-  showNewPO(); document.getElementById('po-supplier').value=supplierId;
-  items.forEach(i=>addPOItem({name:i.name,qty:1,price:i.lastPrice}));
+  const checks = document.querySelectorAll('.reorder-check:checked');
+  if(!checks.length) return showToast('Select at least one item to reorder', 'error');
+
+  // Group items by supplier
+  const groups = {};
+  checks.forEach(cb => {
+    const item = JSON.parse(cb.dataset.item);
+    if(!groups[item.supplierId]) groups[item.supplierId] = [];
+    groups[item.supplierId].push(item);
+  });
+
+  // Create PO for first supplier group
+  const supplierId = Object.keys(groups)[0];
+  const items = groups[supplierId];
+
+  showNewPO();
+  document.getElementById('po-supplier').value = supplierId;
+  items.forEach(i => addPOItem({ name: i.name, qty: 1, price: i.lastPrice }));
+
   showToast(`${items.length} items added to new order`);
 }
 
-window.onload=()=>{
-  const savedEmail=localStorage.getItem('lastLoggedInUser');
-  if(savedEmail){const stored=localStorage.getItem(`user_${savedEmail}`);if(stored){currentUser=JSON.parse(stored);checkAccess();}}
-  setInterval(()=>{if(currentUser)localStorage.setItem('lastLoggedInUser',currentUser.email);},5000);
+// --------------------------
+// INITIAL LOAD
+// --------------------------
+window.onload = () => {
+  // Check if user is already logged in (from localStorage)
+  const savedEmail = localStorage.getItem('lastLoggedInUser');
+  if(savedEmail) {
+    const stored = localStorage.getItem(`user_${savedEmail}`);
+    if(stored) {
+      currentUser = JSON.parse(stored);
+      checkAccess();
+    }
+  }
+
+  // Save last logged in user for convenience
+  setInterval(() => {
+    if(currentUser) localStorage.setItem('lastLoggedInUser', currentUser.email);
+  }, 5000);
 };
+
   </script>
+
 </body>
 </html>
