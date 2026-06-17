@@ -30,7 +30,7 @@
     .auth-box { max-width: 440px; margin: 4rem auto; background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
     .auth-box h2 { font-size: 1.4rem; color: #111827; border: none; margin-bottom: 0.5rem; }
     .auth-box p { font-size: 0.9rem; color: #6b7280; margin-bottom: 1.5rem; }
-    .auth-box input { width: 100%; padding: 0.9rem; margin: 0.4rem 0; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; font-family: inherit; }
+    .auth-box input { width: 100%; padding: 0.9rem; margin: 0.4rem 0; border: 1px solid #d1d5db; border-radius: 6px font-size: 1rem; font-family: inherit; }
     .auth-box input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 
     /* ── Auth tabs ── */
@@ -42,6 +42,7 @@
 
     .auth-error   { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 0.7rem 1rem; font-size: 0.85rem; color: #dc2626; margin-bottom: 1rem; display: none; text-align: left; }
     .auth-success { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.7rem 1rem; font-size: 0.85rem; color: #16a34a; margin-bottom: 1rem; display: none; text-align: left; }
+    .auth-link { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.7rem 1rem; font-size: 0.85rem; color: #1e40af; margin-bottom: 1rem; display: none; text-align: left; }
 
     /* ── Buttons ── */
     .btn { padding: 0.8rem 1.5rem; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 500; font-family: inherit; transition: opacity 0.15s; }
@@ -113,6 +114,7 @@
 
     <div id="auth-error"   class="auth-error"></div>
     <div id="auth-success" class="auth-success"></div>
+    <div id="auth-link"    class="auth-link"></div>
 
     <!-- Login form -->
     <div id="form-login">
@@ -193,7 +195,6 @@
 // ── Auto‑create tables on first run ─────────────────────────────
 async function setupDatabase() {
   try {
-    // Create subscriptions table
     await supabaseClient.rpc('create_table_if_not_exists', {
       table_name: 'subscriptions',
       table_definition: `
@@ -204,8 +205,6 @@ async function setupDatabase() {
         created_at timestamptz default now()
       `
     });
-
-    // Create job_card table
     await supabaseClient.rpc('create_table_if_not_exists', {
       table_name: 'job_card',
       table_definition: `
@@ -227,9 +226,7 @@ async function setupDatabase() {
         created_at timestamptz default now()
       `
     });
-  } catch (e) {
-    // Ignore if already exists or RPC not available — will still work
-  }
+  } catch (e) {}
 }
 
 // ── Auth tab switching ──────────────────────────────────────────
@@ -241,9 +238,10 @@ function switchTab(tab) {
   clearMessages();
 }
 
-function showError(msg)   { const e=document.getElementById('auth-error');   e.textContent=msg; e.style.display='block'; document.getElementById('auth-success').style.display='none'; }
-function showSuccess(msg) { const e=document.getElementById('auth-success'); e.textContent=msg; e.style.display='block'; document.getElementById('auth-error').style.display='none'; }
-function clearMessages()  { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
+function showError(msg)   { const e=document.getElementById('auth-error');   e.textContent=msg; e.style.display='block'; document.getElementById('auth-success').style.display='none'; document.getElementById('auth-link').style.display='none'; }
+function showSuccess(msg) { const e=document.getElementById('auth-success'); e.textContent=msg; e.style.display='block'; document.getElementById('auth-error').style.display='none'; document.getElementById('auth-link').style.display='none'; }
+function showLink(msg)    { const e=document.getElementById('auth-link');    e.innerHTML=msg;   e.style.display='block'; document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
+function clearMessages()  { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; document.getElementById('auth-link').style.display='none'; }
 
 // ── Check if trial is still valid ───────────────────────────────
 async function isTrialValid(userId) {
@@ -252,10 +250,8 @@ async function isTrialValid(userId) {
     .select('expires_at, status')
     .eq('user_id', userId)
     .maybeSingle();
-
   if (error || !sub) return false;
-  if (sub.status !== 'trial') return true; // paid or active
-
+  if (sub.status !== 'trial') return true;
   const now = new Date();
   const end = new Date(sub.expires_at);
   return now < end;
@@ -288,7 +284,8 @@ async function doSignup() {
     email, password: pass,
     options: {
       data: { first_name: firstName, last_name: lastName },
-      emailRedirectTo: 'https://build-tracker.co.uk/'
+      emailRedirectTo: 'https://build-tracker.co.uk/',
+      shouldCreateUser: true
     }
   });
 
@@ -305,7 +302,13 @@ async function doSignup() {
     });
   }
 
-  showSuccess('✅ Account created! Check your email and click the confirmation link to activate your account.');
+  // ✅ Fixed: Show link directly if email not sent
+  if (data?.user?.identities?.[0]?.identity_data?.email_confirm_url) {
+    showSuccess('✅ Account created!');
+    showLink(`If you did NOT receive an email, <a href="${data.user.identities[0].identity_data.email_confirm_url}" target="_blank" style="color:#1e40af; font-weight:500; text-decoration:underline;">CLICK HERE TO ACTIVATE YOUR ACCOUNT</a>`);
+  } else {
+    showSuccess('✅ Account created! Check your email and click the confirmation link to activate.');
+  }
 }
 
 // ── Check auth state ───────────────────────────────────────────
