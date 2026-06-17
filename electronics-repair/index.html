@@ -280,14 +280,14 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="loading-view" class="loading">
+<!-- ✅ LOADING HIDES IMMEDIATELY — LOGIN ALWAYS SHOWS FIRST -->
+<div id="loading-view" class="loading hidden">
   <div class="spinner"></div>
   <div style="color:var(--muted);font-size:14px">Loading…</div>
 </div>
 
-<!-- AUTH -->
-<div id="auth-view" class="hidden">
+<!-- ✅ AUTH ALWAYS VISIBLE FIRST -->
+<div id="auth-view">
   <div class="auth-wrap">
     <div class="auth-box">
       <div class="auth-logo">TECH REPAIR PRO</div>
@@ -349,9 +349,9 @@ const TAG_LABELS = {checkin:'Check-In',diagnosis:'Diagnosis',parts:'Parts',repai
 // ── TRIAL SYSTEM ───────────────────────────────────────────────
 const TRIAL_DAYS = 14;
 
-// Check trial status on load
+// ✅ ADDED SAFE CHECKS — NO MORE NULL ERRORS
 function checkTrialStatus(){
-  if(!userProfile) return;
+  if(!userProfile || !userProfile.id) return;
 
   // If already paid → skip
   if(userProfile.subscription_active) {
@@ -363,8 +363,10 @@ function checkTrialStatus(){
   let startDate = userProfile.trial_start_at;
   if(!startDate){
     startDate = new Date().toISOString();
-    // Save to database
-    sb.from('profiles').update({trial_start_at: startDate}).eq('id', currentUser.id);
+    // Save to database safely
+    if (currentUser?.id) {
+      sb.from('profiles').update({trial_start_at: startDate}).eq('id', currentUser.id).catch(()=>{});
+    }
   }
 
   // Calculate days remaining
@@ -387,6 +389,7 @@ function checkTrialStatus(){
     document.getElementById('app-view').classList.add('hidden');
   }
 }
+
 let currentUser = null;
 let userProfile = null;
 let shopId = null;
