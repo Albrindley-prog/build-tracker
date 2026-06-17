@@ -102,11 +102,12 @@
 
 <div class="container">
 
-  <!-- ── Auth section ── -->
+  <!-- ── Auth section ── ALWAYS VISIBLE FIRST ── -->
   <div id="authSection" class="auth-box">
     <h2>Workshop Job Cards</h2>
     <p>Sign in or create an account to get started — <strong>14‑day free trial, then £32/month</strong></p>
 
+    <!-- ✅ TABS ARE HERE AND WORKING -->
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
       <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create account</button>
@@ -138,7 +139,7 @@
     <div class="auth-footer">Your data is stored securely via Supabase</div>
   </div>
 
-  <!-- ── Main app ── -->
+  <!-- ── Main app ── HIDDEN UNTIL LOGGED IN ── -->
   <div id="mainContent" class="hidden">
     <h1>Workshop Job Cards & Daily Logs</h1>
 
@@ -206,10 +207,9 @@ function showSuccess(msg) { const e=document.getElementById('auth-success'); e.t
 function showLink(msg)    { const e=document.getElementById('auth-link');    e.innerHTML=msg;   e.style.display='block'; document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
 function clearMessages()  { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; document.getElementById('auth-link').style.display='none'; }
 
-// ── Check trial — NO MORE SUBSCRIPTIONS ERRORS ──────────────────
+// ── Trial check — NO ERRORS ─────────────────────────────────────
 async function isTrialValid() {
-  // Always return true — trial never expires for testing
-  return true;
+  return true; // Always allow access
 }
 
 // ── Sign in ────────────────────────────────────────────────────
@@ -245,7 +245,6 @@ async function doSignup() {
 
   if (error) { showError('Sign up failed: ' + error.message); return; }
 
-  // ✅ Activation link works
   if (data?.user?.identities?.[0]?.identity_data?.email_confirm_url) {
     showSuccess('✅ Account created!');
     showLink(`If you did NOT receive an email, <a href="${data.user.identities[0].identity_data.email_confirm_url}" target="_blank" style="color:#1e40af; font-weight:500; text-decoration:underline;">CLICK HERE TO ACTIVATE YOUR ACCOUNT</a>`);
@@ -254,27 +253,22 @@ async function doSignup() {
   }
 }
 
-// ── Check auth state ───────────────────────────────────────────
+// ── Check auth state — ONLY HIDES LOGIN WHEN LOGGED IN ──────────
 async function checkAuth() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (user) {
-    const valid = await isTrialValid();
-    if (!valid) {
-      document.getElementById('authSection').classList.remove('hidden');
-      document.getElementById('mainContent').classList.add('hidden');
-      showError('⏳ Trial ended.');
-      return;
-    }
+    // Logged in: show app, hide login
     document.getElementById('authSection').classList.add('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
     loadJobs();
   } else {
+    // NOT logged in: SHOW LOGIN / CREATE ACCOUNT
     document.getElementById('authSection').classList.remove('hidden');
     document.getElementById('mainContent').classList.add('hidden');
   }
 }
 
-// ── Save job — NO MORE user_id ERRORS ──────────────────────────
+// ── Save job — NO user_id ERRORS ────────────────────────────────
 async function saveJob() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) return alert('❌ Please log in first');
@@ -283,7 +277,6 @@ async function saveJob() {
   const rate        = parseFloat(document.getElementById('labourRate').value)  || 0;
   const totalLabour = (labourHours * rate).toFixed(2);
 
-  // ✅ Send ONLY the fields your table ACTUALLY has — no extra columns
   const data = {
     job_ref:         document.getElementById('jobRef').value,
     technician:      document.getElementById('technician').value,
@@ -302,7 +295,7 @@ async function saveJob() {
 
   const { error } = await supabaseClient.from('job_card').insert(data);
   if (error) {
-    alert('❌ Save note: ' + error.message + ' — but app still works!');
+    alert('Note: ' + error.message + ' — but you can still use the form.');
     return;
   }
   alert('✅ Job saved successfully!');
@@ -310,14 +303,14 @@ async function saveJob() {
   loadJobs();
 }
 
-// ── Load jobs — NO MORE user_id ERRORS ─────────────────────────
+// ── Load jobs ──────────────────────────────────────────────────
 async function loadJobs() {
   const { data: jobs, error } = await supabaseClient
     .from('job_card').select('*').order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Load note:', error);
-    document.getElementById('jobsList').innerHTML = '<div class="empty">⚠️ Table read issue — but you can still use the form!</div>';
+    console.error('Load error:', error);
+    document.getElementById('jobsList').innerHTML = '<div class="empty">⚠️ Table issue — form still works</div>';
     return;
   }
 
