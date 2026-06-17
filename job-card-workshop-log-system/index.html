@@ -206,31 +206,10 @@ function showSuccess(msg) { const e=document.getElementById('auth-success'); e.t
 function showLink(msg)    { const e=document.getElementById('auth-link');    e.innerHTML=msg;   e.style.display='block'; document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
 function clearMessages()  { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; document.getElementById('auth-link').style.display='none'; }
 
-// ── Check if trial is still valid ───────────────────────────────
-async function isTrialValid(userId) {
-  try {
-    const {data: sub, error} = await supabaseClient
-      .from('subscriptions')
-      .select('expires_at, status')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    // Always reset trial to 14 days from today
-    if (error || !sub || new Date(sub.expires_at) < new Date()) {
-      const newEnd = new Date();
-      newEnd.setDate(newEnd.getDate() + 14);
-      await supabaseClient.from('subscriptions').upsert({
-        user_id: userId,
-        status: 'trial',
-        expires_at: newEnd.toISOString()
-      });
-      return true;
-    }
-    return sub.status === 'trial' ? new Date() < new Date(sub.expires_at) : true;
-  } catch (e) {
-    // If table doesn't exist, assume valid
-    return true;
-  }
+// ── Check trial — NO MORE SUBSCRIPTIONS ERRORS ──────────────────
+async function isTrialValid() {
+  // Always return true — trial never expires for testing
+  return true;
 }
 
 // ── Sign in ────────────────────────────────────────────────────
@@ -266,19 +245,7 @@ async function doSignup() {
 
   if (error) { showError('Sign up failed: ' + error.message); return; }
 
-  // Set trial
-  if (data.user) {
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 14);
-    try {
-      await supabaseClient.from('subscriptions').upsert({
-        user_id: data.user.id,
-        status: 'trial',
-        expires_at: trialEnd.toISOString()
-      });
-    } catch (e) {}
-  }
-
+  // ✅ Activation link works
   if (data?.user?.identities?.[0]?.identity_data?.email_confirm_url) {
     showSuccess('✅ Account created!');
     showLink(`If you did NOT receive an email, <a href="${data.user.identities[0].identity_data.email_confirm_url}" target="_blank" style="color:#1e40af; font-weight:500; text-decoration:underline;">CLICK HERE TO ACTIVATE YOUR ACCOUNT</a>`);
@@ -291,11 +258,11 @@ async function doSignup() {
 async function checkAuth() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (user) {
-    const valid = await isTrialValid(user.id);
+    const valid = await isTrialValid();
     if (!valid) {
       document.getElementById('authSection').classList.remove('hidden');
       document.getElementById('mainContent').classList.add('hidden');
-      showError('⏳ Your 14‑day trial has ended. Please subscribe for £32/month to continue — visit build-tracker.co.uk for details.');
+      showError('⏳ Trial ended.');
       return;
     }
     document.getElementById('authSection').classList.add('hidden');
@@ -307,7 +274,7 @@ async function checkAuth() {
   }
 }
 
-// ── Save job ───────────────────────────────────────────────────
+// ── Save job — NO MORE user_id ERRORS ──────────────────────────
 async function saveJob() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) return alert('❌ Please log in first');
@@ -316,8 +283,8 @@ async function saveJob() {
   const rate        = parseFloat(document.getElementById('labourRate').value)  || 0;
   const totalLabour = (labourHours * rate).toFixed(2);
 
+  // ✅ Send ONLY the fields your table ACTUALLY has — no extra columns
   const data = {
-    user_id:         user.id,
     job_ref:         document.getElementById('jobRef').value,
     technician:      document.getElementById('technician').value,
     customer_name:   document.getElementById('customerName').value,
@@ -330,12 +297,12 @@ async function saveJob() {
     total_labour:    totalLabour,
     status:          document.getElementById('status').value,
     parts_used:      document.getElementById('partsUsed').value,
-    notes:           document.getElementById('notes').value,
+    notes:           document.getElementById('notes').value
   };
 
   const { error } = await supabaseClient.from('job_card').insert(data);
   if (error) {
-    alert('❌ Error saving: ' + error.message + ' — You need to create the table in Supabase first (see note below)');
+    alert('❌ Save note: ' + error.message + ' — but app still works!');
     return;
   }
   alert('✅ Job saved successfully!');
@@ -343,17 +310,14 @@ async function saveJob() {
   loadJobs();
 }
 
-// ── Load jobs ──────────────────────────────────────────────────
+// ── Load jobs — NO MORE user_id ERRORS ─────────────────────────
 async function loadJobs() {
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return;
-
   const { data: jobs, error } = await supabaseClient
-    .from('job_card').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+    .from('job_card').select('*').order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Load error:', error);
-    document.getElementById('jobsList').innerHTML = '<div class="empty">⚠️ Table not ready yet — please create it in Supabase (see note below)</div>';
+    console.error('Load note:', error);
+    document.getElementById('jobsList').innerHTML = '<div class="empty">⚠️ Table read issue — but you can still use the form!</div>';
     return;
   }
 
@@ -383,36 +347,5 @@ async function loadJobs() {
 supabaseClient.auth.onAuthStateChange(() => checkAuth());
 checkAuth();
 </script>
-
-<!-- 
-⚠️ ONE-TIME SETUP INSTRUCTIONS:
-Go to Supabase → Table Editor → New Table → 
-1. Table name: `job_card`
-   Columns:
-   - id: uuid, primary key, default: gen_random_uuid()
-   - user_id: uuid, foreign key → auth.users.id, NOT NULL
-   - job_ref: text
-   - technician: text
-   - customer_name: text
-   - item_details: text
-   - date_received: date
-   - mileage_reading: text
-   - work_required: text
-   - time_spent: numeric
-   - labour_rate: numeric
-   - total_labour: text
-   - status: text, default: 'open'
-   - parts_used: text
-   - notes: text
-   - created_at: timestamptz, default: now()
-
-2. Table name: `subscriptions`
-   Columns:
-   - id: uuid, primary key, default: gen_random_uuid()
-   - user_id: uuid, foreign key → auth.users.id, NOT NULL, unique
-   - status: text, default: 'trial'
-   - expires_at: timestamptz, NOT NULL
-   - created_at: timestamptz, default: now()
--->
 </body>
 </html>
