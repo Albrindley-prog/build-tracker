@@ -107,7 +107,6 @@
     <h2>Workshop Job Cards</h2>
     <p>Sign in or create an account to get started — <strong>14‑day free trial, then £32/month</strong></p>
 
-    <!-- ✅ TABS ARE BACK AND WORKING -->
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
       <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create account</button>
@@ -193,43 +192,6 @@
 </div>
 
 <script>
-// ── Auto‑create tables on first run ─────────────────────────────
-async function setupDatabase() {
-  try {
-    await supabaseClient.rpc('create_table_if_not_exists', {
-      table_name: 'subscriptions',
-      table_definition: `
-        id uuid primary key default gen_random_uuid(),
-        user_id uuid references auth.users(id) not null unique,
-        status text not null default 'trial',
-        expires_at timestamptz not null,
-        created_at timestamptz default now()
-      `
-    });
-    await supabaseClient.rpc('create_table_if_not_exists', {
-      table_name: 'job_card',
-      table_definition: `
-        id uuid primary key default gen_random_uuid(),
-        user_id uuid references auth.users(id) not null,
-        job_ref text,
-        technician text,
-        customer_name text,
-        item_details text,
-        date_received date,
-        mileage_reading text,
-        work_required text,
-        time_spent numeric,
-        labour_rate numeric,
-        total_labour text,
-        status text default 'open',
-        parts_used text,
-        notes text,
-        created_at timestamptz default now()
-      `
-    });
-  } catch (e) {}
-}
-
 // ── Auth tab switching ──────────────────────────────────────────
 function switchTab(tab) {
   document.getElementById('tab-login').classList.toggle('active',  tab==='login');
@@ -246,25 +208,29 @@ function clearMessages()  { document.getElementById('auth-error').style.display=
 
 // ── Check if trial is still valid ───────────────────────────────
 async function isTrialValid(userId) {
-  const {data: sub, error} = await supabaseClient
-    .from('subscriptions')
-    .select('expires_at, status')
-    .eq('user_id', userId)
-    .maybeSingle();
+  try {
+    const {data: sub, error} = await supabaseClient
+      .from('subscriptions')
+      .select('expires_at, status')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-  // ✅ Always reset trial to 14 days from TODAY
-  if (error || !sub || new Date(sub.expires_at) < new Date()) {
-    const newEnd = new Date();
-    newEnd.setDate(newEnd.getDate() + 14);
-    await supabaseClient.from('subscriptions').upsert({
-      user_id: userId,
-      status: 'trial',
-      expires_at: newEnd.toISOString()
-    });
+    // Always reset trial to 14 days from today
+    if (error || !sub || new Date(sub.expires_at) < new Date()) {
+      const newEnd = new Date();
+      newEnd.setDate(newEnd.getDate() + 14);
+      await supabaseClient.from('subscriptions').upsert({
+        user_id: userId,
+        status: 'trial',
+        expires_at: newEnd.toISOString()
+      });
+      return true;
+    }
+    return sub.status === 'trial' ? new Date() < new Date(sub.expires_at) : true;
+  } catch (e) {
+    // If table doesn't exist, assume valid
     return true;
   }
-
-  return sub.status === 'trial' ? new Date() < new Date(sub.expires_at) : true;
 }
 
 // ── Sign in ────────────────────────────────────────────────────
@@ -300,15 +266,17 @@ async function doSignup() {
 
   if (error) { showError('Sign up failed: ' + error.message); return; }
 
-  // ✅ Always set NEW 14-day trial TODAY
+  // Set trial
   if (data.user) {
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 14);
-    await supabaseClient.from('subscriptions').upsert({
-      user_id: data.user.id,
-      status: 'trial',
-      expires_at: trialEnd.toISOString()
-    });
+    try {
+      await supabaseClient.from('subscriptions').upsert({
+        user_id: data.user.id,
+        status: 'trial',
+        expires_at: trialEnd.toISOString()
+      });
+    } catch (e) {}
   }
 
   if (data?.user?.identities?.[0]?.identity_data?.email_confirm_url) {
@@ -366,7 +334,10 @@ async function saveJob() {
   };
 
   const { error } = await supabaseClient.from('job_card').insert(data);
-  if (error) { alert('❌ Error saving: ' + error.message); return; }
+  if (error) {
+    alert('❌ Error saving: ' + error.message + ' — You need to create the table in Supabase first (see note below)');
+    return;
+  }
   alert('✅ Job saved successfully!');
   document.querySelectorAll('#mainContent input, #mainContent textarea, #mainContent select').forEach(el => el.value = '');
   loadJobs();
@@ -380,7 +351,11 @@ async function loadJobs() {
   const { data: jobs, error } = await supabaseClient
     .from('job_card').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
 
-  if (error) { console.error('Load error:', error); return; }
+  if (error) {
+    console.error('Load error:', error);
+    document.getElementById('jobsList').innerHTML = '<div class="empty">⚠️ Table not ready yet — please create it in Supabase (see note below)</div>';
+    return;
+  }
 
   const list = document.getElementById('jobsList');
   if (!jobs || jobs.length === 0) {
@@ -405,9 +380,39 @@ async function loadJobs() {
 }
 
 // ── Initialise ─────────────────────────────────────────────────
-setupDatabase();
 supabaseClient.auth.onAuthStateChange(() => checkAuth());
 checkAuth();
 </script>
+
+<!-- 
+⚠️ ONE-TIME SETUP INSTRUCTIONS:
+Go to Supabase → Table Editor → New Table → 
+1. Table name: `job_card`
+   Columns:
+   - id: uuid, primary key, default: gen_random_uuid()
+   - user_id: uuid, foreign key → auth.users.id, NOT NULL
+   - job_ref: text
+   - technician: text
+   - customer_name: text
+   - item_details: text
+   - date_received: date
+   - mileage_reading: text
+   - work_required: text
+   - time_spent: numeric
+   - labour_rate: numeric
+   - total_labour: text
+   - status: text, default: 'open'
+   - parts_used: text
+   - notes: text
+   - created_at: timestamptz, default: now()
+
+2. Table name: `subscriptions`
+   Columns:
+   - id: uuid, primary key, default: gen_random_uuid()
+   - user_id: uuid, foreign key → auth.users.id, NOT NULL, unique
+   - status: text, default: 'trial'
+   - expires_at: timestamptz, NOT NULL
+   - created_at: timestamptz, default: now()
+-->
 </body>
 </html>
