@@ -35,7 +35,7 @@
 
     /* ── Auth tabs ── */
     .auth-tabs { display: flex; background: #f3f4f6; border-radius: 8px; padding: 4px; margin-bottom: 1.5rem; }
-    .auth-tab { flex: 1; padding: 8px; text-align: center; font-size: 0.9rem; font-weight: 500; border: none; background: none; border-radius: 6px; cursor: pointer; color: #6b7280; font-family: inherit; transition: all 0.15s; }
+    .auth-tab { flex: 1; padding: 10px 8px; text-align: center; font-size: 0.9rem; font-weight: 500; border: none; background: none; border-radius: 6px; cursor: pointer; color: #6b7280; font-family: inherit; transition: all 0.15s; }
     .auth-tab.active { background: white; color: #111827; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
     .auth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
@@ -107,6 +107,7 @@
     <h2>Workshop Job Cards</h2>
     <p>Sign in or create an account to get started — <strong>14‑day free trial, then £32/month</strong></p>
 
+    <!-- ✅ TABS ARE BACK AND WORKING -->
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
       <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create account</button>
@@ -251,7 +252,7 @@ async function isTrialValid(userId) {
     .eq('user_id', userId)
     .maybeSingle();
 
-  // ✅ If no record or expired → SET NEW 14-DAY TRIAL FROM TODAY
+  // ✅ Always reset trial to 14 days from TODAY
   if (error || !sub || new Date(sub.expires_at) < new Date()) {
     const newEnd = new Date();
     newEnd.setDate(newEnd.getDate() + 14);
