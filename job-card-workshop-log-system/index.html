@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // ✅ DEFINED ONCE, NO DUPLICATES
+    // ✅ CORRECT VARIABLE NAME, DEFINED ONCE
     const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -103,12 +103,11 @@
 
 <div class="container">
 
-  <!-- ── Auth section ── ALWAYS VISIBLE FIRST ── -->
+  <!-- ✅ LOGIN / CREATE ACCOUNT — ALWAYS VISIBLE, NEVER HIDDEN -->
   <div id="authSection" class="auth-box">
     <h2>Workshop Job Cards</h2>
     <p>Sign in or create an account to get started — <strong>14‑day free trial, then £32/month</strong></p>
 
-    <!-- ✅ TABS ARE HERE AND WORKING -->
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
       <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create account</button>
@@ -140,7 +139,7 @@
     <div class="auth-footer">Your data is stored securely via Supabase</div>
   </div>
 
-  <!-- ── Main app ── HIDDEN UNTIL LOGGED IN ── -->
+  <!-- Main app — ONLY SHOWS AFTER SUCCESSFUL LOGIN -->
   <div id="mainContent" class="hidden">
     <h1>Workshop Job Cards & Daily Logs</h1>
 
@@ -208,11 +207,6 @@ function showSuccess(msg) { const e=document.getElementById('auth-success'); e.t
 function showLink(msg)    { const e=document.getElementById('auth-link');    e.innerHTML=msg;   e.style.display='block'; document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
 function clearMessages()  { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; document.getElementById('auth-link').style.display='none'; }
 
-// ── Trial check — NO ERRORS ─────────────────────────────────────
-async function isTrialValid() {
-  return true; // Always allow access
-}
-
 // ── Sign in ────────────────────────────────────────────────────
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -254,22 +248,22 @@ async function doSignup() {
   }
 }
 
-// ── Check auth state — ONLY HIDES LOGIN WHEN LOGGED IN ──────────
+// ── CHECK AUTH — ONLY HIDES LOGIN WHEN ACTUALLY LOGGED IN ──────────
 async function checkAuth() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (user) {
-    // Logged in: show app, hide login
+    // ✅ ONLY hide login if user is confirmed/logged in
     document.getElementById('authSection').classList.add('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
     loadJobs();
   } else {
-    // NOT logged in: SHOW LOGIN / CREATE ACCOUNT
+    // ✅ ALWAYS SHOW LOGIN / CREATE ACCOUNT IF NOT LOGGED IN
     document.getElementById('authSection').classList.remove('hidden');
     document.getElementById('mainContent').classList.add('hidden');
   }
 }
 
-// ── Save job — NO user_id ERRORS ────────────────────────────────
+// ── Save job ────────────────────────────────
 async function saveJob() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) return alert('❌ Please log in first');
@@ -306,21 +300,17 @@ async function saveJob() {
 
 // ── Load jobs ──────────────────────────────────────────────────
 async function loadJobs() {
-  const { data: jobs, error } = await supabaseClient
-    .from('job_card').select('*').order('created_at', { ascending: false });
-
+  const { data: jobs, error } = await supabaseClient.from('job_card').select('*').order('created_at', { ascending: false });
   if (error) {
     console.error('Load error:', error);
     document.getElementById('jobsList').innerHTML = '<div class="empty">⚠️ Table issue — form still works</div>';
     return;
   }
-
   const list = document.getElementById('jobsList');
   if (!jobs || jobs.length === 0) {
     list.innerHTML = '<div class="empty">No jobs added yet. Fill in the form above to create your first entry.</div>';
     return;
   }
-
   list.innerHTML = '';
   jobs.forEach(job => {
     const statusClass = { open:'status-open', parts:'status-parts', done:'status-done', invoiced:'status-invoiced' }[job.status] || 'status-open';
