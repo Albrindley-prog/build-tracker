@@ -902,10 +902,13 @@ async function addCustomer() {
       method: 'POST',
       body: JSON.stringify({
         reference: ref,
-        user_id: curUser.id,
+        // ✅ Change from "user_id" to "owner_id" — matches your table schema
+        owner_id: curUser.id,
         name: document.getElementById('c-name').value.trim(),
         contact: document.getElementById('c-contact').value.trim(),
-        email: document.getElementById('c-email').value.trim()
+        email: document.getElementById('c-email').value.trim(),
+        // ✅ Add unique token automatically for the customer status link
+        token: crypto.randomUUID()
       })
     });
     customers.push(mapC(res[0]));
