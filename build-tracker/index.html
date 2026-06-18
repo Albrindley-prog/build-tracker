@@ -341,7 +341,7 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 // Define base headers for API calls
 const HDR = {
   'Content-Type': 'application/json',
-  'apikey': SB_KEY   // ✅ Use the variable, no quotes
+  'apikey': SB_KEY
 };
 const BASE_HDR = HDR;
 const sbAuth = supabase.createClient(SB_URL, SB_KEY);
@@ -606,8 +606,7 @@ async function updateBannerDisplay() {
   } else {
     banner.style.display = 'none';
   }
-}can 
-
+}
 
 /* ---- DATA API ---- */
 async function sb(path, opts = {}) {
@@ -902,11 +901,11 @@ async function addCustomer() {
       method: 'POST',
       body: JSON.stringify({
         reference: ref,
-        owner_id: curUser.id,          // ✅ Correct column name — matches your table
+        owner_id: curUser.id,
         name: document.getElementById('c-name').value.trim(),
         contact: document.getElementById('c-contact').value.trim(),
         email: document.getElementById('c-email').value.trim(),
-        token: crypto.randomUUID()     // ✅ Adds the unique link ID automatically
+        token: crypto.randomUUID()
       })
     });
     customers.push(mapC(res[0]));
@@ -923,6 +922,7 @@ async function addCustomer() {
   btn.textContent = 'Add customer';
   btn.disabled = false;
 }
+
 /* ---- DETAIL ---- */
 function openDetail(job) {
   curJob = job;
