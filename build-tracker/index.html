@@ -331,8 +331,6 @@ function closeApp() {
   document.body.style.overflow = '';
   curUser = null; vehicles = []; customers = []; curJob = null;
 }
-// Fix missing HDR
-const HDR = { log: console.log, error: console.error };
 
 // --- ✅ FULL PAYMENT SIGNUP FLOW ---
 async function doSignUp() {
@@ -396,7 +394,7 @@ async function checkSubscriptionStatus(userId) {
   const { data: sub } = await supabaseClient.from(TABLES.subscriptions)
     .select('*').eq('user_id', userId).eq('status', 'active').single();
 
-  const meta = curUser?.user_metadata || {};
+  const meta = curUser.user_metadata || {};
   const trialEnd = meta.trial_ends ? new Date(meta.trial_ends) : null;
   const trialActive = trialEnd && new Date() < trialEnd;
 
