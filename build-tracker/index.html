@@ -332,11 +332,27 @@ const PC = {fab:'ph-fab',elec:'ph-elec',finish:'ph-finish',final:'ph-final'};
 
 let vehicles=[], customers=[], curJob=null, curFilter='active', curUser=null;
 
-/* ── AUTH ── */
-function switchAuthTab(tab) {
-  ['login','signup','forgot'].forEach(t => document.getElementById('auth-'+t).style.display = t===tab?'block':'none');
-  document.querySelectorAll('.auth-tab').forEach((b,i) => b.classList.toggle('on',(i===0&&tab==='login')||(i===1&&tab==='signup')));
+
+/* — AUTH — */
+
+// Keep curUser always up to date
+async function loadUser() {
+  const { data: { user } } = await sb.auth.getUser();
+  curUser = user;
+  return user;
 }
+
+// Run when the page first loads
+loadUser();
+
+// Update automatically whenever login/logout happens
+sb.auth.onAuthStateChange((event, session) => {
+  curUser = session?.user || null;
+  // If logged out, refresh to reset the app
+  if (!curUser) {
+    window.location.reload();
+  }
+});
 
 async function doSignIn() {
   const email=document.getElementById('login-email').value.trim();
