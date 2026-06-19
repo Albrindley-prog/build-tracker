@@ -588,27 +588,58 @@ async function addVehicle() {
 }
 
 /* ── ADD CUSTOMER ── */
-async function addCustomer() {
-  const ref=document.getElementById('c-ref').value.trim().toUpperCase();
-  const err=document.getElementById('add-c-err');
-  if (!ref) { err.textContent='Customer reference is required.'; err.style.display='block'; return; }
-  err.style.display='none';
-  const btn=document.getElementById('add-c-btn'); btn.textContent='Saving…'; btn.disabled=true;
+async function addVehicle() {
+  const job = document.getElementById('f-job').value.trim();
+  const chassis = document.getElementById('f-chassis').value.trim();
+  const type = document.getElementById('f-type').value;
+  const err = document.getElementById('add-v-err');
+  if (!job || !chassis || !type) {
+    err.textContent = 'Job number, chassis number and vehicle type are required.';
+    err.style.display = 'block';
+    err.style.display = 'none';
+  }
+  const applicable = STAGES.map((_, i) => {
+    const cb = document.getElementById(`fs-${i}`);
+    return cb && cb.checked ? i : null;
+  }).filter(i => i !== null);
+  const customer_id = document.getElementById('f-customer-id').value || null;
+  const btn = document.getElementById('add-v-btn');
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
   try {
-    const {data,error} = await sb.from('customers').insert({
-      reference:ref, owner_id:curUser.id,
-      name:document.getElementById('c-name').value.trim(),
-      contact:document.getElementById('c-contact').value.trim(),
-      email:document.getElementById('c-email').value.trim(),
-      token:crypto.randomUUID()
+    // ✅ Get the current logged-in user directly from Supabase here
+    const { data: { user }, error: userErr } = await sb.auth.getUser();
+    if (userErr || !user) throw new Error('No active user session — please sign in again.');
+
+    const { data, error } = await sb.from('vehicles').insert({
+      job,
+      chassis,
+      type,
+      customer_id,
+      user_id: user.id,  // ✅ Use the fresh, valid user ID from Supabase
+      build: document.getElementById('f-build').value.trim(),
+      start_date: document.getElementById('f-start').value || null,
+      end_date: document.getElementById('f-end').value || null,
+      notes: document.getElementById('f-notes').value.trim(),
+      applicable,
+      ticked: []
     }).select().single();
+
     if (error) throw error;
-    customers.push(mapC(data));
-    ['c-ref','c-name','c-contact','c-email'].forEach(id=>document.getElementById(id).value='');
-    populateCustomerDropdown(); renderCustomerList();
-    showToast('Customer added!'); showView('view-home'); switchTab('customers');
-  } catch(e) { err.textContent=`Error: ${e.message}`; err.style.display='block'; }
-  btn.textContent='Add customer'; btn.disabled=false;
+
+    vehicles.unshift(mapV(data));
+    ['f-job', 'f-chassis', 'f-build', 'f-start', 'f-end', 'f-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-type').value = '';
+    document.getElementById('f-customer-id').value = '';
+    renderFormStages(); renderList(); renderCustomerList();
+    showView('view-home'); showToast('Vehicle added!');
+  } catch (e) {
+    err.textContent = `Error: ${e.message}`;
+    err.style.display = 'block';
+  }
+  btn.textContent = 'Add vehicle';
+  btn.disabled = false;
 }
 
 /* ── DETAIL ── */
