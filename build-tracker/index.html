@@ -1,188 +1,577 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Build Tracker</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0f1117;--bg2:#181c27;--bg3:#1e2333;
-  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
-  --text:#f0f2f8;--text2:#8b92a8;--text3:#555e7a;
-  --accent:#f97316;--accent-dim:rgba(249,115,22,0.15);
-  --green:#22c55e;--green-dim:rgba(34,197,94,0.12);--green-border:rgba(34,197,94,0.3);
-  --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.12);--blue-border:rgba(59,130,246,0.3);
-  --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
-  --purple:#a855f7;--purple-dim:rgba(168,85,247,0.12);
-  --radius:10px;--radius-sm:6px;
-}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5}
-button{font-family:inherit;cursor:pointer}
-input,select,textarea{font-family:inherit}
-.view{display:none}.view.active{display:block}
-.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px}
-.logo-icon{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center}
-.logo-icon svg{width:16px;height:16px;fill:white}
-.nav-tabs{display:flex;gap:4px}
-.nav-tab{padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;border:none;background:none;color:var(--text2);cursor:pointer;transition:all .15s}
-.nav-tab:hover{background:var(--bg3);color:var(--text)}
-.nav-tab.on{background:var(--bg3);color:var(--text);font-weight:500}
-.container{max-width:760px;margin:0 auto;padding:32px 20px}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
-.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px}
-.badge-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green-border)}
-.badge-blue{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-border)}
-.badge-amber{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.3)}
-.ph-fab{background:var(--amber-dim);color:var(--amber)}
-.ph-elec{background:var(--blue-dim);color:var(--blue)}
-.ph-finish{background:var(--purple-dim);color:var(--purple)}
-.ph-final{background:var(--green-dim);color:var(--green)}
-.prog-track{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:8px 0}
-.prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s ease}
-.v-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:14px}
-.v-item:hover{border-color:var(--border2);background:var(--bg3)}
-.c-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:14px}
-.c-item:hover{border-color:var(--border2);background:var(--bg3)}
-.phase-hdr{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:14px 10px 5px}
-.stage-row{display:flex;align-items:center;gap:12px;padding:10px;border-radius:var(--radius-sm);border:1px solid transparent;transition:background .12s}
-.stage-row.s-done{background:var(--green-dim);border-color:var(--green-border)}
-.stage-row.s-done .stage-name{color:var(--text3);text-decoration:line-through;text-decoration-color:var(--text3)}
-.stage-row:not(.s-done):hover{background:var(--bg3)}
-.cb-wrap{position:relative;width:22px;height:22px;flex-shrink:0;cursor:pointer}
-.cb-wrap input[type=checkbox]{position:absolute;opacity:0;width:22px;height:22px;margin:0;cursor:pointer;z-index:2}
-.cb-box{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;pointer-events:none}
-.cb-wrap input:checked+.cb-box{background:var(--green);border-color:var(--green)}
-.cb-tick{display:none;width:13px;height:13px}
-.cb-wrap input:checked+.cb-box .cb-tick{display:block}
-.stage-num{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;width:20px;flex-shrink:0;text-align:center}
-.stage-name{font-size:13px;color:var(--text);flex:1}
-.phase-pill{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;flex-shrink:0}
-.field{margin-bottom:14px}
-.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
-.field input,.field select,.field textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;font-size:14px;outline:none;transition:border-color .15s}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
-.field select option{background:var(--bg2)}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;border:1px solid var(--border2);background:var(--bg3);color:var(--text);transition:background .15s;cursor:pointer}
-.btn:hover{background:var(--bg2)}
-.btn-primary{background:var(--accent);border-color:var(--accent);color:white}
-.btn-primary:hover{background:#ea6c0a}
-.btn-danger{color:#f87171;border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.08)}
-.btn-danger:hover{background:rgba(248,113,113,0.15)}
-.link-box{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);word-break:break-all}
-.sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:12px}
-.sep{border:none;border-top:1px solid var(--border);margin:20px 0}
-.back-btn{background:none;border:none;color:var(--text2);font-size:13px;display:flex;align-items:center;gap:6px;padding:0;cursor:pointer;margin-bottom:24px}
-.back-btn:hover{color:var(--text)}
-.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
-.stat-card .lbl{font-size:11px;color:var(--text3);margin-bottom:4px}
-.stat-card .val{font-size:16px;font-weight:600}
-.tabs{display:flex;margin-bottom:20px}
-.tab{flex:1;padding:8px;font-size:13px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s}
-.tab:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm)}
-.tab:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0}
-.tab.on{background:var(--bg2);color:var(--text);font-weight:500}
-.empty{text-align:center;padding:48px 20px;color:var(--text2)}
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg2);border:1px solid var(--green-border);color:var(--green);padding:10px 20px;border-radius:30px;font-size:13px;font-weight:500;transition:transform .3s ease;z-index:999;white-space:nowrap}
-#toast.show{transform:translateX(-50%) translateY(0)}
-.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:48px 20px;color:var(--text2);font-size:14px}
-.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
-.auth-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:40px;width:100%;max-width:400px}
-.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:18px;margin-bottom:8px}
-.auth-logo-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.auth-logo-icon svg{width:20px;height:20px;fill:white}
-.auth-tabs{display:flex;margin-bottom:24px;border-bottom:1px solid var(--border)}
-.auth-tab{flex:1;padding:10px;font-size:14px;border:none;background:none;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
-.auth-tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
-.hamburger{background:none;border:none;color:var(--text2);cursor:pointer;padding:6px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;transition:background .15s}
-.hamburger:hover{background:var(--bg3);color:var(--text)}
-.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s}
-.drawer-overlay.open{opacity:1;pointer-events:all}
-.drawer{position:fixed;top:0;right:-320px;width:300px;height:100vh;background:var(--bg2);border-left:1px solid var(--border);z-index:101;transition:right .25s ease;overflow-y:auto;padding:24px}
-.drawer.open{right:0}
-.drawer-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
-.drawer-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;padding:4px}
-.drawer-close:hover{color:var(--text)}
-.drawer-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
-.drawer-value{font-size:14px;color:var(--text);padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:16px}
-.drawer-btn{width:100%;padding:10px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;transition:background .15s;margin-bottom:8px;display:flex;align-items:center;gap:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text)}
-.drawer-btn:hover{background:var(--bg)}
-.drawer-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.08)}
-.drawer-btn.danger:hover{background:rgba(248,113,113,0.15)}
-/* Trial banner */
-.trial-banner{background:var(--amber-dim);border-bottom:1px solid var(--amber-border);padding:8px 24px;text-align:center;font-size:13px;color:var(--amber)}
-@media(max-width:520px){.g2,.g3{grid-template-columns:1fr}.container{padding:20px 14px}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build Tracker Solutions</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://js.stripe.com/v3/"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { font-family: Arial, sans-serif; color:#1D2129; background:#fff; line-height:1.6; }
 
-<script>
-const LOCAL_USERS_KEY='bt_users';
-const LOCAL_SESSION_KEY='bt_session';
+    nav { background:#1D2129; color:white; padding:1rem 5%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; position:sticky; top:0; z-index:50; }
+    nav .logo { font-size:1.3rem; font-weight:bold; }
+    nav a { color:white; text-decoration:none; margin:0 0.8rem; }
+    nav a:hover { color:#FF7D00; }
+    .nav-right { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+    .mkt-btn { display:inline-block; background:#FF7D00; color:white; padding:.9rem 2rem; border-radius:6px; text-decoration:none; font-weight:bold; margin:.5rem; transition:opacity .2s; border:none; cursor:pointer; font-size:1rem; }
+    .mkt-btn:hover { opacity:.9; }
+    .mkt-btn-blue { background:#6772E5; }
+    .mkt-btn-blue:hover { background:#5469d4; opacity:1; }
+    .mkt-btn-signin { background:transparent; border:2px solid rgba(255,255,255,.5); color:white; padding:.6rem 1.3rem; font-size:.9rem; margin:0; }
+    .mkt-btn-signin:hover { border-color:white; opacity:1; }
+    .hero { background:linear-gradient(135deg,#165DFF 0%,#0038A8 100%); color:white; padding:4rem 5%; text-align:center; }
+    .hero h1 { font-size:2.5rem; margin-bottom:.5rem; }
+    .hero h2 { font-size:1.3rem; font-weight:normal; margin-bottom:2rem; opacity:.9; }
+    .section { padding:3rem 5%; max-width:1200px; margin:0 auto; }
+    .section h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#165DFF; }
+    .mkt-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:2rem; margin:2rem 0; }
+    .mkt-card { background:#F2F3F5; padding:1.8rem; border-radius:8px; }
+    .mkt-card h4 { color:#165DFF; margin-bottom:1rem; font-size:1.2rem; }
+    .price-box { background:#F2F3F5; border:3px solid #165DFF; border-radius:12px; padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
+    .price-box .price { font-size:3rem; color:#FF7D00; font-weight:bold; }
+    footer { background:#1D2129; color:white; padding:2rem 5%; text-align:center; margin-top:3rem; }
+    .success-box, .error-box { display:none; padding:1rem; border-radius:6px; margin:1rem 0; text-align:center; }
+    .success-box { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+    .error-box { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+    ul { margin-left:1.2rem; margin-bottom:1rem; }
 
-const sbAuth={
- auth:{
-  async signUp({email,password,options}){
-   const users=JSON.parse(localStorage.getItem(LOCAL_USERS_KEY)||'[]');
-   if(users.find(u=>u.email===email)) return {error:{message:'User already exists'}};
-   const user={id:Date.now().toString(),email,password,user_metadata:options?.data||{}};
-   users.push(user);
-   localStorage.setItem(LOCAL_USERS_KEY,JSON.stringify(users));
-   localStorage.setItem(LOCAL_SESSION_KEY,JSON.stringify(user));
-   return {data:{user},error:null};
-  },
-  async signInWithPassword({email,password}){
-   const users=JSON.parse(localStorage.getItem(LOCAL_USERS_KEY)||'[]');
-   const user=users.find(u=>u.email===email && u.password===password);
-   if(!user) return {error:{message:'Invalid email or password'}};
-   localStorage.setItem(LOCAL_SESSION_KEY,JSON.stringify(user));
-   return {data:{user},error:null};
-  },
-  async signOut(){ localStorage.removeItem(LOCAL_SESSION_KEY); return {}; },
-  async updateUser(){ return {error:null}; },
-  async resetPasswordForEmail(){ return {error:null}; },
-  async getSession(){ return {data:{session:{access_token:'local'}}}; }
- }
-};
+    #app-overlay { position:fixed; inset:0; z-index:9999; background:#0f1117; display:none; flex-direction:column; }
+    #app-overlay.open { display:flex; }
+    #app-close-bar { background:#181c27; border-bottom:1px solid rgba(255,255,255,.08); padding:8px 20px; display:flex; align-items:center; justify-content:space-between; font-family:'DM Sans',sans-serif; color:#8b92a8; font-size:13px; flex-shrink:0; }
+    #app-close-bar a { color:#f97316; cursor:pointer; font-size:13px; text-decoration:none; }
+    #app-close-bar a:hover { text-decoration:underline; }
+    #app-frame { flex:1; overflow-y:auto; font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.5;
+      --bg:#0f1117;--bg2:#181c27;--bg3:#1e2333;
+      --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+      --text:#f0f2f8;--text2:#8b92a8;--text3:#555e7a;
+      --accent:#f97316;
+      --green:#22c55e;--green-dim:rgba(34,197,94,0.12);--green-border:rgba(34,197,94,0.3);
+      --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.12);--blue-border:rgba(59,130,246,0.3);
+      --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
+      --purple:#a855f7;--purple-dim:rgba(168,85,247,0.12);
+      --red:#f87171;--red-dim:rgba(248,113,113,0.08);--red-border:rgba(248,113,113,0.3);
+      --radius:10px;--radius-sm:6px;
+      background:var(--bg); color:var(--text);
+    }
+    #app-frame button { font-family:'DM Sans',sans-serif; cursor:pointer; }
+    #app-frame input, #app-frame select, #app-frame textarea { font-family:'DM Sans',sans-serif; }
 
-async function sb(){ return []; }
-</script>
-
+    #app-frame .view { display:none; }
+    #app-frame .view.active { display:block; }
+    #app-frame .app-header { background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10; }
+    #app-frame .app-logo { display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px; }
+    #app-frame .logo-icon { width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center; }
+    #app-frame .logo-icon svg { width:16px;height:16px;fill:white; }
+    #app-frame .nav-tabs { display:flex;gap:4px; }
+    #app-frame .nav-tab { padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;border:none;background:none;color:var(--text2);cursor:pointer;transition:all .15s; }
+    #app-frame .nav-tab:hover { background:var(--bg3);color:var(--text); }
+    #app-frame .nav-tab.on { background:var(--bg3);color:var(--text);font-weight:500; }
+    #app-frame .hamburger { background:none;border:none;color:var(--text2);cursor:pointer;padding:6px;border-radius:var(--radius-sm);font-size:18px; }
+    #app-frame .hamburger:hover { background:var(--bg3);color:var(--text); }
+    #app-frame .container { max-width:760px;margin:0 auto;padding:32px 20px; }
+    #app-frame .a-card { background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px; }
+    #app-frame .badge { display:inline-flex;align-items:center;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px; }
+    #app-frame .badge-green { background:var(--green-dim);color:var(--green);border:1px solid var(--green-border); }
+    #app-frame .badge-amber { background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.3); }
+    #app-frame .ph-fab { background:var(--amber-dim);color:var(--amber); }
+    #app-frame .ph-elec { background:var(--blue-dim);color:var(--blue); }
+    #app-frame .ph-finish { background:var(--purple-dim);color:var(--purple); }
+    #app-frame .ph-final { background:var(--green-dim);color:var(--green); }
+    #app-frame .prog-track { height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:8px 0; }
+    #app-frame .prog-fill { height:100%;background:var(--accent);border-radius:3px;transition:width .4s; }
+    #app-frame .v-item { background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:14px; }
+    #app-frame .v-item:hover { border-color:var(--border2);background:var(--bg3); }
+    #app-frame .c-item { background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px; }
+    #app-frame .phase-hdr { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:14px 10px 5px; }
+    #app-frame .stage-row { display:flex;align-items:center;gap:12px;padding:10px;border-radius:var(--radius-sm);border:1px solid transparent;transition:background .12s; }
+    #app-frame .stage-row.s-done { background:var(--green-dim);border-color:var(--green-border); }
+    #app-frame .stage-row.s-done .stage-name { color:var(--text3);text-decoration:line-through; }
+    #app-frame .stage-row:not(.s-done):hover { background:var(--bg3); }
+    #app-frame .cb-wrap { position:relative;width:22px;height:22px;flex-shrink:0;cursor:pointer; }
+    #app-frame .cb-wrap input[type=checkbox] { position:absolute;opacity:0;width:22px;height:22px;margin:0;cursor:pointer;z-index:2; }
+    #app-frame .cb-box { width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;pointer-events:none; }
+    #app-frame .cb-wrap input:checked+.cb-box { background:var(--green);border-color:var(--green); }
+    #app-frame .cb-tick { display:none;width:13px;height:13px; }
+    #app-frame .cb-wrap input:checked+.cb-box .cb-tick { display:block; }
+    #app-frame .stage-num { font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;width:20px;flex-shrink:0;text-align:center; }
+    #app-frame .stage-name { font-size:13px;color:var(--text);flex:1; }
+    #app-frame .phase-pill { font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;flex-shrink:0; }
+    #app-frame .field { margin-bottom:14px; }
+    #app-frame .field label { display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500; }
+    #app-frame .field input, #app-frame .field select, #app-frame .field textarea { width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;font-size:14px;outline:none;transition:border-color .15s; }
+    #app-frame .field input:focus, #app-frame .field select:focus, #app-frame .field textarea:focus { border-color:var(--accent); }
+    #app-frame .field select option { background:var(--bg2); }
+    #app-frame .a-btn { display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;border:1px solid var(--border2);background:var(--bg3);color:var(--text);transition:background .15s;cursor:pointer; }
+    #app-frame .a-btn:hover { background:var(--bg2); }
+    #app-frame .a-btn-primary { background:var(--accent);border-color:var(--accent);color:white; }
+    #app-frame .a-btn-primary:hover { background:#ea6c0a; }
+    #app-frame .a-btn-danger { color:var(--red);border-color:var(--red-border);background:var(--red-dim); }
+    #app-frame .link-box { display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);word-break:break-all; }
+    #app-frame .sec { font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:12px; }
+    #app-frame .back-btn { background:none;border:none;color:var(--text2);font-size:13px;display:flex;align-items:center;gap:6px;padding:0;cursor:pointer;margin-bottom:24px; }
+    #app-frame .back-btn:hover { color:var(--text); }
+    #app-frame .empty { text-align:center;padding:48px 20px;color:var(--text2); }
+    #app-frame .auth-wrap { min-height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg); }
+    #app-frame .auth-box { background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:40px;width:100%;max-width:400px; }
+    #app-frame .auth-logo { display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:18px;margin-bottom:8px; }
+    #app-frame .auth-logo-icon { width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center; }
+    #app-frame .auth-logo-icon svg { width:20px;height:20px;fill:white; }
+    #app-frame .auth-tabs { display:flex;margin-bottom:24px;border-bottom:1px solid var(--border); }
+    #app-frame .auth-tab { flex:1;padding:10px;font-size:14px;border:none;background:none;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s; }
+    #app-frame .auth-tab.on { color:var(--accent);border-bottom-color:var(--accent);font-weight:500; }
+    #app-frame .drawer-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s; }
+    #app-frame .drawer-overlay.open { opacity:1;pointer-events:all; }
+    #app-frame .drawer { position:fixed;top:0;right:-320px;width:300px;height:100vh;background:var(--bg2);border-left:1px solid var(--border);z-index:101;transition:right .25s;overflow-y:auto;padding:24px; }
+    #app-frame .drawer.open { right:0; }
+    #app-frame .drawer-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:28px; }
+    #app-frame .drawer-close { background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;padding:4px; }
+    #app-frame .drawer-label { font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px; }
+    #app-frame .drawer-value { font-size:14px;color:var(--text);padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:16px;word-break:break-all; }
+    #app-frame .drawer-btn { width:100%;padding:10px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;transition:background .15s;margin-bottom:8px;display:flex;align-items:center;gap:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text); }
+    #app-frame .drawer-btn:hover { background:var(--bg); }
+    #app-frame .drawer-btn.danger { color:var(--red);border-color:var(--red-border);background:var(--red-dim); }
+    #app-frame .modal { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:center;justify-content:center;padding:20px; }
+    #app-frame .modal.open { display:flex; }
+    #app-frame #app-toast { position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg2);border:1px solid var(--green-border);color:var(--green);padding:10px 20px;border-radius:30px;font-size:13px;font-weight:500;transition:transform .3s;z-index:99999;white-space:nowrap; }
+    #app-frame #app-toast.show { transform:translateX(-50%) translateY(0); }
+    #app-frame .err-msg { font-size:13px;color:var(--red);margin-bottom:10px;display:none; }
+    @media(max-width:520px) { #app-frame .container { padding:20px 14px; } }
+  </style>
 </head>
 <body>
-<div id="toast"></div>
+
+<div id="marketing-site">
+<nav>
+  <div class="logo">Build Tracker Solutions</div>
+  <div class="nav-right">
+    <a href="#home">Home</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+    <button class="mkt-btn mkt-btn-signin" onclick="openApp('login')">Sign In</button>
+    <button class="mkt-btn mkt-btn-blue" onclick="openApp('signup')">Start Free Trial</button>
+  </div>
+</nav>
+
+<section id="home" class="hero">
+  <h1>Build Tracker Solutions</h1>
+  <h2>Web‑based build tracking & live client update portal</h2>
+  <p style="font-size:1.1rem;max-width:800px;margin:0 auto 2rem;">Manage every stage of your project, keep perfect records, and give your customers a simple link to see live progress — all in one place.</p>
+  <ul style="list-style:none;margin-bottom:2rem;font-size:1.05rem;">
+    <li>✅ No app download required — works in any web browser</li>
+    <li>✅ Send one link → your client sees everything, no phone calls needed</li>
+    <li>✅ Saves hours every week, stops disputes, builds total trust</li>
+    <li>✅ <strong>14 days FREE trial — only £32.00 per month </strong></li>
+  </ul>
+  <button class="mkt-btn mkt-btn-blue" onclick="openApp('signup')">Start your free trial</button>
+  <p style="margin-top:1rem;font-size:.95rem;">Just over £1 per day for unlimited projects & unlimited clients</p>
+</section>
+
+<section class="section">
+  <h3>Everything you need, nothing you don't</h3>
+  <div class="mkt-grid">
+    <div class="mkt-card"><h4>Full Stage Tracking</h4><p>Log every phase from start to finish. Update instantly as work happens.</p></div>
+    <div class="mkt-card"><h4>Live Client Portal</h4><p>Unique link per customer — they see live progress on any device. No install needed.</p></div>
+    <div class="mkt-card"><h4>Records & Transparency</h4><p>Keep everything organised for accounts, compliance and peace of mind.</p></div>
+  </div>
+  <div style="text-align:center;margin-top:2rem;">
+    <button class="mkt-btn mkt-btn-blue" onclick="openApp('signup')">Try it free for 14 days</button>
+  </div>
+</section>
+
+<section id="features" class="section" style="background:#F2F3F5;">
+  <h3>Everything you need to run projects smoothly</h3>
+  <div class="mkt-grid">
+    <div class="mkt-card"><h4>1. Complete Stage Management</h4><ul><li>Create unlimited projects</li><li>Track every stage from start to finish</li><li>Full audit trail and history</li></ul></div>
+    <div class="mkt-card"><h4>2. Live Client View Portal</h4><ul><li>✅ Unique secure link per customer</li><li>✅ No install needed for clients</li><li>✅ Saves 3–5 hours every week</li></ul></div>
+    <div class="mkt-card"><h4>3. Simple Universal Access</h4><ul><li>Works on any device</li><li>Runs in a browser — no app download</li><li>Secure and backed up daily</li></ul></div>
+  </div>
+</section>
+
+<section id="pricing" class="section">
+  <h3>Simple, honest pricing</h3>
+  <div class="price-box">
+    <div class="price">£32.00</div>
+    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>(Just over £1 per day)</small></div>
+    <ul style="text-align:left;display:inline-block;margin-bottom:1.5rem;">
+      <li>Unlimited projects & builds</li>
+      <li>Unlimited client view links</li>
+      <li>Full stage tracking</li>
+      <li>Works on any device</li>
+      <li>Free support & updates</li>
+      <li>Cancel anytime</li>
+      
+    </ul><br>
+    <button class="mkt-btn mkt-btn-blue" onclick="openApp('signup')" style="margin-top:1rem;">Start My 14-Day FREE Trial</button>
+  </div>
+  <div class="success-box" id="successBox">✅ Payment successful! Check your email to login.</div>
+  <div class="error-box" id="errorBox"></div>
+</section>
+
+<section id="about" class="section" style="background:#F2F3F5;">
+  <h3>About Build Tracker Solutions</h3>
+  <p style="margin-bottom:1.5rem;">Built for the construction and trade industry — we know keeping clients informed is one of the hardest parts of running a business.</p>
+  <p>Based in the UK. We build, support and develop everything ourselves.</p>
+  <div style="text-align:center;margin-top:2rem;">
+    <button class="mkt-btn mkt-btn-blue" onclick="openApp('signup')">Start your free trial</button>
+  </div>
+</section>
+
+<section id="contact" class="section">
+  <h3>Get in touch</h3>
+  <div class="mkt-grid">
+    <div>
+      <h4 style="color:#165DFF;margin-bottom:1rem;">📞 Contact Details</h4>
+      <p><strong>Phone</strong>: 07540 799925<br>
+      <strong>Email</strong>: <a href="mailto:info@build-tracker.co.uk" style="color:#165DFF;">info@build-tracker.co.uk</a></p>
+      <h4 style="color:#165DFF;margin:1.5rem 0 .5rem;">🕒 Opening Hours</h4>
+      <p>Monday – Friday: 08:00 – 18:00<br>Saturday: 09:00 – 13:00</p>
+    </div>
+    <div>
+      <h4 style="color:#165DFF;margin-bottom:1rem;">✉️ Send us a message</h4>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <input type="text" placeholder="Your Name" style="padding:.8rem;border:1px solid #ccc;border-radius:4px;font-family:inherit;">
+        <input type="email" placeholder="Your Email" style="padding:.8rem;border:1px solid #ccc;border-radius:4px;font-family:inherit;">
+        <textarea placeholder="Message" rows="4" style="padding:.8rem;border:1px solid #ccc;border-radius:4px;font-family:inherit;"></textarea>
+        <button class="mkt-btn" style="width:fit-content;">Send Message</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Build Tracker Solutions</strong> | info@build-tracker.co.uk | 07540 799925</p>
+  <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
+</footer>
+</div>
+
+<div id="app-overlay">
+  <div id="app-close-bar">
+    <span>Build Tracker App</span>
+    <a onclick="closeApp()">← Back to website</a>
+  </div>
+  <div id="app-frame"></div>
+</div>
+<script>
+// --- APP CONFIGURATION ---
+const SB_URL = 'https://dcsshdemeodyipplrhnm.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3NoZGVtZW9keWlwcGxyaG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTY4OTYsImV4cCI6MjA5NDM3Mjg5Nn0.4FyyfjnmGuwSq3C_V_0Hq3rsyF2Lmfxrpmt1suxv-fA';
+const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+// ✅ STRIPE PAYMENT CONFIG
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZl6YICF2fQjVNyfM7zLkgw24kRiDtf39YPpbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSDf17p00bGe517yQ';
+const STRIPE_SECRET_KEY = 'sk_live_your_secret_key_here'; // 🔴 Replace with your secret key
+const STRIPE_PRICE_ID = 'price_1TZoJYEuJ32ClDs6SUb7yfVC'; // £32/month price ID
+const FIXED_SETUP_FEE = 0; // £0 — NO SETUP FEE
+const STRIPE_SUCCESS_URL = 'https://build-tracker.co.uk?success=1';
+const STRIPE_CANCEL_URL = 'https://build-tracker.co.uk?canceled=1';
+const stripeClient = Stripe(STRIPE_PUBLISHABLE_KEY);
+
+const TABLES = {
+  customers: 'customers',
+  vehicles: 'vehicles',
+  subscriptions: 'subscriptions'
+};
+
+// --- BUILD STAGES ---
+const STAGES = [
+  { name:"Frame cut",               phase:"fab"    },
+  { name:"Weld",                    phase:"fab"    },
+  { name:"Galvanising",             phase:"fab"    },
+  { name:"Sub-frame",               phase:"fab"    },
+  { name:"Electrics — 1st fix",     phase:"elec"   },
+  { name:"1st phase assembly build",phase:"fab"    },
+  { name:"Electrics — 2nd fix",     phase:"elec"   },
+  { name:"Paint",                   phase:"finish" },
+  { name:"Build up after paint",    phase:"finish" },
+  { name:"Axle load",               phase:"finish" },
+  { name:"Equipment fit",           phase:"finish" },
+  { name:"Livery",                  phase:"finish" },
+  { name:"Speed limiter",           phase:"final"  },
+  { name:"Cameras",                 phase:"final"  },
+  { name:"Valet",                   phase:"final"  },
+  { name:"Final summary",           phase:"final"  },
+  { name:"QC sign-off",             phase:"final"  }
+];
+const PHASE_LABELS = { fab:"Fabrication", elec:"Electrical", finish:"Finishing", final:"Final checks" };
+const PHASE_STYLES = { fab:"ph-fab", elec:"ph-elec", finish:"ph-finish", final:"ph-final" };
+
+// --- GLOBAL STATE ---
+let vehicles = [], customers = [], curJob = null, curFilter = 'active', curUser = null;
+
+// --- HELPER FUNCTIONS ---
+function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+function validatePassword(pw) { return pw.length >= 6; }
+function showToast(msg) { const t=document.getElementById('app-toast');if(t){t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);} }
+// --- OPEN/CLOSE APP ---
+function openApp(tab) {
+  injectAppHTML();
+  document.getElementById('app-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  supabaseClient.auth.getUser().then(({ data: { user } }) => {
+    if (user) {
+      curUser = user;
+      document.getElementById('drawer-email').textContent = user.email;
+      checkSubscriptionStatus(user.id);
+    } else {
+      switchAuthTab(tab === 'signup' ? 'signup' : 'login');
+      showAppView('view-auth');
+    }
+  });
+}
+
+function closeApp() {
+  document.getElementById('app-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  curUser = null; vehicles = []; customers = []; curJob = null;
+}
+
+// --- ✅ FULL PAYMENT SIGNUP FLOW ---
+async function doSignUp() {
+  const name  = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pw    = document.getElementById('signup-pw').value;
+  const errEl = document.getElementById('signup-err');
+  errEl.style.display = 'none';
+
+  if (!name || !validateEmail(email) || !validatePassword(pw)) {
+    errEl.textContent = 'Fill all fields correctly — password min 6 characters';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Create user account
+  const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+    email,
+    password: pw,
+    options: {
+      data: {
+        full_name: name,
+        trial_ends: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        is_paid: false
+      }
+    }
+  });
+
+  if (authError) {
+    errEl.textContent = authError.message;
+    errEl.style.display = 'block';
+    return;
+  }
+
+  sessionStorage.setItem('pending_user', JSON.stringify({ id: authData.user.id, name, email }));
+  createStripeCheckout(email, authData.user.id);
+}
+
+// ✅ Create Stripe session with setup fee + subscription
+async function createStripeCheckout(customerEmail, userId) {
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('create-checkout-session', {
+      body: {
+        email: customerEmail,
+        user_id: userId,
+        setup_fee: FIXED_SETUP_FEE,
+        price_id: STRIPE_PRICE_ID,
+        success_url: STRIPE_SUCCESS_URL,
+        cancel_url: STRIPE_CANCEL_URL
+      }
+    });
+    if (error) throw error;
+    await stripeClient.redirectToCheckout({ sessionId: data.sessionId });
+  } catch (err) {
+    showToast('Payment error: ' + err.message);
+  }
+}
+
+// ✅ Check subscription or trial
+async function checkSubscriptionStatus(userId) {
+  const { data: sub } = await supabaseClient.from(TABLES.subscriptions)
+    .select('*').eq('user_id', userId).eq('status', 'active').single();
+
+  const meta = curUser.user_metadata || {};
+  const trialEnd = meta.trial_ends ? new Date(meta.trial_ends) : null;
+  const trialActive = trialEnd && new Date() < trialEnd;
+
+  if (sub || trialActive) {
+    await loadUserData();
+    showAppView('view-main');
+  } else {
+    showPaymentRequired();
+  }
+}
+
+function showPaymentRequired() {
+  document.getElementById('view-auth').innerHTML = `
+    <div class="auth-wrap"><div class="auth-box">
+      <div class="auth-logo"><div class="auth-logo-icon"><svg viewBox="0 0 24 24"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div>
+      
+      <h3 style="text-align:center; color:#f97316; margin:1rem 0">Subscription Required</h3>
+      <p style="text-align:center; margin-bottom:1.5rem">Your trial has ended or no active subscription found.</p>
+
+      <!-- ✅ ONLY £32/MONTH — NO SETUP FEE -->
+      <div style="background:#1a1a1a; border-radius:8px; padding:16px; margin-bottom:16px;">
+        <div style="padding:10px 0;">
+          <div style="color:#ccc; font-size:14px;">Monthly Subscription</div>
+          <div style="color:#fff; font-size:18px; font-weight:bold;">£32.00 <span style="font-size:12px; color:#888;">per month</span></div>
+        </div>
+      </div>
+
+      <button class="a-btn a-btn-primary" style="width:100%;margin-bottom:10px" onclick="restartPayment()">Pay Now & Activate</button>
+      
+      <div style="text-align:center; margin:1rem 0; color:var(--text2); font-size:14px;">— OR —</div>
+      <button class="a-btn" style="width:100%;border-color:var(--accent);color:var(--accent)" onclick="showNewSignup()">Create New Account</button>
+    </div></div>`;
+  showAppView('view-auth');
+}
+
+// ✅ NEW FUNCTION: SHOW SIGNUP FORM AGAIN
+function showNewSignup() {
+  document.getElementById('view-auth').innerHTML = `
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <div class="auth-logo-icon"><svg viewBox="0 0 24 24"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>
+        Build Tracker
+      </div>
+      <p style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:20px;">Vehicle build tracking for body builders</p>
+      <div class="auth-tabs">
+        <button class="auth-tab" id="atab-login" onclick="switchAuthTab('login')">Sign in</button>
+        <button class="auth-tab on" id="atab-signup" onclick="switchAuthTab('signup')">Create account</button>
+      </div>
+      <div id="auth-login" style="display:none">
+        <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="your@email.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="login-pw" placeholder="Your password"></div>
+        <p id="login-err" class="err-msg"></p>
+        <button class="a-btn a-btn-primary" style="width:100%;justify-content:center;" onclick="doSignIn()">Sign In</button>
+      </div>
+      <div id="auth-signup">
+        <div class="field"><label>Full Name</label><input type="text" id="signup-name" placeholder="John Smith"></div>
+        <div class="field"><label>Email</label><input type="email" id="signup-email" placeholder="new@email.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="signup-pw" placeholder="Min 6 characters"></div>
+        <p id="signup-err" class="err-msg"></p>
+        <button class="a-btn a-btn-primary" style="width:100%;justify-content:center;" onclick="doSignUp()">Create Account & Start Trial</button>
+        <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:10px;"> 14-day free trial</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function restartPayment() {
+  createStripeCheckout(curUser.email, curUser.id);
+}
+
+// --- AUTHENTICATION ---
+async function doSignIn() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw    = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('login-err');
+  errEl.style.display = 'none';
+
+  if (!validateEmail(email) || !validatePassword(pw)) {
+    errEl.textContent = 'Enter valid email and password (min 6 characters)';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pw });
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+
+  curUser = data.user;
+  document.getElementById('drawer-email').textContent = curUser.email;
+  checkSubscriptionStatus(curUser.id);
+}
+
+async function doSignOut() {
+  await supabaseClient.auth.signOut();
+  curUser = null; vehicles = []; customers = []; curJob = null;
+  closeDrawer();
+  showAppView('view-auth');
+  showToast('Signed out');
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('atab-login').classList.toggle('on', tab === 'login');
+  document.getElementById('atab-signup').classList.toggle('on', tab === 'signup');
+  document.getElementById('auth-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('auth-signup').style.display = tab === 'signup' ? 'block' : 'none';
+}
+
+function showPwForm() { document.getElementById('pw-change-form').style.display = 'block'; }
+
+async function doChangePw() {
+  const newpw = document.getElementById('new-pw').value;
+  const conf  = document.getElementById('confirm-pw').value;
+  const err   = document.getElementById('pw-err');
+  const ok    = document.getElementById('pw-ok');
+  err.style.display = 'none'; ok.style.display = 'none';
+
+  if (!validatePassword(newpw) || newpw !== conf) {
+    err.textContent = 'Passwords must match and be at least 6 characters';
+    err.style.display = 'block';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({ password: newpw });
+  if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
+  ok.style.display = 'block';
+  showToast('Password updated');
+}
+
+// --- UI NAVIGATION ---
+function toggleDrawer() {
+  document.getElementById('drawer-overlay').classList.toggle('open');
+  document.getElementById('settings-drawer').classList.toggle('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('settings-drawer').classList.remove('open');
+}
+
+function showAppView(viewId) {
+  document.querySelectorAll('#app-frame .view').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+}
+
+function switchMainTab(tab) {
+  document.getElementById('nav-vehicles').classList.toggle('on', tab === 'vehicles');
+  document.getElementById('nav-customers').classList.toggle('on', tab === 'customers');
+  document.getElementById('tab-vehicles').style.display = tab === 'vehicles' ? 'block' : 'none';
+  document.getElementById('tab-customers').style.display = tab === 'customers' ? 'block' : 'none';
+  if (tab === 'vehicles') renderVehicles();
+  else renderCustomers();
+}
+
+function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
+// --- LOAD FULL APP INTERFACE ---
+function injectAppHTML() {
+  document.getElementById('app-frame').innerHTML = `
+<div id="app-toast"></div>
 <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="settings-drawer">
   <div class="drawer-header">
     <p style="font-weight:600;font-size:16px">Settings</p>
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
-  <p class="drawer-label">Company</p>
-  <p class="drawer-value" id="drawer-company">—</p>
   <p class="drawer-label">Logged in as</p>
   <p class="drawer-value" id="drawer-email">—</p>
-  <button class="drawer-btn" onclick="showPwForm()">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    Change password
-  </button>
-  <div id="pw-change-form" style="display:none;margin-bottom:12px">
-    <div class="field" style="margin-top:12px"><input type="password" id="new-pw" placeholder="New password (min 6 chars)"></div>
+  <button class="drawer-btn" onclick="showPwForm()">Change password</button>
+  <div id="pw-change-form" style="display:none;margin-bottom:12px;">
+    <div class="field"><input type="password" id="new-pw" placeholder="New password (min 6 chars)"></div>
     <div class="field"><input type="password" id="confirm-pw" placeholder="Confirm new password"></div>
-    <p id="pw-err" style="font-size:12px;color:#f87171;margin-bottom:8px;display:none"></p>
-    <p id="pw-ok" style="font-size:12px;color:var(--green);margin-bottom:8px;display:none">Password updated!</p>
-    <button class="drawer-btn" onclick="doChangePw()">Save new password</button>
+    <p id="pw-err" class="err-msg"></p>
+    <p id="pw-ok" style="font-size:12px;color:var(--green);display:none;">Updated!</p>
+    <button class="drawer-btn" onclick="doChangePw()">Save</button>
   </div>
-  <button class="drawer-btn danger" onclick="doSignOut()">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    Sign out
-  </button>
+  <button class="drawer-btn danger" onclick="doSignOut()">Sign out</button>
 </div>
 
-<!-- AUTH -->
 <div id="view-auth" class="view active">
   <div class="auth-wrap">
     <div class="auth-box">
@@ -190,688 +579,523 @@ async function sb(){ return []; }
         <div class="auth-logo-icon"><svg viewBox="0 0 24 24"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>
         Build Tracker
       </div>
-      <p style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:20px">Vehicle build tracking for body builders</p>
+      <p style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:20px;">Vehicle build tracking for body builders</p>
       <div class="auth-tabs">
-        <button class="auth-tab on" onclick="switchAuthTab('login')">Sign in</button>
-        <button class="auth-tab" onclick="switchAuthTab('signup')">Create account</button>
+        <button class="auth-tab on" id="atab-login" onclick="switchAuthTab('login')">Sign in</button>
+        <button class="auth-tab" id="atab-signup" onclick="switchAuthTab('signup')">Create account</button>
       </div>
-      <!-- LOGIN -->
       <div id="auth-login">
-        <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doSignIn()"></div>
-        <div class="field"><label>Password</label><input type="password" id="login-pw" placeholder="Your password" onkeydown="if(event.key==='Enter')doSignIn()"></div>
-        <p id="login-err" style="font-size:13px;color:#f87171;margin-bottom:10px;display:none"></p>
-        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doSignIn()">Sign in</button>
-        <button onclick="switchAuthTab('forgot')" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;margin-top:12px;cursor:pointer">Forgot password?</button>
+        <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="your@email.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="login-pw" placeholder="Your password"></div>
+        <p id="login-err" class="err-msg"></p>
+        <button class="a-btn a-btn-primary" style="width:100%;justify-content:center;" onclick="doSignIn()">Sign In</button>
       </div>
-      <!-- SIGNUP -->
-      <div id="auth-signup" style="display:none">
-        <div class="field"><label>Company name *</label><input type="text" id="signup-company" placeholder="Acme Body Builders Ltd"></div>
-        <div class="field"><label>Your email *</label><input type="email" id="signup-email" placeholder="your@email.com"></div>
-        <div class="field"><label>Password *</label><input type="password" id="signup-pw" placeholder="Min 6 characters"></div>
-        <div class="field"><label>Confirm password *</label><input type="password" id="signup-pw2" placeholder="Confirm password"></div>
-        <p id="signup-err" style="font-size:13px;color:#f87171;margin-bottom:10px;display:none"></p>
-        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doSignUp()">Create account — 14 day free trial</button>
-        <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px">No payment required to start. Cancel anytime.</p>
-      </div>
-      <!-- FORGOT -->
-      <div id="auth-forgot" style="display:none">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Enter your email and we'll send a reset link.</p>
-        <div class="field"><label>Email</label><input type="email" id="forgot-email" placeholder="your@email.com"></div>
-        <p id="forgot-err" style="font-size:13px;color:#f87171;margin-bottom:10px;display:none"></p>
-        <p id="forgot-ok" style="font-size:13px;color:var(--green);margin-bottom:10px;display:none">Reset email sent! Check your inbox.</p>
-        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doForgotPw()">Send reset link</button>
-        <button onclick="switchAuthTab('login')" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;margin-top:12px;cursor:pointer">Back to sign in</button>
+      <div id="auth-signup" style="display:none;">
+        <div class="field"><label>Full Name</label><input type="text" id="signup-name" placeholder="John Smith"></div>
+        <div class="field"><label>Email</label><input type="email" id="signup-email" placeholder="your@email.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="signup-pw" placeholder="Min 6 characters"></div>
+        <p id="signup-err" class="err-msg"></p>
+        <button class="a-btn a-btn-primary" style="width:100%;justify-content:center;" onclick="doSignUp()">Create Account & Start Trial</button>
+        <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:10px;">14-day free trial</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- HOME -->
-<div id="view-home" class="view">
-  <div id="trial-banner" style="display:none" class="trial-banner"></div>
-  <div class="header">
-    <div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div>
-    <div style="display:flex;align-items:center;gap:8px">
+<div id="view-main" class="view">
+  <div class="app-header">
+    <div class="app-logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>
+      Build Tracker
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
       <div class="nav-tabs">
-        <button class="nav-tab on" onclick="switchTab('vehicles')">Vehicles</button>
-        <button class="nav-tab" onclick="switchTab('customers')">Customers</button>
+        <button class="nav-tab on" id="nav-vehicles" onclick="switchMainTab('vehicles')">Vehicles</button>
+        <button class="nav-tab" id="nav-customers" onclick="switchMainTab('customers')">Customers</button>
       </div>
-      <button class="btn btn-primary" id="main-add-btn" onclick="showView('view-add-vehicle')" style="font-size:13px;padding:7px 14px">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add vehicle
-      </button>
-      <button class="hamburger" onclick="openDrawer()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
+      <button class="hamburger" onclick="toggleDrawer()">☰</button>
     </div>
   </div>
   <div class="container">
-    <div class="tabs">
-      <button class="tab on" id="tab-active" onclick="setFilter('active')">Active builds</button>
-      <button class="tab" id="tab-all" onclick="setFilter('all')">All vehicles</button>
+    <div id="tab-vehicles">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="font-size:18px;font-weight:600;">All Builds</h3>
+        <button class="a-btn a-btn-primary" onclick="showAddVehicle()">+ New Build</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="a-btn" id="filter-active" onclick="filterVehicles('active')">Active</button>
+        <button class="a-btn" id="filter-completed" onclick="filterVehicles('completed')">Completed</button>
+        <button class="a-btn" id="filter-all" onclick="filterVehicles('all')">All</button>
+      </div>
+      <div id="vehicles-list"></div>
+      <div class="empty" id="vehicles-empty" style="display:none;">No builds yet. Click + New Build to start.</div>
     </div>
-    <div id="tab-vehicles"><div id="v-list"><div class="loading"><div class="spinner"></div>Loading…</div></div></div>
-    <div id="tab-customers" style="display:none"><div id="c-list"><div class="loading"><div class="spinner"></div>Loading…</div></div></div>
-  </div>
-</div>
-
-<!-- ADD VEHICLE -->
-<div id="view-add-vehicle" class="view">
-  <div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div>
-  <div class="container">
-    <button class="back-btn" onclick="showView('view-home')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
-    <h2 style="font-size:20px;font-weight:600;margin-bottom:20px">Add new vehicle</h2>
-    <div class="card">
-      <p class="sec">Job info</p>
-      <div class="g2">
-        <div class="field"><label>Job number *</label><input id="f-job" type="text" placeholder="JOB-2024-001"></div>
-        <div class="field"><label>Chassis number *</label><input id="f-chassis" type="text" placeholder="WDB9634031L123456"></div>
+    <div id="tab-customers" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="font-size:18px;font-weight:600;">Customers</h3>
+        <button class="a-btn a-btn-primary" onclick="showAddCustomer()">+ Add Customer</button>
       </div>
-      <div class="g2">
-        <div class="field"><label>Vehicle type *</label>
-          <select id="f-type">
-            <option value="">Select type…</option>
-            <option>Curtainsider</option><option>Flatbed</option><option>Box body</option>
-            <option>Tipper</option><option>Refrigerated</option><option>Dropside</option>
-            <option>Livestock</option><option>Recovery</option><option>ARB</option><option>Other</option>
-          </select>
-        </div>
-        <div class="field"><label>Build description</label><input id="f-build" type="text" placeholder="e.g. Aluminium curtain 13.6m"></div>
-      </div>
-      <hr class="sep">
-      <p class="sec">Assign to customer</p>
-      <div class="field"><label>Customer account</label>
-        <select id="f-customer-id"><option value="">No customer / assign later</option></select>
-      </div>
-      <hr class="sep">
-      <p class="sec">Dates</p>
-      <div class="g2">
-        <div class="field"><label>Start date</label><input id="f-start" type="date"></div>
-        <div class="field"><label>Expected completion</label><input id="f-end" type="date"></div>
-      </div>
-      <div class="field"><label>Notes</label><textarea id="f-notes" rows="2" placeholder="Any special requirements…"></textarea></div>
-      <hr class="sep">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-        <p class="sec" style="margin:0">Build stages for this job</p>
-        <div style="display:flex;gap:10px">
-          <button type="button" onclick="selectAllStages(true)" style="font-size:12px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0">Select all</button>
-          <span style="color:var(--text3);font-size:12px">·</span>
-          <button type="button" onclick="selectAllStages(false)" style="font-size:12px;background:none;border:none;color:var(--text3);cursor:pointer;padding:0">Clear all</button>
-        </div>
-      </div>
-      <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Untick any stages that don't apply to this build</p>
-      <div id="f-stages-list"></div>
-      <p id="add-v-err" style="font-size:13px;color:#f87171;margin-bottom:10px;display:none"></p>
-      <button class="btn btn-primary" id="add-v-btn" style="width:100%;justify-content:center;padding:11px;margin-top:12px" onclick="addVehicle()">Add vehicle</button>
+      <div id="customers-list"></div>
+      <div class="empty" id="customers-empty" style="display:none;">No customers yet.</div>
     </div>
   </div>
 </div>
 
-<!-- ADD CUSTOMER -->
-<div id="view-add-customer" class="view">
-  <div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div>
+<div id="view-job" class="view">
+  <div class="app-header">
+    <button class="back-btn" onclick="backToMain()">← Back to all builds</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="job-status-badge" class="badge"></span>
+      <button class="hamburger" onclick="toggleDrawer()">☰</button>
+    </div>
+  </div>
   <div class="container">
-    <button class="back-btn" onclick="showView('view-home')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
-    <h2 style="font-size:20px;font-weight:600;margin-bottom:20px">Add new customer</h2>
-    <div class="card">
-      <div class="field"><label>Customer reference * (unique code)</label><input id="c-ref" type="text" placeholder="e.g. ACME001"></div>
-      <div class="field"><label>Company / customer name</label><input id="c-name" type="text" placeholder="Acme Logistics Ltd"></div>
-      <div class="field"><label>Phone / contact</label><input id="c-contact" type="text" placeholder="07700 900000"></div>
-      <div class="field"><label>Email address</label><input id="c-email" type="email" placeholder="customer@example.com"></div>
-      <p id="add-c-err" style="font-size:13px;color:#f87171;margin-bottom:10px;display:none"></p>
-      <button class="btn btn-primary" id="add-c-btn" style="width:100%;justify-content:center;padding:11px" onclick="addCustomer()">Add customer</button>
+    <div class="a-card" style="margin-bottom:20px;">
+      <h2 id="job-title" style="font-size:20px;margin-bottom:4px;"></h2>
+      <p id="job-subtitle" style="color:var(--text2);font-size:13px;margin-bottom:12px;"></p>
+      <div class="prog-track"><div id="job-prog" class="prog-fill" style="width:0%"></div></div>
+      <p style="font-size:12px;color:var(--text3);margin-top:4px;">Progress: <span id="job-percent">0</span>%</p>
+    </div>
+    <div id="stages-container"></div>
+    <div class="a-card" style="margin-top:24px;">
+      <p class="sec">Client View Link</p>
+      <div class="link-box">
+        <span id="client-link">https://build-tracker.co.uk?view=xxxx</span>
+        <button class="a-btn" style="margin-left:auto;padding:5px 12px;font-size:12px;" onclick="copyClientLink()">Copy</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- DETAIL -->
-<div id="view-detail" class="view">
-  <div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div>
-  <div class="container">
-    <button class="back-btn" onclick="showView('view-home');loadAll()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>All vehicles</button>
-    <div id="detail-content"></div>
+<!-- MODALS -->
+<div id="modal-vehicle" class="modal">
+  <div class="a-card" style="width:100%;max-width:420px;">
+    <h3 style="font-size:17px;margin-bottom:16px;">New Build / Vehicle</h3>
+    <div class="field">
+      <label>Job / Reference Number *</label>
+      <input type="text" id="v-job" placeholder="e.g. JOB-2026-041">
+    </div>
+    <div class="field">
+      <label>Chassis / Reg</label>
+      <input type="text" id="v-chassis" placeholder="Chassis number or reg">
+    </div>
+    <div class="field">
+      <label>Vehicle Type</label>
+      <input type="text" id="v-type" placeholder="e.g. 7.5t Box, Curtainside">
+    </div>
+    <div class="field">
+      <label>Assign to Customer</label>
+      <select id="v-customer">
+        <option value="">— Select —</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="a-btn" style="flex:1;" onclick="closeModal('vehicle')">Cancel</button>
+      <button class="a-btn a-btn-primary" style="flex:1;" onclick="saveVehicle()">Save Build</button>
+    </div>
   </div>
 </div>
 
-<!-- CUSTOMER PORTAL -->
-<div id="view-customer" class="view">
-  <div id="cust-content"></div>
+<div id="modal-customer" class="modal">
+  <div class="a-card" style="width:100%;max-width:420px;">
+    <h3 style="font-size:17px;margin-bottom:16px;">Add New Customer</h3>
+    <div class="field">
+      <label>Company / Name *</label>
+      <input type="text" id="c-name" placeholder="Full company or name">
+    </div>
+    <div class="field">
+      <label>Contact Person</label>
+      <input type="text" id="c-contact" placeholder="Main contact name">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="c-email" placeholder="contact@company.com">
+    </div>
+    <div class="field">
+      <label>Phone</label>
+      <input type="text" id="c-phone" placeholder="07700 900000">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="a-btn" style="flex:1;" onclick="closeModal('customer')">Cancel</button>
+      <button class="a-btn a-btn-primary" style="flex:1;" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
 </div>
-
-<script>
-const STAGES=[
-  {name:"Frame cut",phase:"fab"},{name:"Weld",phase:"fab"},
-  {name:"Galvanising",phase:"fab"},{name:"Sub-frame",phase:"fab"},
-  {name:"Electrics — 1st fix",phase:"elec"},{name:"1st phase assembly build",phase:"fab"},
-  {name:"Electrics — 2nd fix",phase:"elec"},{name:"Paint",phase:"finish"},
-  {name:"Build up after paint",phase:"finish"},{name:"Axle load",phase:"finish"},
-  {name:"Equipment fit",phase:"finish"},{name:"Livery",phase:"finish"},
-  {name:"Speed limiter",phase:"final"},{name:"Cameras",phase:"final"},
-  {name:"Valet",phase:"final"},{name:"Final summary",phase:"final"},
-  {name:"QC sign-off",phase:"final"}
-];
-const PL={fab:"Fabrication",elec:"Electrical",finish:"Finishing",final:"Final checks"};
-const PC={fab:"ph-fab",elec:"ph-elec",finish:"ph-finish",final:"ph-final"};
-
-let vehicles=[],customers=[],curJob=null,curFilter='active',curUser=null;
-
-/* ---- AUTH ---- */
-function switchAuthTab(tab){
-  ['login','signup','forgot'].forEach(t=>{
-    document.getElementById('auth-'+t).style.display=t===tab?'block':'none';
-  });
-  document.querySelectorAll('.auth-tab').forEach((b,i)=>{
-    b.classList.toggle('on',(i===0&&tab==='login')||(i===1&&tab==='signup'));
-  });
+`;
 }
+// --- LOAD DATA FROM DATABASE ---
+async function loadUserData() {
+  if (!curUser) return;
 
-async function doSignIn(){
-  const email=document.getElementById('login-email').value.trim();
-  const pw=document.getElementById('login-pw').value;
-  const err=document.getElementById('login-err');
-  err.style.display='none';
-  const {data,error}=await sbAuth.auth.signInWithPassword({email,password:pw});
-  if(error){err.textContent=error.message;err.style.display='block';return;}
-  curUser=data.user;
-  await startApp();
-}
+  // Load customers linked to this user
+  const { data: custData } = await supabaseClient
+    .from(TABLES.customers)
+    .select('*')
+    .eq('owner_id', curUser.id);
+  customers = custData || [];
 
-async function doSignUp(){
-  const company=document.getElementById('signup-company').value.trim();
-  const email=document.getElementById('signup-email').value.trim();
-  const pw=document.getElementById('signup-pw').value;
-  const pw2=document.getElementById('signup-pw2').value;
-  const err=document.getElementById('signup-err');
-  err.style.display='none';
-  if(!company||!email||!pw){err.textContent='All fields are required.';err.style.display='block';return;}
-  if(pw!==pw2){err.textContent='Passwords do not match.';err.style.display='block';return;}
-  if(pw.length<6){err.textContent='Password must be at least 6 characters.';err.style.display='block';return;}
-  const {data,error}=await sbAuth.auth.signUp({email,password:pw,options:{data:{company_name:company,trial_start:new Date().toISOString()}}});
-  if(error){err.textContent=error.message;err.style.display='block';return;}
-  curUser=data.user;
-  showToast('Account created! Welcome to Build Tracker.');
-  await startApp();
-}
+  // Load vehicles/builds linked to this user
+  const { data: vehData } = await supabaseClient
+    .from(TABLES.vehicles)
+    .select('*')
+    .eq('owner_id', curUser.id)
+    .order('created_at', { ascending: false });
+  vehicles = vehData || [];
 
-async function doForgotPw(){
-  const email=document.getElementById('forgot-email').value.trim();
-  const err=document.getElementById('forgot-err');
-  const ok=document.getElementById('forgot-ok');
-  err.style.display='none';ok.style.display='none';
-  const {error}=await sbAuth.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
-  if(error){err.textContent=error.message;err.style.display='block';return;}
-  ok.style.display='block';
-}
-
-async function doSignOut(){
-  await sbAuth.auth.signOut();
-  curUser=null;vehicles=[];customers=[];
-  closeDrawer();
-  showView('view-auth');
-}
-
-function showPwForm(){
-  const f=document.getElementById('pw-change-form');
-  f.style.display=f.style.display==='none'?'block':'none';
-}
-
-async function doChangePw(){
-  const pw=document.getElementById('new-pw').value;
-  const cpw=document.getElementById('confirm-pw').value;
-  const err=document.getElementById('pw-err');
-  const ok=document.getElementById('pw-ok');
-  err.style.display='none';ok.style.display='none';
-  if(pw.length<6){err.textContent='Min 6 characters';err.style.display='block';return;}
-  if(pw!==cpw){err.textContent='Passwords do not match';err.style.display='block';return;}
-  const {error}=await sbAuth.auth.updateUser({password:pw});
-  if(error){err.textContent=error.message;err.style.display='block';return;}
-  ok.style.display='block';
-  document.getElementById('new-pw').value='';
-  document.getElementById('confirm-pw').value='';
-}
-
-/* ---- DRAWER ---- */
-function openDrawer(){document.getElementById('settings-drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');}
-function closeDrawer(){document.getElementById('settings-drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');document.getElementById('pw-change-form').style.display='none';}
-
-/* ---- TRIAL BANNER ---- */
-function showTrialBanner(user){
-  const banner=document.getElementById('trial-banner');
-  const trialStart=user.user_metadata?.trial_start;
-  if(!trialStart){banner.style.display='none';return;}
-  const days=Math.floor((new Date()-new Date(trialStart))/(1000*60*60*24));
-  const left=14-days;
-  if(left>0&&left<=14){
-    banner.style.display='block';
-    banner.textContent=`⏳ Free trial: ${left} day${left!==1?'s':''} remaining — contact us to subscribe and keep your data`;
-  } else if(left<=0){
-    banner.style.display='block';
-    banner.textContent='⚠️ Your free trial has ended — please contact us to continue using Build Tracker';
-  } else {
-    banner.style.display='none';
+  // Update customer dropdown in "New Build" modal
+  const select = document.getElementById('v-customer');
+  if (select) {
+    select.innerHTML = '<option value="">— Select —</option>';
+    customers.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      select.appendChild(opt);
+    });
   }
+
+  // Refresh displays
+  renderVehicles();
+  renderCustomers();
 }
 
-/* ---- DATA API ---- */
-async function sb(path,opts={}){
-  const h={...HDR};
-  if(curUser) h['Authorization']='Bearer '+(await sbAuth.auth.getSession()).data.session?.access_token;
-  if(opts.method==='POST') h['Prefer']='return=representation';
-  if(opts.method==='PATCH') h['Prefer']='return=minimal';
-  const r=await fetch(SB_URL+'/rest/v1/'+path,{headers:h,...opts});
-  if(!r.ok){const e=await r.text();throw new Error(e);}
-  const txt=await r.text();
-  return txt?JSON.parse(txt):null;
+// --- CUSTOMER MANAGEMENT ---
+function showAddCustomer() {
+  // Clear form
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-contact').value = '';
+  document.getElementById('c-email').value = '';
+  document.getElementById('c-phone').value = '';
+  // Open modal
+  document.getElementById('modal-customer').classList.add('open');
 }
 
-function mapV(row){
-  return{job:row.job,chassis:row.chassis,type:row.type,build:row.build,
-    customer_id:row.customer_id,start:row.start_date,end:row.end_date,
-    notes:row.notes,applicable:row.applicable||STAGES.map((_,i)=>i),
-    ticked:row.ticked||[],token:row.customer_token,created:row.created_at};
-}
-function mapC(row){
-  return{id:row.id,ref:row.reference,name:row.name,contact:row.contact,email:row.email,token:row.token};
-}
-function custName(cid){const c=customers.find(x=>x.id===cid);return c?c.name||c.ref:'—';}
+async function saveCustomer() {
+  const name = document.getElementById('c-name').value.trim();
+  const contact = document.getElementById('c-contact').value.trim();
+  const email = document.getElementById('c-email').value.trim();
+  const phone = document.getElementById('c-phone').value.trim();
 
+  if (!name) {
+    showToast('⚠️ Please enter a customer name');
+    return;
+  }
 
-async function loadAll(){
- vehicles=[];
- customers=[];
- renderList();
- renderCustomerList();
- populateCustomerDropdown();
-}
+  const { error } = await supabaseClient.from(TABLES.customers).insert({
+    owner_id: curUser.id,
+    name: name,
+    contact_name: contact,
+    email: email,
+    phone: phone
+  });
 
+  if (error) {
+    showToast('❌ Error saving: ' + error.message);
+    return;
+  }
 
-function populateCustomerDropdown(){
-  const sel=document.getElementById('f-customer-id');
-  sel.innerHTML='<option value="">No customer / assign later</option>';
-  customers.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=`${c.ref} — ${c.name||''}`;sel.appendChild(o);});
-}
-
-/* ---- NAV ---- */
-function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
-
-function switchTab(tab){
-  document.getElementById('tab-vehicles').style.display=tab==='vehicles'?'block':'none';
-  document.getElementById('tab-customers').style.display=tab==='customers'?'block':'none';
-  document.querySelectorAll('.nav-tab').forEach((b,i)=>{b.classList.toggle('on',(i===0&&tab==='vehicles')||(i===1&&tab==='customers'));});
-  const addBtn=document.getElementById('main-add-btn');
-  if(tab==='customers'){addBtn.textContent='Add customer';addBtn.onclick=()=>showView('view-add-customer');}
-  else{addBtn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add vehicle';addBtn.onclick=()=>showView('view-add-vehicle');}
+  closeModal('customer');
+  showToast('✅ Customer saved');
+  await loadUserData();
 }
 
-function setFilter(f){curFilter=f;document.getElementById('tab-active').classList.toggle('on',f==='active');document.getElementById('tab-all').classList.toggle('on',f==='all');renderList();}
+function renderCustomers() {
+  const list = document.getElementById('customers-list');
+  const empty = document.getElementById('customers-empty');
 
-/* ---- HELPERS ---- */
-function getApp(v){return v.applicable&&v.applicable.length?v.applicable:STAGES.map((_,i)=>i);}
-function pct(v){const a=getApp(v);return a.length?Math.round((a.filter(i=>(v.ticked||[]).includes(i)).length/a.length)*100):0;}
-function done(v){const a=getApp(v);return a.length>0&&a.every(i=>(v.ticked||[]).includes(i));}
-function firstUn(v){const a=getApp(v),i=a.find(i=>!(v.ticked||[]).includes(i));return i!==undefined?i:a[a.length-1]||0;}
-function custPortalLink(c){return location.origin+location.pathname+'?customer='+c.token;}
+  if (!list || !empty) return;
 
-/* ---- LISTS ---- */
-function renderList(){
-  const el=document.getElementById('v-list');
-  const vv=curFilter==='active'?vehicles.filter(v=>!done(v)):vehicles;
-  if(!vv.length){el.innerHTML=`<div class="empty"><p style="font-weight:500;margin-bottom:4px">${curFilter==='active'?'No active builds':'No vehicles yet'}</p></div>`;return;}
-  el.innerHTML=vv.map(v=>{
-    const p=pct(v),d=done(v),a=getApp(v),cur=STAGES[firstUn(v)],cn=custName(v.customer_id);
-    return`<div class="v-item" onclick="openDetail('${v.job}')">
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
-          <span style="font-weight:600;font-size:15px">${v.job}</span>
-          <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${v.chassis}</span>
-          <span class="badge ${d?'badge-green':'badge-blue'}">${d?'Complete':v.type}</span>
-        </div>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:8px">${cn} · ${v.build||v.type}</p>
-        <div class="prog-track"><div class="prog-fill" style="width:${p}%"></div></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
-          <p style="font-size:12px;color:var(--text3)">${a.filter(i=>(v.ticked||[]).includes(i)).length}/${a.length} stages · ${p}%</p>
-          <span class="badge ${PC[cur.phase]}" style="font-size:10px">${PL[cur.phase]}</span>
-        </div>
-      </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>`;
-  }).join('');
-}
+  if (customers.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
 
-function renderCustomerList(){
-  const el=document.getElementById('c-list');
-  if(!customers.length){el.innerHTML=`<div class="empty"><p style="font-weight:500;margin-bottom:4px">No customers yet</p><p style="font-size:13px;color:var(--text3)">Click "Add customer" to get started</p></div>`;return;}
-  el.innerHTML=customers.map(c=>{
-    const cvs=vehicles.filter(v=>v.customer_id===c.id);
-    const active=cvs.filter(v=>!done(v)).length;
-    return`<div class="c-item" onclick="openCustomerDetail('${c.id}')">
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
-          <span style="font-weight:600;font-size:15px">${c.name||c.ref}</span>
-          <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${c.ref}</span>
-        </div>
-        <p style="font-size:13px;color:var(--text2)">${cvs.length} vehicle${cvs.length!==1?'s':''} · ${active} active</p>
-      </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>`;
-  }).join('');
-}
-
-/* ---- ADD FORMS ---- */
-function renderFormStages(){
-  const el=document.getElementById('f-stages-list');if(!el)return;
-  let lp='';
-  el.innerHTML=STAGES.map((s,i)=>{
-    let ph='';
-    if(s.phase!==lp){lp=s.phase;ph=`<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:${i===0?'0':'10px'} 0 5px">${PL[s.phase]}</div>`;}
-    return`${ph}<label style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:var(--radius-sm);cursor:pointer" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">
-      <span class="cb-wrap"><input type="checkbox" id="fs-${i}" checked><div class="cb-box"><svg class="cb-tick" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></span>
-      <span style="font-size:13px;flex:1">${s.name}</span>
-      <span class="phase-pill ${PC[s.phase]}">${PL[s.phase]}</span>
-    </label>`;
-  }).join('');
-}
-
-function selectAllStages(val){STAGES.forEach((_,i)=>{const cb=document.getElementById('fs-'+i);if(cb)cb.checked=val;});}
-
-async function addVehicle(){
-  const job=document.getElementById('f-job').value.trim();
-  const chassis=document.getElementById('f-chassis').value.trim();
-  const type=document.getElementById('f-type').value;
-  const err=document.getElementById('add-v-err');
-  if(!job||!chassis||!type){err.textContent='Job number, chassis number and vehicle type are required.';err.style.display='block';return;}
-  err.style.display='none';
-  const applicable=STAGES.map((_,i)=>{const cb=document.getElementById('fs-'+i);return cb&&cb.checked?i:null;}).filter(i=>i!==null);
-  const customer_id=document.getElementById('f-customer-id').value||null;
-  const btn=document.getElementById('add-v-btn');btn.textContent='Saving…';btn.disabled=true;
-  try{
-    const res=await sb('vehicles',{method:'POST',body:JSON.stringify({
-      job,chassis,type,customer_id,user_id:curUser.id,
-      build:document.getElementById('f-build').value.trim(),
-      start_date:document.getElementById('f-start').value,
-      end_date:document.getElementById('f-end').value,
-      notes:document.getElementById('f-notes').value.trim(),
-      applicable,ticked:[]
-    })});
-    vehicles.unshift(mapV(res[0]));
-    ['f-job','f-chassis','f-build','f-start','f-end','f-notes'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('f-type').value='';document.getElementById('f-customer-id').value='';
-    renderFormStages();renderList();renderCustomerList();showView('view-home');showToast('Vehicle added!');
-  }catch(e){err.textContent='Error: '+e.message;err.style.display='block';}
-  btn.textContent='Add vehicle';btn.disabled=false;
-}
-
-async function addCustomer(){
-  const ref=document.getElementById('c-ref').value.trim().toUpperCase();
-  const err=document.getElementById('add-c-err');
-  if(!ref){err.textContent='Customer reference is required.';err.style.display='block';return;}
-  err.style.display='none';
-  const btn=document.getElementById('add-c-btn');btn.textContent='Saving…';btn.disabled=true;
-  try{
-    const res=await sb('customers',{method:'POST',body:JSON.stringify({
-      reference:ref,user_id:curUser.id,
-      name:document.getElementById('c-name').value.trim(),
-      contact:document.getElementById('c-contact').value.trim(),
-      email:document.getElementById('c-email').value.trim()
-    })});
-    customers.push(mapC(res[0]));
-    ['c-ref','c-name','c-contact','c-email'].forEach(id=>document.getElementById(id).value='');
-    populateCustomerDropdown();renderCustomerList();
-    showToast('Customer added!');showView('view-home');switchTab('customers');
-  }catch(e){err.textContent='Error: '+e.message;err.style.display='block';}
-  btn.textContent='Add customer';btn.disabled=false;
-}
-
-/* ---- DETAIL ---- */
-function openDetail(job){curJob=job;renderDetail();showView('view-detail');}
-
-function renderDetail(){
-  const v=vehicles.find(x=>x.job===curJob);if(!v)return;
-  const p=pct(v),d=done(v),a=getApp(v),tc=a.filter(i=>(v.ticked||[]).includes(i)).length;
-  const c=customers.find(x=>x.id===v.customer_id);
-  const link=c?custPortalLink(c):'';
-  document.getElementById('detail-content').innerHTML=`
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-      <div><h1 style="font-size:22px;font-weight:700;margin-bottom:4px">${v.job}</h1>
-      <p style="color:var(--text2);font-size:14px">${c?c.name||c.ref:'No customer'} · <span style="font-family:'DM Mono',monospace">${v.chassis}</span></p></div>
-      <span class="badge ${d?'badge-green':'badge-amber'}">${d?'Complete':'In progress'}</span>
-    </div>
-    <div class="g3" style="margin-bottom:18px">
-      <div class="stat-card"><div class="lbl">Vehicle type</div><div class="val" style="font-size:14px">${v.type}</div></div>
-      <div class="stat-card"><div class="lbl">Build</div><div class="val" style="font-size:14px">${v.build||'—'}</div></div>
-      <div class="stat-card"><div class="lbl">Progress</div><div class="val" id="prog-val">${p}% <span style="font-size:12px;font-weight:400;color:var(--text3)">(${tc}/${a.length})</span></div></div>
-    </div>
-    ${v.start||v.end?`<div class="g2" style="margin-bottom:18px">
-      ${v.start?`<div class="stat-card"><div class="lbl">Start date</div><div class="val" style="font-size:14px">${v.start}</div></div>`:''}
-      ${v.end?`<div class="stat-card"><div class="lbl">Expected completion</div><div class="val" style="font-size:14px">${v.end}</div></div>`:''}
-    </div>`:''}
-    <div class="card" style="margin-bottom:18px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
-        <p class="sec" style="margin:0">Build stages</p>
-        <p style="font-size:12px;color:var(--text3)">Tick when complete</p>
-      </div>
-      <div class="prog-track" style="margin-bottom:14px"><div class="prog-fill" id="dpb" style="width:${p}%"></div></div>
-      <div id="stage-list">${stageHTML(v)}</div>
-    </div>
-    ${c?`<div class="card" style="margin-bottom:18px">
-      <p class="sec">Customer share link</p>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:10px">This link shows <strong>all builds</strong> for ${c.name||c.ref}.</p>
-      <div class="link-box">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${link}</span>
-        <button onclick="copyLink('${link}')" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;font-family:'DM Sans',sans-serif">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          <span id="copy-lbl">Copy link</span>
-        </button>
-      </div>
-    </div>`:''}
-    ${v.notes?`<div class="card" style="margin-bottom:18px"><p class="sec">Notes</p><p style="font-size:14px;color:var(--text2)">${v.notes}</p></div>`:''}
-    <hr class="sep">
-    <button class="btn btn-danger" onclick="delVehicle('${v.job}')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-      Delete vehicle
-    </button>`;
-}
-
-function openCustomerDetail(id){
-  const c=customers.find(x=>x.id===id);if(!c)return;
-  const cvs=vehicles.filter(v=>v.customer_id===id);
-  const link=custPortalLink(c);
-  showView('view-detail');
-  document.querySelector('#view-detail .back-btn').onclick=()=>{showView('view-home');switchTab('customers');};
-  document.getElementById('detail-content').innerHTML=`
-    <div style="margin-bottom:20px">
-      <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">${c.name||c.ref}</h1>
-      <p style="color:var(--text2);font-size:14px">Ref: <span style="font-family:'DM Mono',monospace">${c.ref}</span>${c.contact?' · '+c.contact:''}</p>
-    </div>
-    <div class="card" style="margin-bottom:18px">
-      <p class="sec">Customer portal link</p>
-      <div class="link-box">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${link}</span>
-        <button onclick="copyLink('${link}')" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;font-family:'DM Sans',sans-serif">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          <span id="copy-lbl">Copy link</span>
-        </button>
+  empty.style.display = 'none';
+  list.innerHTML = customers.map(c => `
+    <div class="c-item">
+      <div style="flex:1">
+        <h4 style="font-size:15px;margin-bottom:4px">${c.name}</h4>
+        ${c.contact_name ? `<p style="font-size:12px;color:var(--text2)">Contact: ${c.contact_name}</p>` : ''}
+        ${c.email ? `<p style="font-size:12px;color:var(--text2)">Email: ${c.email}</p>` : ''}
+        ${c.phone ? `<p style="font-size:12px;color:var(--text2)">Phone: ${c.phone}</p>` : ''}
       </div>
     </div>
-    <p class="sec">Vehicles (${cvs.length})</p>
-    ${cvs.length?cvs.map(v=>{
-      const p=pct(v),d=done(v),a=getApp(v);
-      return`<div class="v-item" onclick="openDetail('${v.job}')">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
-            <span style="font-weight:600">${v.job}</span>
-            <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${v.chassis}</span>
-            <span class="badge ${d?'badge-green':'badge-blue'}">${d?'Complete':v.type}</span>
+  `).join('');
+}
+
+// --- VEHICLE / BUILD MANAGEMENT ---
+function showAddVehicle() {
+  // Clear form
+  document.getElementById('v-job').value = '';
+  document.getElementById('v-chassis').value = '';
+  document.getElementById('v-type').value = '';
+  document.getElementById('v-customer').value = '';
+  // Open modal
+  document.getElementById('modal-vehicle').classList.add('open');
+}
+
+async function saveVehicle() {
+  const job = document.getElementById('v-job').value.trim();
+  const chassis = document.getElementById('v-chassis').value.trim();
+  const type = document.getElementById('v-type').value.trim();
+  const customerId = document.getElementById('v-customer').value || null;
+
+  if (!job) {
+    showToast('⚠️ Please enter a Job/Reference number');
+    return;
+  }
+
+  // Create new stages list (all unchecked)
+  const newStages = STAGES.map(s => ({ ...s, done: false }));
+
+  const { error } = await supabaseClient.from(TABLES.vehicles).insert({
+    owner_id: curUser.id,
+    job_number: job,
+    chassis: chassis,
+    vehicle_type: type,
+    customer_id: customerId,
+    status: 'active',
+    progress: 0,
+    stages: newStages
+  });
+
+  if (error) {
+    showToast('❌ Error saving build: ' + error.message);
+    return;
+  }
+
+  closeModal('vehicle');
+  showToast('✅ New build created');
+  await loadUserData();
+}
+
+function filterVehicles(status) {
+  curFilter = status;
+  // Update active filter button style
+  document.querySelectorAll('#tab-vehicles .a-btn').forEach(btn => btn.classList.remove('on'));
+  document.getElementById(`filter-${status}`).classList.add('on');
+  renderVehicles();
+}
+
+function renderVehicles() {
+  const list = document.getElementById('vehicles-list');
+  const empty = document.getElementById('vehicles-empty');
+
+  if (!list || !empty) return;
+
+  let filtered = vehicles;
+  if (curFilter !== 'all') {
+    filtered = vehicles.filter(v => v.status === curFilter);
+  }
+
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  list.innerHTML = filtered.map(v => {
+    const done = v.stages ? v.stages.filter(s => s.done).length : 0;
+    const total = STAGES.length;
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+    const customer = customers.find(c => c.id === v.customer_id);
+    return `
+      <div class="v-item" onclick="openJob('${v.id}')">
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h4 style="font-size:15px">${v.job_number}</h4>
+            <span class="badge ${v.status === 'completed' ? 'badge-green' : 'badge-amber'}">${v.status}</span>
           </div>
-          <div class="prog-track"><div class="prog-fill" style="width:${p}%"></div></div>
-          <p style="font-size:12px;color:var(--text3);margin-top:4px">${a.filter(i=>(v.ticked||[]).includes(i)).length}/${a.length} stages · ${p}%</p>
+          ${v.vehicle_type ? `<p style="font-size:12px;color:var(--text2)">Type: ${v.vehicle_type}</p>` : ''}
+          ${customer ? `<p style="font-size:12px;color:var(--text2)">Customer: ${customer.name}</p>` : ''}
+          <div class="prog-track"><div class="prog-fill" style="width:${percent}%"></div></div>
+          <p style="font-size:11px;color:var(--text3)">Progress: ${percent}%</p>
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>`;
-    }).join(''):`<div class="empty" style="padding:24px"><p style="font-size:13px;color:var(--text3)">No vehicles assigned yet</p></div>`}
-    <hr class="sep">
-    <button class="btn btn-danger" onclick="delCustomer('${c.id}')">Delete customer</button>`;
-}
-
-function stageHTML(v){
-  const tk=v.ticked||[],ap=getApp(v);let lp='';
-  return STAGES.map((s,i)=>{
-    const isAp=ap.includes(i),isTk=tk.includes(i);
-    let ph='';if(s.phase!==lp){lp=s.phase;ph=`<div class="phase-hdr">${PL[s.phase]}</div>`;}
-    if(!isAp)return`${ph}<div style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:var(--radius-sm);opacity:.3">
-      <div style="width:22px;height:22px;border-radius:6px;border:1px dashed var(--border2);flex-shrink:0"></div>
-      <span class="stage-num">${i+1}</span><span style="font-size:13px;color:var(--text3);flex:1;font-style:italic">${s.name}</span>
-      <span style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 8px">N/A</span>
-    </div>`;
-    return`${ph}<div class="stage-row ${isTk?'s-done':''}" id="srow-${i}">
-      <label class="cb-wrap"><input type="checkbox" ${isTk?'checked':''} onchange="toggleStage('${v.job}',${i},this.checked)">
-      <div class="cb-box"><svg class="cb-tick" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></label>
-      <span class="stage-num">${i+1}</span><span class="stage-name">${s.name}</span>
-      <span class="phase-pill ${PC[s.phase]}">${PL[s.phase]}</span>
-    </div>`;
+      </div>
+    `;
   }).join('');
 }
+// --- OPEN JOB DETAIL VIEW ---
+async function openJob(jobId) {
+  curJob = vehicles.find(v => v.id === jobId);
+  if (!curJob) return;
 
-async function toggleStage(job,idx,checked){
-  const v=vehicles.find(x=>x.job===job);if(!v)return;
-  if(!v.ticked)v.ticked=[];
-  if(checked){if(!v.ticked.includes(idx))v.ticked.push(idx);}
-  else{v.ticked=v.ticked.filter(i=>i!==idx);}
-  const row=document.getElementById('srow-'+idx);
-  if(row)row.className='stage-row '+(checked?'s-done':'');
-  const a=getApp(v),p=pct(v);
-  const bar=document.getElementById('dpb');if(bar)bar.style.width=p+'%';
-  const pv=document.getElementById('prog-val');if(pv)pv.innerHTML=`${p}% <span style="font-size:12px;font-weight:400;color:var(--text3)">(${a.filter(i=>v.ticked.includes(i)).length}/${a.length})</span>`;
-  showToast(checked?'✓ '+STAGES[idx].name+' complete':STAGES[idx].name+' unmarked');
-  if(checked&&idx===16){
-    const c=customers.find(x=>x.id===v.customer_id);
-    if(c){
-      fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({customerName:c.name||c.ref,customerEmail:c.email||'',jobNumber:v.job,chassisNumber:v.chassis,portalLink:custPortalLink(c)})
-      }).then(r=>r.json()).then(d=>{
-        if(d.success)showToast('✅ Completion email sent!');
-        else showToast('Email error: '+d.error);
-      }).catch(()=>showToast('Could not send email'));
+  // Update header info
+  document.getElementById('job-title').textContent = curJob.job_number;
+  document.getElementById('job-subtitle').textContent = `${curJob.vehicle_type || ''} ${curJob.chassis ? `| Chassis: ${curJob.chassis}` : ''}`;
+  document.getElementById('job-status-badge').className = `badge ${curJob.status === 'completed' ? 'badge-green' : 'badge-amber'}`;
+  document.getElementById('job-status-badge').textContent = curJob.status;
+
+  // ✅ ALWAYS use https:// link for customer
+  const clientLink = `https://build-tracker.co.uk?view=${curJob.id}`;
+  document.getElementById('client-link').textContent = clientLink;
+
+  renderStages();
+  showAppView('view-job');
+}
+
+// --- RENDER BUILD STAGES ---
+function renderStages() {
+  if (!curJob || !curJob.stages) return;
+  const container = document.getElementById('stages-container');
+  const grouped = {};
+
+  // Group stages by phase
+  curJob.stages.forEach((stage, i) => {
+    if (!grouped[stage.phase]) grouped[stage.phase] = [];
+    grouped[stage.phase].push({ ...stage, index: i });
+  });
+
+  container.innerHTML = Object.keys(grouped).map(phase => `
+    <div style="margin-bottom:20px">
+      <div class="phase-hdr">${PHASE_LABELS[phase]}</div>
+      ${grouped[phase].map(stage => `
+        <div class="stage-row ${stage.done ? 's-done' : ''}">
+          <div class="cb-wrap">
+            <input type="checkbox" ${stage.done ? 'checked' : ''} onchange="toggleStage(${stage.index})">
+            <div class="cb-box">
+              <svg class="cb-tick" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="3">
+                <path d="M6 10l3 3 6-6" />
+              </svg>
+            </div>
+          </div>
+          <span class="stage-name">${stage.name}</span>
+          <span class="phase-pill ${PHASE_STYLES[phase]}">${PHASE_LABELS[phase].substring(0,4)}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  updateJobProgress();
+}
+
+// --- TOGGLE STAGE COMPLETE / INCOMPLETE ---
+async function toggleStage(index) {
+  if (!curJob) return;
+  curJob.stages[index].done = !curJob.stages[index].done;
+
+  // Calculate new progress & status
+  const doneCount = curJob.stages.filter(s => s.done).length;
+  const total = STAGES.length;
+  const percent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+  const newStatus = doneCount === total ? 'completed' : 'active';
+
+  // Save to database
+  const { error } = await supabaseClient.from(TABLES.vehicles)
+    .update({ 
+      stages: curJob.stages, 
+      progress: percent, 
+      status: newStatus 
+    })
+    .eq('id', curJob.id);
+
+  if (error) {
+    showToast('❌ Error updating stage');
+    return;
+  }
+
+  // Update local data & refresh
+  curJob.status = newStatus;
+  renderStages();
+  showToast('✅ Updated');
+}
+
+// --- UPDATE PROGRESS BAR ---
+function updateJobProgress() {
+  const done = curJob.stages.filter(s => s.done).length;
+  const total = STAGES.length;
+  const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('job-prog').style.width = `${percent}%`;
+  document.getElementById('job-percent').textContent = percent;
+}
+
+// --- NAVIGATION ---
+function backToMain() {
+  curJob = null;
+  showAppView('view-main');
+  renderVehicles();
+}
+
+// --- COPY CUSTOMER LINK ---
+function copyClientLink() {
+  const link = `https://build-tracker.co.uk?view=${curJob.id}`;
+  navigator.clipboard.writeText(link).then(() => showToast('✅ Link copied to clipboard'));
+}
+
+// --- ✅ HANDLE PAYMENT RETURN & SUCCESS ---
+window.addEventListener('load', async () => {
+  const params = new URLSearchParams(window.location.search);
+  
+  if (params.get('success') === '1') {
+    // Payment successful — activate account
+    const pending = sessionStorage.getItem('pending_user');
+    if (pending) {
+      const userData = JSON.parse(pending);
+      // Mark subscription as active
+      await supabaseClient.from(TABLES.subscriptions).insert({
+        user_id: userData.id,
+        status: 'active',
+        started_at: new Date().toISOString(),
+        next_billing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      });
+      sessionStorage.removeItem('pending_user');
+    }
+    document.getElementById('successBox').style.display = 'block';
+    // Clean URL
+    window.history.replaceState({}, document.title, '/');
+  } else if (params.get('canceled') === '1') {
+    document.getElementById('errorBox').textContent = '❌ Payment canceled. You can try again anytime.';
+    document.getElementById('errorBox').style.display = 'block';
+    window.history.replaceState({}, document.title, '/');
+  }
+
+  // ✅ HANDLE CUSTOMER VIEW (NO LOGIN REQUIRED)
+  const viewId = params.get('view');
+  if (viewId && !curUser) {
+    // Load public view for customer
+    const { data: build } = await supabaseClient.from(TABLES.vehicles)
+      .select('job_number, vehicle_type, chassis, status, progress, stages')
+      .eq('id', viewId)
+      .single();
+
+    if (build) {
+      document.body.innerHTML = `
+      <style>*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+      body{background:#f5f7fa;padding:20px;max-width:600px;margin:0 auto;}
+      .header{background:#165DFF;color:white;padding:20px;border-radius:8px;margin-bottom:20px;}
+      .prog-track{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin:10px 0;}
+      .prog-fill{height:100%;background:#165DFF;}
+      .stage-row{padding:10px;margin:6px 0;border-radius:6px;display:flex;align-items:center;gap:10px;}
+      .done{background:#dcfce7;color:#166538;}
+      .pending{background:#f1f5f9;color:#475569;}
+      .badge{display:inline-block;padding:4px 10px;border-radius:12px;font-size:12px;}
+      .active{background:#fef3c7;color:#92400e;}
+      .completed{background:#dcfce7;color:#166538;}
+      </style>
+      <div class="header">
+        <h1>Build Progress</h1>
+        <p>${build.job_number}</p>
+        ${build.vehicle_type ? `<p>${build.vehicle_type}</p>` : ''}
+        <span class="badge ${build.status}">${build.status}</span>
+        <div class="prog-track"><div class="prog-fill" style="width:${build.progress}%"></div></div>
+        <p>${build.progress}% Complete</p>
+      </div>
+      <div>
+        ${build.stages.map(s => `
+          <div class="stage-row ${s.done ? 'done' : 'pending'}">
+            <span>${s.done ? '✅' : '⬜'}</span>
+            <span>${s.name}</span>
+          </div>
+        `).join('')}
+      </div>
+      `;
     }
   }
-  renderList();
-  try{await sb('vehicles?job=eq.'+encodeURIComponent(job),{method:'PATCH',body:JSON.stringify({ticked:v.ticked})});}
-  catch(e){showToast('Save failed: '+e.message);}
-}
+});
 
-async function delVehicle(job){
-  if(!confirm('Delete this vehicle?'))return;
-  try{await sb('vehicles?job=eq.'+encodeURIComponent(job),{method:'DELETE'});vehicles=vehicles.filter(v=>v.job!==job);renderList();renderCustomerList();showView('view-home');showToast('Vehicle deleted');}
-  catch(e){showToast('Error: '+e.message);}
-}
-
-async function delCustomer(id){
-  if(!confirm('Delete this customer?'))return;
-  try{
-    await sb('customers?id=eq.'+id,{method:'DELETE'});
-    customers=customers.filter(c=>c.id!==id);
-    vehicles=vehicles.map(v=>v.customer_id===id?{...v,customer_id:null}:v);
-    renderList();renderCustomerList();populateCustomerDropdown();showView('view-home');showToast('Customer deleted');
-  }catch(e){showToast('Error: '+e.message);}
-}
-
-function copyLink(url){
-  navigator.clipboard.writeText(url).then(()=>{
-    const el=document.getElementById('copy-lbl');if(el)el.textContent='Copied!';
-    setTimeout(()=>{const e=document.getElementById('copy-lbl');if(e)e.textContent='Copy link';},2500);
-    showToast('Link copied!');
-  }).catch(()=>prompt('Copy this link:',url));
-}
-
-function showToast(msg){
-  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);
-}
-
-/* ---- CUSTOMER PORTAL ---- */
-async function renderCustomerPortal(token){
-  const el=document.getElementById('cust-content');
-  el.innerHTML=`<div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div><div class="loading"><div class="spinner"></div>Loading your builds…</div>`;
-  try{
-    const cd=await fetch(SB_URL+'/rest/v1/customers?token=eq.'+token+'&select=*',{headers:HDR}).then(r=>r.json());
-    if(!cd||!cd.length){el.innerHTML=`<div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div><div class="container" style="text-align:center;padding-top:60px"><p style="font-size:18px;font-weight:600;margin-bottom:8px">Portal not found</p><p style="color:var(--text2);font-size:14px">Check your link or contact your body builder.</p></div>`;return;}
-    const c=mapC(cd[0]);
-    const vd=await fetch(SB_URL+'/rest/v1/vehicles?customer_id=eq.'+c.id+'&select=*&order=created_at.desc',{headers:HDR}).then(r=>r.json());
-    const cvs=vd.map(mapV);
-    const activeCount=cvs.filter(v=>!done(v)).length;
-    el.innerHTML=`
-      <div class="header">
-        <div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div>
-        <span class="badge ${activeCount===0?'badge-green':'badge-blue'}">${activeCount===0?'All complete':activeCount+' in progress'}</span>
-      </div>
-      <div class="container">
-        <div style="margin-bottom:24px">
-          <p style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Your vehicle builds</p>
-          <h1 style="font-size:24px;font-weight:700;margin-bottom:4px">${c.name||c.ref}</h1>
-          <p style="color:var(--text2);font-size:14px">${cvs.length} vehicle${cvs.length!==1?'s':''} · ${activeCount} active</p>
-        </div>
-        ${cvs.length?cvs.map(v=>{
-          const p=pct(v),d=done(v),tk=v.ticked||[],ap=getApp(v),ci=firstUn(v),st=STAGES[ci];let lp='';
-          return`<div class="card" style="margin-bottom:18px">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-              <div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <span style="font-weight:600;font-size:16px">${v.job}</span>
-                  <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${v.chassis}</span>
-                </div>
-                <p style="font-size:13px;color:var(--text2);margin-top:2px">${v.type}${v.build?' · '+v.build:''}</p>
-              </div>
-              <span class="badge ${d?'badge-green':'badge-blue'}">${d?'Complete':p+'%'}</span>
-            </div>
-            <div class="prog-track" style="height:8px"><div class="prog-fill" style="width:${p}%"></div></div>
-            <p style="font-size:12px;color:var(--text2);margin-top:6px">${d?'Build complete!':'Currently: <strong>'+st.name+'</strong>'} · ${tk.filter(i=>ap.includes(i)).length}/${ap.length} stages done</p>
-            <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
-              ${STAGES.filter((_,i)=>ap.includes(i)).map(s=>{
-                const i=STAGES.indexOf(s),isTk=tk.includes(i),isNx=(i===ci&&!d);
-                let ph='';if(s.phase!==lp){lp=s.phase;ph=`<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:10px 0 4px">${PL[s.phase]}</div>`;}
-                return`${ph}<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
-                  <div style="width:20px;height:20px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-                    background:${isTk?'var(--green)':isNx?'var(--blue-dim)':'var(--bg3)'};
-                    border:1px solid ${isTk?'var(--green)':isNx?'var(--blue-border)':'var(--border2)'}">
-                    ${isTk?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`:isNx?`<div style="width:6px;height:6px;border-radius:50%;background:var(--blue)"></div>`:`<span style="font-size:9px;color:var(--text3)">${i+1}</span>`}
-                  </div>
-                  <span style="font-size:12px;flex:1;color:${isTk?'var(--text3)':isNx?'var(--text)':'var(--text2)'};font-weight:${isNx?'600':'400'};text-decoration:${isTk?'line-through':'none'}">${s.name}</span>
-                  ${isNx?`<span style="font-size:10px;color:var(--blue);font-weight:600">IN PROGRESS</span>`:''}
-                  ${isTk?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:''}
-                </div>`;
-              }).join('')}
-            </div>
-            ${v.end?`<p style="font-size:12px;color:var(--text3);margin-top:10px">Expected completion: <strong style="color:var(--text2)">${v.end}</strong></p>`:''}
-          </div>`;
-        }).join(''):`<div class="empty"><p>No vehicles assigned yet</p></div>`}
-        <p style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">Questions? Contact us quoting ref <strong style="color:var(--text2)">${c.ref}</strong></p>
-      </div>`;
-  }catch(e){el.innerHTML=`<div class="container" style="padding-top:60px;text-align:center"><p style="color:#f87171">Error: ${e.message}</p></div>`;}
-}
-
-/* ---- START APP ---- */
-async function startApp(){
-  const company=curUser.user_metadata?.company_name||curUser.email;
-  document.getElementById('drawer-email').textContent=curUser.email;
-  document.getElementById('drawer-company').textContent=company;
-  showTrialBanner(curUser);
-  renderFormStages();
-  await loadAll();
-  showView('view-home');
-}
-
-/* ---- INIT ---- */
-async function init(){
-  const params=new URLSearchParams(location.search);
-  const customerToken=params.get('customer');
-  if(customerToken){showView('view-customer');renderCustomerPortal(customerToken);return;}
-  const {data:{session}}=await sbAuth.auth.getSession();
-  if(session){curUser=session.user;await startApp();}
-  else{showView('view-auth');}
-}
-init();
 </script>
+
 </body>
 </html>
