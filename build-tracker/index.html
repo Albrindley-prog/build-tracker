@@ -313,7 +313,6 @@ const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbv
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
-// ── Use the Supabase JS client for EVERYTHING — no raw fetch for auth calls ──
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
 const STAGES = [
@@ -332,25 +331,22 @@ const PC = {fab:'ph-fab',elec:'ph-elec',finish:'ph-finish',final:'ph-final'};
 
 let vehicles=[], customers=[], curJob=null, curFilter='active', curUser=null;
 
-
 /* — AUTH — */
-
-// Keep curUser always up to date
 async function loadUser() {
-  const { data: { user } } = await sb.auth.getUser();
-  curUser = user;
-  return user;
+  const { data: { user }, error } = await sb.auth.getUser();
+  if (error) console.error('Load user error:', error);
+  curUser = user || null;
+  return curUser;
 }
 
-// Run when the page first loads
 loadUser();
 
-// Update automatically whenever login/logout happens
-sb.auth.onAuthStateChange((event, session) => {
+sb.auth.onAuthStateChange(async (event, session) => {
   curUser = session?.user || null;
-  // If logged out, refresh to reset the app
   if (!curUser) {
-    window.location.reload();
+    showView('view-auth');
+  } else {
+    await startApp();
   }
 });
 
@@ -465,73 +461,140 @@ async function updateBannerDisplay() {
   else { banner.style.display='none'; }
 }
 
-/* ── DATA — using Supabase JS client, no raw fetch ── */
+/* ── DATA ── */
 function mapV(row) {
-  return {job:row.job,chassis:row.chassis,type:row.type,build:row.build,customer_id:row.customer_id,start:row.start_date,end:row.end_date,notes:row.notes,applicable:row.applicable||STAGES.map((_,i)=>i),ticked:row.ticked||[],token:row.customer_token,created:row.created_at};
+  return {
+    id: row.id,
+    job: row.job,
+    chassis: row.chassis,
+    type: row.type,
+    build: row.build,
+    customer_id: row.customer_id,
+    start: row.start_date,
+    end: row.end_date,
+    notes: row.notes,
+    applicable: row.applicable || STAGES.map((_,i)=>i),
+    ticked: row.ticked || [],
+    created: row.created_at
+  };
 }
 function mapC(row) {
-  return {id:row.id,ref:row.reference,name:row.name,contact:row.contact,email:row.email,token:row.token};
+  return {
+    id: row.id,
+    ref: row.reference,
+    name: row.name,
+    contact: row.contact,
+    email: row.email,
+    token: row.token
+  };
 }
 function custName(cid) { const c=customers.find(x=>x.id===cid); return c?c.name||c.ref:'—'; }
 
 async function loadAll() {
+  if (!curUser) return;
   try {
-    const uid=curUser.id;
-    const [{data:vd,error:ve},{data:cd,error:ce}] = await Promise.all([
-      sb.from('vehicles').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
-      sb.from('customers').select('*').eq('owner_id',uid).order('reference',{ascending:true})
+    const uid = curUser.id;
+    const [{ data: vd, error: ve }, { data: cd, error: ce }] = await Promise.all([
+      sb.from('vehicles').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
+      sb.from('customers').select('*').eq('owner_id', uid).order('reference', { ascending: true })
     ]);
-    if (ve) throw ve; if (ce) throw ce;
-    vehicles=vd.map(mapV); customers=cd.map(mapC);
-    renderList(); renderCustomerList(); populateCustomerDropdown();
-  } catch(e) {
-    document.getElementById('v-list').innerHTML=`<div class="empty"><p style="color:#f87171">Error loading data: ${e.message}</p></div>`;
+    if (ve) throw ve;
+    if (ce) throw ce;
+    vehicles = vd.map(mapV);
+    customers = cd.map(mapC);
+    renderList();
+    renderCustomerList();
+    populateCustomerDropdown();
+  } catch (e) {
+    document.getElementById('v-list').innerHTML = `<div class="empty"><p style="color:#f87171">Error loading data: ${e.message}</p></div>`;
   }
 }
 
 function populateCustomerDropdown() {
-  const sel=document.getElementById('f-customer-id');
-  sel.innerHTML='<option value="">No customer / assign later</option>';
-  customers.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=`${c.ref} — ${c.name||''}`;sel.appendChild(o);});
+  const sel = document.getElementById('f-customer-id');
+  sel.innerHTML = '<option value="">No customer / assign later</option>';
+  customers.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = `${c.ref} — ${c.name || ''}`;
+    sel.appendChild(o);
+  });
 }
 
 /* ── NAV ── */
-function showView(id) { document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
-function switchTab(tab) {
-  document.getElementById('tab-vehicles').style.display=tab==='vehicles'?'block':'none';
-  document.getElementById('tab-customers').style.display=tab==='customers'?'block':'none';
-  document.querySelectorAll('.nav-tab').forEach((b,i)=>b.classList.toggle('on',(i===0&&tab==='vehicles')||(i===1&&tab==='customers')));
-  const btn=document.getElementById('main-add-btn');
-  if (tab==='customers') { btn.textContent='Add customer'; btn.onclick=()=>showView('view-add-customer'); }
-  else { btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add vehicle'; btn.onclick=()=>showView('view-add-vehicle'); }
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
 }
-function setFilter(f) { curFilter=f; document.getElementById('tab-active').classList.toggle('on',f==='active'); document.getElementById('tab-all').classList.toggle('on',f==='all'); renderList(); }
+
+function switchTab(tab) {
+  document.getElementById('tab-vehicles').style.display = tab === 'vehicles' ? 'block' : 'none';
+  document.getElementById('tab-customers').style.display = tab === 'customers' ? 'block' : 'none';
+  document.querySelectorAll('.nav-tab').forEach((b, i) => b.classList.toggle('on', (i === 0 && tab === 'vehicles') || (i === 1 && tab === 'customers')));
+  const btn = document.getElementById('main-add-btn');
+  if (tab === 'customers') {
+    btn.textContent = 'Add customer';
+    btn.onclick = () => showView('view-add-customer');
+  } else {
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add vehicle';
+    btn.onclick = () => showView('view-add-vehicle');
+  }
+}
+
+function setFilter(f) {
+  curFilter = f;
+  document.getElementById('tab-active').classList.toggle('on', f === 'active');
+  document.getElementById('tab-all').classList.toggle('on', f === 'all');
+  renderList();
+}
 
 /* ── HELPERS ── */
-function getApp(v) { return v.applicable&&v.applicable.length?v.applicable:STAGES.map((_,i)=>i); }
-function pct(v) { const a=getApp(v); return a.length?Math.round((a.filter(i=>(v.ticked||[]).includes(i)).length/a.length)*100):0; }
-function done(v) { const a=getApp(v); return a.length>0&&a.every(i=>(v.ticked||[]).includes(i)); }
-function firstUn(v) { const a=getApp(v); const i=a.find(i=>!(v.ticked||[]).includes(i)); return i!==undefined?i:a[a.length-1]||0; }
-function custPortalLink(c) { return `${location.origin}${location.pathname}?customer=${c.token}`; }
+function getApp(v) {
+  return v.applicable && v.applicable.length ? v.applicable : STAGES.map((_, i) => i);
+}
+
+function pct(v) {
+  const a = getApp(v);
+  return a.length ? Math.round((a.filter(i => (v.ticked || []).includes(i)).length / a.length) * 100) : 0;
+}
+
+function done(v) {
+  const a = getApp(v);
+  return a.length > 0 && a.every(i => (v.ticked || []).includes(i));
+}
+
+function firstUn(v) {
+  const a = getApp(v);
+  const i = a.find(i => !(v.ticked || []).includes(i));
+  return i !== undefined ? i : a[a.length - 1] || 0;
+}
+
+function custPortalLink(c) {
+  return `${location.origin}${location.pathname}?customer=${c.token}`;
+}
 
 /* ── LISTS ── */
 function renderList() {
-  const el=document.getElementById('v-list');
-  const vv=curFilter==='active'?vehicles.filter(v=>!done(v)):vehicles;
-  if (!vv.length) { el.innerHTML=`<div class="empty"><p style="font-weight:500;margin-bottom:4px">${curFilter==='active'?'No active builds':'No vehicles yet'}</p></div>`; return; }
-  el.innerHTML=vv.map(v=>{
-    const p=pct(v),d=done(v),a=getApp(v),cur=STAGES[firstUn(v)],cn=custName(v.customer_id);
+  const el = document.getElementById('v-list');
+  const vv = curFilter === 'active' ? vehicles.filter(v => !done(v)) : vehicles;
+  if (!vv.length) {
+    el.innerHTML = `<div class="empty"><p style="font-weight:500;margin-bottom:4px">${curFilter === 'active' ? 'No active builds' : 'No vehicles yet'}</p></div>`;
+    return;
+  }
+  el.innerHTML = vv.map(v => {
+    const p = pct(v), d = done(v), a = getApp(v), cur = STAGES[firstUn(v)], cn = custName(v.customer_id);
     return `<div class="v-item" onclick="openDetail('${v.job}')">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
           <span style="font-weight:600;font-size:15px">${v.job}</span>
           <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${v.chassis}</span>
-          <span class="badge ${d?'badge-green':'badge-blue'}">${d?'Complete':v.type}</span>
+          <span class="badge ${d ? 'badge-green' : 'badge-blue'}">${d ? 'Complete' : v.type}</span>
         </div>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:8px">${cn} · ${v.build||v.type}</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:8px">${cn} · ${v.build || v.type}</p>
         <div class="prog-track"><div class="prog-fill" style="width:${p}%"></div></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
-          <p style="font-size:12px;color:var(--text3)">${a.filter(i=>(v.ticked||[]).includes(i)).length}/${a.length} stages · ${p}%</p>
+          <p style="font-size:12px;color:var(--text3)">${a.filter(i => (v.ticked || []).includes(i)).length}/${a.length} stages · ${p}%</p>
           <span class="badge ${PC[cur.phase]}" style="font-size:10px">${PL[cur.phase]}</span>
         </div>
       </div>
@@ -541,17 +604,21 @@ function renderList() {
 }
 
 function renderCustomerList() {
-  const el=document.getElementById('c-list');
-  if (!customers.length) { el.innerHTML=`<div class="empty"><p style="font-weight:500;margin-bottom:4px">No customers yet</p><p style="font-size:13px;color:var(--text3)">Click "Add customer" to get started</p></div>`; return; }
-  el.innerHTML=customers.map(c=>{
-    const rel=vehicles.filter(v=>v.customer_id===c.id); const act=rel.filter(v=>!done(v)).length;
+  const el = document.getElementById('c-list');
+  if (!customers.length) {
+    el.innerHTML = `<div class="empty"><p style="font-weight:500;margin-bottom:4px">No customers yet</p><p style="font-size:13px;color:var(--text3)">Click "Add customer" to get started</p></div>`;
+    return;
+  }
+  el.innerHTML = customers.map(c => {
+    const rel = vehicles.filter(v => v.customer_id === c.id);
+    const act = rel.filter(v => !done(v)).length;
     return `<div class="c-item" onclick="openCustomerDetail('${c.id}')">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
-          <span style="font-weight:600;font-size:15px">${c.name||c.ref}</span>
+          <span style="font-weight:600;font-size:15px">${c.name || c.ref}</span>
           <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${c.ref}</span>
         </div>
-        <p style="font-size:13px;color:var(--text2)">${rel.length} vehicle${rel.length!==1?'s':''} · ${act} active</p>
+        <p style="font-size:13px;color:var(--text2)">${rel.length} vehicle${rel.length !== 1 ? 's' : ''} · ${act} active</p>
       </div>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </div>`;
@@ -560,11 +627,15 @@ function renderCustomerList() {
 
 /* ── ADD VEHICLE ── */
 function renderFormStages() {
-  const el=document.getElementById('f-stages-list'); if (!el) return;
-  let lp='';
-  el.innerHTML=STAGES.map((s,i)=>{
-    let h='';
-    if (s.phase!==lp) { lp=s.phase; h=`<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:${i===0?'0':'10px'} 0 5px">${PL[s.phase]}</div>`; }
+  const el = document.getElementById('f-stages-list');
+  if (!el) return;
+  let lp = '';
+  el.innerHTML = STAGES.map((s, i) => {
+    let h = '';
+    if (s.phase !== lp) {
+      lp = s.phase;
+      h = `<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:${i === 0 ? '0' : '10px'} 0 5px">${PL[s.phase]}</div>`;
+    }
     return `${h}<label style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:var(--radius-sm);cursor:pointer" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">
       <span class="cb-wrap"><input type="checkbox" id="fs-${i}" checked><div class="cb-box"><svg class="cb-tick" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></span>
       <span style="font-size:13px;flex:1">${s.name}</span>
@@ -572,59 +643,41 @@ function renderFormStages() {
     </label>`;
   }).join('');
 }
-function selectAllStages(val) { STAGES.forEach((_,i)=>{ const cb=document.getElementById(`fs-${i}`); if (cb) cb.checked=val; }); }
 
-async function addVehicle() {
-  const job=document.getElementById('f-job').value.trim();
-  const chassis=document.getElementById('f-chassis').value.trim();
-  const type=document.getElementById('f-type').value;
-  const err=document.getElementById('add-v-err');
-  if (!job||!chassis||!type) { err.textContent='Job number, chassis number and vehicle type are required.'; err.style.display='block'; return; }
-  err.style.display='none';
-  const applicable=STAGES.map((_,i)=>{ const cb=document.getElementById(`fs-${i}`); return cb&&cb.checked?i:null; }).filter(i=>i!==null);
-  const customer_id=document.getElementById('f-customer-id').value||null;
-  const btn=document.getElementById('add-v-btn'); btn.textContent='Saving…'; btn.disabled=true;
-  try {
-    const {data,error} = await sb.from('vehicles').insert({
-      job,chassis,type,customer_id,user_id:curUser.id,
-      build:document.getElementById('f-build').value.trim(),
-      start_date:document.getElementById('f-start').value||null,
-      end_date:document.getElementById('f-end').value||null,
-      notes:document.getElementById('f-notes').value.trim(),
-      applicable,ticked:[]
-    }).select().single();
-    if (error) throw error;
-    vehicles.unshift(mapV(data));
-    ['f-job','f-chassis','f-build','f-start','f-end','f-notes'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('f-type').value=''; document.getElementById('f-customer-id').value='';
-    renderFormStages(); renderList(); renderCustomerList();
-    showView('view-home'); showToast('Vehicle added!');
-  } catch(e) { err.textContent=`Error: ${e.message}`; err.style.display='block'; }
-  btn.textContent='Add vehicle'; btn.disabled=false;
+function selectAllStages(val) {
+  STAGES.forEach((_, i) => {
+    const cb = document.getElementById(`fs-${i}`);
+    if (cb) cb.checked = val;
+  });
 }
 
-/* ── ADD CUSTOMER ── */
+// ✅ SINGLE, FIXED addVehicle function — no duplicates!
 async function addVehicle() {
   const job = document.getElementById('f-job').value.trim();
   const chassis = document.getElementById('f-chassis').value.trim();
   const type = document.getElementById('f-type').value;
   const err = document.getElementById('add-v-err');
+  err.textContent = '';
+  err.style.display = 'none';
+
   if (!job || !chassis || !type) {
     err.textContent = 'Job number, chassis number and vehicle type are required.';
     err.style.display = 'block';
-    err.style.display = 'none';
+    return;
   }
+
   const applicable = STAGES.map((_, i) => {
     const cb = document.getElementById(`fs-${i}`);
     return cb && cb.checked ? i : null;
   }).filter(i => i !== null);
+
   const customer_id = document.getElementById('f-customer-id').value || null;
   const btn = document.getElementById('add-v-btn');
   btn.textContent = 'Saving...';
   btn.disabled = true;
 
   try {
-    // ✅ Get the current logged-in user directly from Supabase here
+    // Get fresh, valid user session every time
     const { data: { user }, error: userErr } = await sb.auth.getUser();
     if (userErr || !user) throw new Error('No active user session — please sign in again.');
 
@@ -633,7 +686,7 @@ async function addVehicle() {
       chassis,
       type,
       customer_id,
-      user_id: user.id,  // ✅ Use the fresh, valid user ID from Supabase
+      user_id: user.id,
       build: document.getElementById('f-build').value.trim(),
       start_date: document.getElementById('f-start').value || null,
       end_date: document.getElementById('f-end').value || null,
@@ -648,272 +701,570 @@ async function addVehicle() {
     ['f-job', 'f-chassis', 'f-build', 'f-start', 'f-end', 'f-notes'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('f-type').value = '';
     document.getElementById('f-customer-id').value = '';
-    renderFormStages(); renderList(); renderCustomerList();
-    showView('view-home'); showToast('Vehicle added!');
+    renderFormStages();
+    renderList();
+    renderCustomerList();
+    showView('view-home');
+    showToast('Vehicle added successfully!');
   } catch (e) {
     err.textContent = `Error: ${e.message}`;
     err.style.display = 'block';
+    console.error('Add vehicle error:', e);
   }
+
   btn.textContent = 'Add vehicle';
   btn.disabled = false;
 }
 
+/* ── ADD CUSTOMER ── */
+async function addCustomer() {
+  const ref = document.getElementById('c-ref').value.trim();
+  const name = document.getElementById('c-name').value.trim();
+  const contact = document.getElementById('c-contact').value.trim();
+  const email = document.getElementById('c-email').value.trim();
+  const err = document.getElementById('add-c-err');
+  err.textContent = '';
+  err.style.display = 'none';
+
+  if (!ref) {
+    err.textContent = 'Customer reference is required.';
+    err.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('add-c-btn');
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  try {
+    const { data: { user }, error: userErr } = await sb.auth.getUser();
+    if (userErr || !user) throw new Error('No active user session.');
+
+    const { data, error } = await sb.from('customers').insert({
+      reference: ref,
+      name: name || null,
+      contact: contact || null,
+      email: email || null,
+      owner_id: user.id
+    }).select().single();
+
+    if (error) throw error;
+
+    customers.unshift(mapC(data));
+    document.getElementById('c-ref').value = '';
+    document.getElementById('c-name').value = '';
+    document.getElementById('c-contact').value = '';
+    document.getElementById('c-email').value = '';
+    renderCustomerList();
+    populateCustomerDropdown();
+    showView('view-home');
+    showToast('Customer added!');
+  } catch (e) {
+    err.textContent = `Error: ${e.message}`;
+    err.style.display = 'block';
+  }
+
+  btn.textContent = 'Add customer';
+  btn.disabled = false;
+}
+
 /* ── DETAIL ── */
-function openDetail(job) { curJob=job; renderDetail(); showView('view-detail'); }
+function openDetail(job) {
+  curJob = job;
+  renderDetail();
+  showView('view-detail');
+}
 
 function renderDetail() {
-  const v=vehicles.find(x=>x.job===curJob); if (!v) return;
-  const p=pct(v),d=done(v),a=getApp(v),comp=a.filter(i=>(v.ticked||[]).includes(i)).length;
-  const c=customers.find(x=>x.id===v.customer_id);
-  const link=c?custPortalLink(c):'';
-  document.getElementById('detail-content').innerHTML=`
+  const v = vehicles.find(x => x.job === curJob);
+  if (!v) return;
+
+  const p = pct(v);
+  const d = done(v);
+  const a = getApp(v);
+  const comp = a.filter(i => (v.ticked || []).includes(i)).length;
+  const c = customers.find(x => x.id === v.customer_id);
+  const link = c ? custPortalLink(c) : '';
+
+  document.getElementById('detail-content').innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-      <div><h1 style="font-size:22px;font-weight:700;margin-bottom:4px">${v.job}</h1>
-      <p style="color:var(--text2);font-size:14px">${c?c.name||c.ref:'No customer'} · <span style="font-family:'DM Mono',monospace">${v.chassis}</span></p></div>
-      <span class="badge ${d?'badge-green':'badge-amber'}">${d?'Complete':'In progress'}</span>
+      <div>
+        <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">${v.job}</h1>
+        <p style="color:var(--text2);font-size:14px">
+          ${c ? c.name || c.ref : 'No customer'} · 
+          <span style="font-family:'DM Mono',monospace">${v.chassis}</span>
+        </p>
+      </div>
+      <span class="badge ${d ? 'badge-green' : 'badge-amber'}">
+        ${d ? 'Complete' : 'In progress'}
+      </span>
     </div>
+
     <div class="g3" style="margin-bottom:18px">
       <div class="stat-card"><div class="lbl">Vehicle type</div><div class="val" style="font-size:14px">${v.type}</div></div>
-      <div class="stat-card"><div class="lbl">Build</div><div class="val" style="font-size:14px">${v.build||'—'}</div></div>
+      <div class="stat-card"><div class="lbl">Build</div><div class="val" style="font-size:14px">${v.build || '—'}</div></div>
       <div class="stat-card"><div class="lbl">Progress</div><div class="val" id="prog-val">${p}% <span style="font-size:12px;font-weight:400;color:var(--text3)">(${comp}/${a.length})</span></div></div>
     </div>
-    ${v.start||v.end?`<div class="g2" style="margin-bottom:18px">${v.start?`<div class="stat-card"><div class="lbl">Start date</div><div class="val" style="font-size:14px">${v.start}</div></div>`:''} ${v.end?`<div class="stat-card"><div class="lbl">Expected completion</div><div class="val" style="font-size:14px">${v.end}</div></div>`:''}</div>`:''}
+
+    ${v.start || v.end ? `
+      <div class="g2" style="margin-bottom:18px">
+        ${v.start ? `<div class="stat-card"><div class="lbl">Start date</div><div class="val" style="font-size:14px">${v.start}</div></div>` : ''}
+        ${v.end ? `<div class="stat-card"><div class="lbl">Expected completion</div><div class="val" style="font-size:14px">${v.end}</div></div>` : ''}
+      </div>
+    ` : ''}
+
     <div class="card" style="margin-bottom:18px">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
         <p class="sec" style="margin:0">Build stages</p>
         <p style="font-size:12px;color:var(--text3)">Tick when complete</p>
       </div>
-      <div class="prog-track" style="margin-bottom:14px"><div class="prog-fill" id="dpb" style="width:${p}%"></div></div>
+      <div class="prog-track" style="margin-bottom:14px">
+        <div class="prog-fill" id="dpb" style="width:${p}%"></div>
+      </div>
       <div id="stage-list">${stageHTML(v)}</div>
     </div>
-    ${c?`<div class="card" style="margin-bottom:18px">
-      <p class="sec">Share job status with customer</p>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Send <strong>${c.name||c.ref}</strong> this link so they can track their build live — no login needed.</p>
-      <div class="link-box" style="margin-bottom:12px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${link}</span>
-        <button onclick="copyLink('${link}','copy-lbl-${v.job}')" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;font-family:'DM Sans',sans-serif">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          <span id="copy-lbl-${v.job}">Copy link</span>
-        </button>
+
+    ${c ? `
+      <div class="card" style="margin-bottom:18px">
+        <p class="sec">Share job status with customer</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Send <strong>${c.name || c.ref}</strong> this link so they can track their build live — no login needed.
+        </p>
+        <div class="link-box" style="margin-bottom:12px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${link}</span>
+          <button onclick="copyLink('${link}','copy-lbl-${v.job}')" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;font-family:'DM Sans',sans-serif">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span id="copy-lbl-${v.job}">Copy link</span>
+          </button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" style="flex:1;justify-content:center;background:var(--blue-dim);color:var(--blue);border-color:var(--blue-border)" 
+            onclick="shareViaEmail('${v.job}', '${(c.email || '').replace(/'/g, "\\'")}', '${(c.name || c.ref).replace(/'/g, "\\'")}', '${link}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+            Email
+          </button>
+          <button class="btn" style="flex:1;justify-content:center;background:var(--green-dim);color:var(--green);border-color:var(--green-border)" 
+            onclick="shareViaWhatsApp('${(c.name || c.ref).replace(/'/g, "\\'")}', '${link}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 12l2.5 2.5L16 9"/>
+            </svg>
+            WhatsApp
+          </button>
+          <button class="btn" style="flex:1;justify-content:center" onclick="window.open('${link}','_blank')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Open link
+          </button>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn" style="flex:1;justify-content:center;background:var(--blue-dim);color:var(--blue);border-color:var(--blue-border)" onclick="shareViaEmail('${v.job}','${(c.email||'').replace(/'/g,"\\'")}','${(c.name||c.ref).replace(/'/g,"\\'")}','${link}')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>Email
-        </button>
-        <button class="btn" style="flex:1;justify-content:center;background:var(--green-dim);color:var(--green);border-color:var(--green-border)" onclick="shareViaWhatsApp('${(c.name||c.ref).replace(/'/g,"\\'")}','${link}')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2.5 2.5L16 9"/></svg>WhatsApp
-        </button>
-        <button class="btn" style="flex:1;justify-content:center" onclick="window.open('${link}','_blank')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open link
-        </button>
+    ` : `
+      <div class="card" style="margin-bottom:18px">
+        <p class="sec">Customer portal</p>
+        <p style="font-size:13px;color:var(--text2)">Assign this vehicle to a customer to get a shareable tracking link.</p>
       </div>
-    </div>`:'<div class="card" style="margin-bottom:18px"><p class="sec">Customer portal</p><p style="font-size:13px;color:var(--text2)">Assign this vehicle to a customer to get a shareable tracking link.</p></div>'}
-    ${v.notes?`<div class="card" style="margin-bottom:18px"><p class="sec">Notes</p><p style="font-size:14px;color:var(--text2)">${v.notes}</p></div>`:''}
+    `}
+
+    ${v.notes ? `
+      <div class="card" style="margin-bottom:18px">
+        <p class="sec">Notes</p>
+        <p style="font-size:14px;color:var(--text2)">${v.notes}</p>
+      </div>
+    ` : ''}
+
     <hr class="sep">
     <button class="btn btn-danger" onclick="delVehicle('${v.job}')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14H6L5 6"/>
+        <path d="M10 11v6M14 11v6"/>
+        <path d="M9 6V4h6v2"/>
+      </svg>
       Delete vehicle
-    </button>`;
+    </button>
+  `;
 }
 
 function openCustomerDetail(id) {
-  const c=customers.find(x=>x.id===id); if (!c) return;
-  const rel=vehicles.filter(v=>v.customer_id===id);
-  const link=custPortalLink(c);
+  const c = customers.find(x => x.id === id);
+  if (!c) return;
+
+  const rel = vehicles.filter(v => v.customer_id === id);
+  const link = custPortalLink(c);
+
   showView('view-detail');
-  document.querySelector('#view-detail .back-btn').onclick=()=>{ showView('view-home'); switchTab('customers'); };
-  document.getElementById('detail-content').innerHTML=`
+  document.querySelector('#view-detail .back-btn').onclick = () => {
+    showView('view-home');
+    switchTab('customers');
+  };
+
+  document.getElementById('detail-content').innerHTML = `
     <div style="margin-bottom:20px">
-      <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">${c.name||c.ref}</h1>
-      <p style="color:var(--text2);font-size:14px">Ref: <span style="font-family:'DM Mono',monospace">${c.ref}</span>${c.contact?' · '+c.contact:''}</p>
+      <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">${c.name || c.ref}</h1>
+      <p style="color:var(--text2);font-size:14px">
+        Ref: <span style="font-family:'DM Mono',monospace">${c.ref}</span>
+        ${c.contact ? ' · ' + c.contact : ''}
+      </p>
     </div>
+
     <div class="card" style="margin-bottom:18px">
       <p class="sec">Customer portal link</p>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Share this link with <strong>${c.name||c.ref}</strong> so they can track all their builds — no login needed.</p>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+        Share this link with <strong>${c.name || c.ref}</strong> so they can track all their builds — no login needed.
+      </p>
       <div class="link-box" style="margin-bottom:12px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${link}</span>
         <button onclick="copyLink('${link}','copy-lbl-c')" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;font-family:'DM Sans',sans-serif">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
           <span id="copy-lbl-c">Copy link</span>
         </button>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn" style="flex:1;justify-content:center;background:var(--blue-dim);color:var(--blue);border-color:var(--blue-border)" onclick="shareViaEmail('','${(c.email||'').replace(/'/g,"\\'")}','${(c.name||c.ref).replace(/'/g,"\\'")}','${link}')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>Email link
+        <button class="btn" style="flex:1;justify-content:center;background:var(--blue-dim);color:var(--blue);border-color:var(--blue-border)" 
+          onclick="shareViaEmail('', '${(c.email || '').replace(/'/g, "\\'")}', '${(c.name || c.ref).replace(/'/g, "\\'")}', '${link}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+          </svg>
+          Email link
         </button>
-        <button class="btn" style="flex:1;justify-content:center;background:var(--green-dim);color:var(--green);border-color:var(--green-border)" onclick="shareViaWhatsApp('${(c.name||c.ref).replace(/'/g,"\\'")}','${link}')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2.5 2.5L16 9"/></svg>WhatsApp
+        <button class="btn" style="flex:1;justify-content:center;background:var(--green-dim);color:var(--green);border-color:var(--green-border)" 
+          onclick="shareViaWhatsApp('${(c.name || c.ref).replace(/'/g, "\\'")}', '${link}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 12l2.5 2.5L16 9"/>
+          </svg>
+          WhatsApp
         </button>
         <button class="btn" style="flex:1;justify-content:center" onclick="window.open('${link}','_blank')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open link
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Open link
         </button>
       </div>
     </div>
+
     <p class="sec">Vehicles (${rel.length})</p>
-    ${rel.length?rel.map(v=>{
-      const p=pct(v),d=done(v),a=getApp(v);
-      return `<div class="v-item" onclick="openDetail('${v.job}')">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
-            <span style="font-weight:600">${v.job}</span>
-            <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${v.chassis}</span>
-            <span class="badge ${d?'badge-green':'badge-blue'}">${d?'Complete':v.type}</span>
+    ${rel.length ? rel.map(v => {
+      const p = pct(v);
+      const d = done(v);
+      const a = getApp(v);
+      return `
+        <div class="v-item" onclick="openDetail('${v.job}')">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
+              <span style="font-weight:600">${v.job}</span>
+              <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${v.chassis}</span>
+              <span class="badge ${d ? 'badge-green' : 'badge-blue'}">${d ? 'Complete' : v.type}</span>
+            </div>
+            <div class="prog-track"><div class="prog-fill" style="width:${p}%"></div></div>
+            <p style="font-size:12px;color:var(--text3);margin-top:4px">
+              ${a.filter(i => (v.ticked || []).includes(i)).length}/${a.length} stages · ${p}%
+            </p>
           </div>
-          <div class="prog-track"><div class="prog-fill" style="width:${p}%"></div></div>
-          <p style="font-size:12px;color:var(--text3);margin-top:4px">${a.filter(i=>(v.ticked||[]).includes(i)).length}/${a.length} stages · ${p}%</p>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>`;
-    }).join(''):`<div class="empty" style="padding:24px"><p style="font-size:13px;color:var(--text3)">No vehicles assigned yet</p></div>`}
+      `;
+    }).join('') : `
+      <div class="empty" style="padding:24px">
+        <p style="font-size:13px;color:var(--text3)">No vehicles assigned yet</p>
+      </div>
+    `}
+
     <hr class="sep">
-    <button class="btn btn-danger" onclick="delCustomer('${c.id}')">Delete customer</button>`;
+    <button class="btn btn-danger" onclick="delCustomer('${c.id}')">Delete customer</button>
+  `;
 }
 
 function stageHTML(v) {
-  const tk=v.ticked||[],ap=getApp(v); let lp='';
-  return STAGES.map((s,i)=>{
-    const isAp=ap.includes(i),isTk=tk.includes(i);
-    let h=''; if (s.phase!==lp) { lp=s.phase; h=`<div class="phase-hdr">${PL[s.phase]}</div>`; }
-    if (!isAp) return `${h}<div style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:var(--radius-sm);opacity:.3"><div style="width:22px;height:22px;border-radius:6px;border:1px dashed var(--border2);flex-shrink:0"></div><span class="stage-num">${i+1}</span><span style="font-size:13px;color:var(--text3);flex:1;font-style:italic">${s.name}</span><span style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 8px">N/A</span></div>`;
-    return `${h}<div class="stage-row ${isTk?'s-done':''}" id="srow-${i}">
-      <label class="cb-wrap"><input type="checkbox" ${isTk?'checked':''} onchange="toggleStage('${v.job}',${i},this.checked)">
-      <div class="cb-box"><svg class="cb-tick" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></label>
-      <span class="stage-num">${i+1}</span><span class="stage-name">${s.name}</span>
-      <span class="phase-pill ${PC[s.phase]}">${PL[s.phase]}</span>
-    </div>`;
+  const tk = v.ticked || [];
+  const ap = getApp(v);
+  let lp = '';
+
+  return STAGES.map((s, i) => {
+    const isAp = ap.includes(i);
+    const isTk = tk.includes(i);
+    let h = '';
+
+    if (s.phase !== lp) {
+      lp = s.phase;
+      h = `<div class="phase-hdr">${PL[s.phase]}</div>`;
+    }
+
+    if (!isAp) {
+      return `
+        ${h}
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:var(--radius-sm);opacity:.3">
+          <div style="width:22px;height:22px;border-radius:6px;border:1px dashed var(--border2);flex-shrink:0"></div>
+          <span class="stage-num">${i + 1}</span>
+          <span style="font-size:13px;color:var(--text3);flex:1;font-style:italic">${s.name}</span>
+          <span style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 8px">N/A</span>
+        </div>
+      `;
+    }
+
+    return `
+      ${h}
+      <div class="stage-row ${isTk ? 's-done' : ''}" id="srow-${i}">
+        <label class="cb-wrap">
+          <input type="checkbox" ${isTk ? 'checked' : ''} onchange="toggleStage('${v.job}', ${i}, this.checked)">
+          <div class="cb-box">
+            <svg class="cb-tick" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </label>
+        <span class="stage-num">${i + 1}</span>
+        <span class="stage-name">${s.name}</span>
+        <span class="phase-pill ${PC[s.phase]}">${PL[s.phase]}</span>
+      </div>
+    `;
   }).join('');
 }
 
-async function toggleStage(job,idx,checked) {
-  const v=vehicles.find(x=>x.job===job); if (!v) return;
-  if (!v.ticked) v.ticked=[];
-  if (checked) { if (!v.ticked.includes(idx)) v.ticked.push(idx); }
-  else { v.ticked=v.ticked.filter(i=>i!==idx); }
-  const row=document.getElementById(`srow-${idx}`); if (row) row.className=`stage-row ${checked?'s-done':''}`;
-  const a=getApp(v),p=pct(v),comp=a.filter(i=>v.ticked.includes(i)).length;
-  const bar=document.getElementById('dpb'); if (bar) bar.style.width=`${p}%`;
-  const pv=document.getElementById('prog-val'); if (pv) pv.innerHTML=`${p}% <span style="font-size:12px;font-weight:400;color:var(--text3)">(${comp}/${a.length})</span>`;
-  showToast(checked?`✓ ${STAGES[idx].name} complete`:`${STAGES[idx].name} unmarked`);
+async function toggleStage(job, idx, checked) {
+  const v = vehicles.find(x => x.job === job);
+  if (!v) return;
+
+  if (!v.ticked) v.ticked = [];
+  if (checked) {
+    if (!v.ticked.includes(idx)) v.ticked.push(idx);
+  } else {
+    v.ticked = v.ticked.filter(i => i !== idx);
+  }
+
+  const row = document.getElementById(`srow-${idx}`);
+  if (row) row.className = `stage-row ${checked ? 's-done' : ''}`;
+
+  const a = getApp(v);
+  const p = pct(v);
+  const comp = a.filter(i => v.ticked.includes(i)).length;
+
+  const bar = document.getElementById('dpb');
+  if (bar) bar.style.width = `${p}%`;
+
+  const pv = document.getElementById('prog-val');
+  if (pv) pv.innerHTML = `${p}% <span style="font-size:12px;font-weight:400;color:var(--text3)">(${comp}/${a.length})</span>`;
+
+  showToast(checked ? `✓ ${STAGES[idx].name} complete` : `${STAGES[idx].name} unmarked`);
   renderList();
-  const {error} = await sb.from('vehicles').update({ticked:v.ticked}).eq('job',job);
+
+  const { error } = await sb.from('vehicles').update({ ticked: v.ticked }).eq('job', job);
   if (error) showToast(`Save failed: ${error.message}`);
 }
 
 async function delVehicle(job) {
   if (!confirm('Delete this vehicle?')) return;
-  const {error} = await sb.from('vehicles').delete().eq('job',job);
+  const { error } = await sb.from('vehicles').delete().eq('job', job);
   if (error) { showToast(`Error: ${error.message}`); return; }
-  vehicles=vehicles.filter(v=>v.job!==job); renderList(); renderCustomerList(); showView('view-home'); showToast('Vehicle deleted');
+  vehicles = vehicles.filter(v => v.job !== job);
+  renderList();
+  renderCustomerList();
+  showView('view-home');
+  showToast('Vehicle deleted');
 }
 
 async function delCustomer(id) {
   if (!confirm('Delete this customer?')) return;
-  const {error} = await sb.from('customers').delete().eq('id',id);
+  const { error } = await sb.from('customers').delete().eq('id', id);
   if (error) { showToast(`Error: ${error.message}`); return; }
-  customers=customers.filter(c=>c.id!==id);
-  vehicles=vehicles.map(v=>v.customer_id===id?{...v,customer_id:null}:v);
-  renderList(); renderCustomerList(); populateCustomerDropdown(); showView('view-home'); showToast('Customer deleted');
+  customers = customers.filter(c => c.id !== id);
+  vehicles = vehicles.map(v => v.customer_id === id ? { ...v, customer_id: null } : v);
+  renderList();
+  renderCustomerList();
+  populateCustomerDropdown();
+  showView('view-home');
+  showToast('Customer deleted');
 }
 
 function copyLink(url, labelId) {
-  navigator.clipboard.writeText(url).then(()=>{
-    const el=document.getElementById(labelId);
-    if (el) { const orig=el.textContent; el.textContent='Copied!'; setTimeout(()=>el.textContent=orig,2500); }
+  navigator.clipboard.writeText(url).then(() => {
+    const el = document.getElementById(labelId);
+    if (el) {
+      const orig = el.textContent;
+      el.textContent = 'Copied!';
+      setTimeout(() => el.textContent = orig, 2500);
+    }
     showToast('Link copied to clipboard!');
-  }).catch(()=>prompt('Copy this link:',url));
+  }).catch(() => prompt('Copy this link:', url));
 }
 
-function shareViaEmail(jobNumber,customerEmail,customerName,portalLink) {
-  const subject=encodeURIComponent(jobNumber?`Your build status for ${jobNumber}`:`Your build tracking portal`);
-  const body=encodeURIComponent(`Hi ${customerName},\n\nHere's your personal build tracking link${jobNumber?' for job '+jobNumber:''}:\n\n${portalLink}\n\nYou can check the current stage of your build anytime by clicking the link above.\n\nBest regards,\nBuild Tracker`);
+function shareViaEmail(jobNumber, customerEmail, customerName, portalLink) {
+  const subject = encodeURIComponent(jobNumber ? `Your build status for ${jobNumber}` : `Your build tracking portal`);
+  const body = encodeURIComponent(
+    `Hi ${customerName},\n\nHere's your personal build tracking link${jobNumber ? ' for job ' + jobNumber : ''}:\n\n${portalLink}\n\nYou can check the current stage of your build anytime by clicking the link above.\n\nBest regards,\nBuild Tracker`
+  );
   window.open(`mailto:${customerEmail}?subject=${subject}&body=${body}`);
   showToast('Opening email...');
 }
 
-function shareViaWhatsApp(customerName,portalLink) {
-  const msg=encodeURIComponent(`Hi ${customerName},\n\nHere's your build tracking link:\n\n${portalLink}\n\nClick to see your job progress!`);
-  window.open(`https://wa.me/?text=${msg}`,'_blank');
+function shareViaWhatsApp(customerName, portalLink) {
+  const msg = encodeURIComponent(
+    `Hi ${customerName},\n\nHere's your build tracking link:\n\n${portalLink}\n\nClick to see your job progress!`
+  );
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
   showToast('Opening WhatsApp...');
 }
 
 function showToast(msg) {
-  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
-  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2500);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
 /* ── CUSTOMER PORTAL — uses anon key, no auth needed ── */
 async function renderCustomerPortal(token) {
-  const el=document.getElementById('cust-content');
-  el.innerHTML=`<div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div><div class="loading"><div class="spinner"></div>Loading your builds…</div>`;
+  const el = document.getElementById('cust-content');
+  el.innerHTML = `
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>
+        Build Tracker
+      </div>
+    </div>
+    <div class="loading"><div class="spinner"></div>Loading your builds…</div>
+  `;
+
   try {
-    // Use anon Supabase client — customers don't need to be logged in
-    const {data:cd,error:ce} = await sb.from('customers').select('*').eq('token',token).maybeSingle();
-    if (ce||!cd) throw new Error('Portal not found. Check your link or contact your body builder.');
-    const c=mapC(cd);
-    const {data:vd,error:ve} = await sb.from('vehicles').select('*').eq('customer_id',c.id).order('created_at',{ascending:false});
+    const { data: cd, error: ce } = await sb.from('customers').select('*').eq('token', token).maybeSingle();
+    if (ce || !cd) throw new Error('Portal not found. Check your link or contact your body builder.');
+
+    const c = mapC(cd);
+    const { data: vd, error: ve } = await sb.from('vehicles').select('*').eq('customer_id', c.id).order('created_at', { ascending: false });
     if (ve) throw ve;
-    const cvs=vd.map(mapV);
-    const activeCount=cvs.filter(v=>!done(v)).length;
-    let lastPhase='';
-    el.innerHTML=`
+
+    const cvs = vd.map(mapV);
+    const activeCount = cvs.filter(v => !done(v)).length;
+    let lastPhase = '';
+
+    el.innerHTML = `
       <div class="header">
-        <div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div>
-        <span class="badge ${activeCount===0?'badge-green':'badge-blue'}">${activeCount===0?'All complete':`${activeCount} in progress`}</span>
+        <div class="logo">
+          <div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>
+          Build Tracker
+        </div>
+        <span class="badge ${activeCount === 0 ? 'badge-green' : 'badge-blue'}">
+          ${activeCount === 0 ? 'All complete' : `${activeCount} in progress`}
+        </span>
       </div>
       <div class="container">
         <div style="margin-bottom:24px">
           <p style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Your vehicle builds</p>
-          <h1 style="font-size:24px;font-weight:700;margin-bottom:4px">${c.name||c.ref}</h1>
-          <p style="color:var(--text2);font-size:14px">${cvs.length} vehicle${cvs.length!==1?'s':''} · ${activeCount} active</p>
+          <h1 style="font-size:24px;font-weight:700;margin-bottom:4px">${c.name || c.ref}</h1>
+          <p style="color:var(--text2);font-size:14px">
+            ${cvs.length} vehicle${cvs.length !== 1 ? 's' : ''} · ${activeCount} active
+          </p>
         </div>
-        ${cvs.length?cvs.map(v=>{
-          const p=pct(v),d=done(v),tk=v.ticked||[],ap=getApp(v),ni=firstUn(v),ns=STAGES[ni];
-          lastPhase='';
-          return `<div class="card" style="margin-bottom:18px">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-              <div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <span style="font-weight:600;font-size:16px">${v.job}</span>
-                  <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${v.chassis}</span>
-                </div>
-                <p style="font-size:13px;color:var(--text2);margin-top:2px">${v.type}${v.build?' · '+v.build:''}</p>
-              </div>
-              <span class="badge ${d?'badge-green':'badge-blue'}">${d?'Complete':`${p}%`}</span>
-            </div>
-            <div class="prog-track" style="height:8px"><div class="prog-fill" style="width:${p}%"></div></div>
-            <p style="font-size:12px;color:var(--text2);margin-top:6px">${d?'Build complete!':`Currently: <strong>${ns.name}</strong>`} · ${tk.filter(i=>ap.includes(i)).length}/${ap.length} stages done</p>
-            <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
-              ${STAGES.filter((_,i)=>ap.includes(i)).map(s=>{
-                const i=STAGES.indexOf(s),isTk=tk.includes(i),isNx=(i===ni&&!d);
-                let h=''; if (s.phase!==lastPhase) { lastPhase=s.phase; h=`<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:10px 0 4px">${PL[s.phase]}</div>`; }
-                return `${h}<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
-                  <div style="width:20px;height:20px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:${isTk?'var(--green)':isNx?'var(--blue-dim)':'var(--bg3)'};border:1px solid ${isTk?'var(--green)':isNx?'var(--blue-border)':'var(--border2)'}">
-                    ${isTk?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`:isNx?`<div style="width:6px;height:6px;border-radius:50%;background:var(--blue)"></div>`:`<span style="font-size:9px;color:var(--text3)">${i+1}</span>`}
+        ${cvs.length ? cvs.map(v => {
+          const p = pct(v);
+          const d = done(v);
+          const tk = v.ticked || [];
+          const ap = getApp(v);
+          const ni = firstUn(v);
+          const ns = STAGES[ni];
+          lastPhase = '';
+
+          return `
+            <div class="card" style="margin-bottom:18px">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span style="font-weight:600;font-size:16px">${v.job}</span>
+                    <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${v.chassis}</span>
                   </div>
-                  <span style="font-size:12px;flex:1;color:${isTk?'var(--text3)':isNx?'var(--text)':'var(--text2)'};font-weight:${isNx?'600':'400'};text-decoration:${isTk?'line-through':'none'}">${s.name}</span>
-                  ${isNx?`<span style="font-size:10px;color:var(--blue);font-weight:600">IN PROGRESS</span>`:''}
-                  ${isTk?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:''}
-                </div>`;
-              }).join('')}
+                  <p style="font-size:13px;color:var(--text2);margin-top:2px">${v.type}${v.build ? ' · ' + v.build : ''}</p>
+                </div>
+                <span class="badge ${d ? 'badge-green' : 'badge-blue'}">${d ? 'Complete' : `${p}%`}</span>
+              </div>
+              <div class="prog-track" style="height:8px"><div class="prog-fill" style="width:${p}%"></div></div>
+              <p style="font-size:12px;color:var(--text2);margin-top:6px">
+                ${d ? 'Build complete!' : `Currently: <strong>${ns.name}</strong>`} · 
+                ${tk.filter(i => ap.includes(i)).length}/${ap.length} stages done
+              </p>
+              <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+                ${STAGES.filter((_, i) => ap.includes(i)).map(s => {
+                  const i = STAGES.indexOf(s);
+                  const isTk = tk.includes(i);
+                  const isNx = (i === ni && !d);
+                  let h = '';
+
+                  if (s.phase !== lastPhase) {
+                    lastPhase = s.phase;
+                    h = `<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:10px 0 4px">${PL[s.phase]}</div>`;
+                  }
+
+                  return `
+                    ${h}
+                    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+                      <div style="width:20px;height:20px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:${isTk ? 'var(--green)' : isNx ? 'var(--blue-dim)' : 'var(--bg3)'};border:1px solid ${isTk ? 'var(--green)' : isNx ? 'var(--blue-border)' : 'var(--border2)'}">
+                        ${isTk ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : isNx ? `<div style="width:6px;height:6px;border-radius:50%;background:var(--blue)"></div>` : `<span style="font-size:9px;color:var(--text3)">${i + 1}</span>`}
+                      </div>
+                      <span style="font-size:12px;flex:1;color:${isTk ? 'var(--text3)' : isNx ? 'var(--text)' : 'var(--text2)'};font-weight:${isNx ? '600' : '400'};text-decoration:${isTk ? 'line-through' : 'none'}">${s.name}</span>
+                      ${isNx ? `<span style="font-size:10px;color:var(--blue);font-weight:600">IN PROGRESS</span>` : ''}
+                      ${isTk ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+              ${v.end ? `<p style="font-size:12px;color:var(--text3);margin-top:10px">Expected completion: <strong style="color:var(--text2)">${v.end}</strong></p>` : ''}
             </div>
-            ${v.end?`<p style="font-size:12px;color:var(--text3);margin-top:10px">Expected completion: <strong style="color:var(--text2)">${v.end}</strong></p>`:''}
-          </div>`;
-        }).join(''):`<div class="empty"><p>No vehicles assigned yet</p></div>`}
-        <p style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">Questions? Contact us quoting ref <strong style="color:var(--text2)">${c.ref}</strong></p>
-      </div>`;
-  } catch(e) {
-    el.innerHTML=`<div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div><div class="container" style="text-align:center;padding-top:60px"><p style="font-size:18px;font-weight:600;margin-bottom:8px">Portal not found</p><p style="color:var(--text2);font-size:14px">${e.message}</p></div>`;
+          `;
+        }).join('') : `<div class="empty"><p>No vehicles assigned yet</p></div>`}
+        <p style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">
+          Questions? Contact us quoting ref <strong style="color:var(--text2)">${c.ref}</strong>
+        </p>
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = `
+      <div class="header">
+        <div class="logo">
+          <div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>
+          Build Tracker
+        </div>
+      </div>
+      <div class="container" style="text-align:center;padding-top:60px">
+        <p style="font-size:18px;font-weight:600;margin-bottom:8px">Portal not found</p>
+        <p style="color:var(--text2);font-size:14px">${e.message}</p>
+      </div>
+    `;
   }
 }
 
 /* ── START APP ── */
 async function startApp() {
   if (!curUser) return;
-  const ok=await checkAccess(); if (!ok) return;
-  document.getElementById('drawer-company').textContent=curUser.user_metadata?.company_name||curUser.email;
-  document.getElementById('drawer-email').textContent=curUser.email;
+  const ok = await checkAccess();
+  if (!ok) return;
+  document.getElementById('drawer-company').textContent = curUser.user_metadata?.company_name || curUser.email;
+  document.getElementById('drawer-email').textContent = curUser.email;
   await updateBannerDisplay();
   renderFormStages();
   await loadAll();
@@ -922,14 +1273,23 @@ async function startApp() {
 
 /* ── INIT ── */
 async function init() {
-  const params=new URLSearchParams(location.search);
-  const customerToken=params.get('customer');
-  if (customerToken) { showView('view-customer'); renderCustomerPortal(customerToken); return; }
-  const {data:{session}} = await sb.auth.getSession();
-  if (session) { curUser=session.user; await startApp(); }
-  else { showView('view-auth'); }
+  const params = new URLSearchParams(location.search);
+  const customerToken = params.get('customer');
+  if (customerToken) {
+    showView('view-customer');
+    renderCustomerPortal(customerToken);
+    return;
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    curUser = session.user;
+    await startApp();
+  } else {
+    showView('view-auth');
+  }
   await handlePaymentResult();
 }
+
 init();
 </script>
 </body>
