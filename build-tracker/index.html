@@ -7,7 +7,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://js.stripe.com/v3/"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
+  <link rel="icon" href="data:,">
+ <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0f1117;--bg2:#181c27;--bg3:#1e2333;
@@ -164,9 +165,17 @@ input,select,textarea{font-family:inherit}
       </div>
       <p style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:20px">Vehicle build tracking for body builders</p>
       <div class="auth-tabs">
-        <button class="auth-tab on" onclick="switchAuthTab('login')">Sign in</button>
-        <button class="auth-tab" onclick="switchAuthTab('signup')">Create account</button>
-      </div>
+  <button class="auth-tab active" data-tab="signin" onclick="switchAuthTab('signin')">Sign in</button>
+  <button class="auth-tab" data-tab="signup" onclick="switchAuthTab('signup')">Create account</button>
+</div>
+
+<!-- Your existing forms -->
+<div id="form-signin">
+  <!-- Sign in email/password fields here -->
+</div>
+<div id="form-signup" style="display: none;">
+  <!-- Create account fields here -->
+</div>
       <div id="auth-login">
         <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doSignIn()"></div>
         <div class="field"><label>Password</label><input type="password" id="login-pw" placeholder="Your password" onkeydown="if(event.key==='Enter')doSignIn()"></div>
@@ -1288,6 +1297,21 @@ async function init() {
     showView('view-auth');
   }
   await handlePaymentResult();
+}// Add this missing function
+function switchAuthTab(tabName) {
+  // Remove active style from both tabs
+  document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
+  // Add active style to selected tab
+  document.querySelector(`.auth-tab[data-tab="${tabName}"]`).classList.add('active');
+
+  // Show/hide the correct form
+  if (tabName === 'signin') {
+    document.getElementById('form-signin').style.display = 'block';
+    document.getElementById('form-signup').style.display = 'none';
+  } else if (tabName === 'signup') {
+    document.getElementById('form-signin').style.display = 'none';
+    document.getElementById('form-signup').style.display = 'block';
+  }
 }
 
 init();
