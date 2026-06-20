@@ -409,7 +409,7 @@ function getTrialDaysLeft(user) {
 async function hasActiveSubscription(user) {
   if (!user) return false;
   try {
-    const {data,error} = await sb.from('subscriptions').select('status').eq('user_id',user.id).eq('status','active').maybeSingle();
+    const {data,error} = await sb.from('bt_subscriptions').select('status').eq('user_id',user.id).eq('status','active').maybeSingle();
     return !error && !!data;
   } catch(e) { return false; }
 }
@@ -462,8 +462,8 @@ async function loadAll() {
   try {
     const uid=curUser.id;
     const [{data:vd,error:ve},{data:cd,error:ce}] = await Promise.all([
-      sb.from('vehicles').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
-      sb.from('customers').select('*').eq('owner_id',uid).order('reference',{ascending:true})
+      sb.from('bt_vehicles').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+      sb.from('bt_customers').select('*').eq('owner_id',uid).order('reference',{ascending:true})
     ]);
     if (ve) throw ve; if (ce) throw ce;
     vehicles=vd.map(mapV); customers=cd.map(mapC);
@@ -569,7 +569,7 @@ async function addVehicle() {
   const customer_id=document.getElementById('f-customer-id').value||null;
   const btn=document.getElementById('add-v-btn'); btn.textContent='Saving…'; btn.disabled=true;
   try {
-    const {data,error} = await sb.from('vehicles').insert({
+    const {data,error} = await sb.from('bt_vehicles').insert({
       job,chassis,type,customer_id,user_id:curUser.id,
       build:document.getElementById('f-build').value.trim(),
       start_date:document.getElementById('f-start').value||null,
@@ -595,7 +595,7 @@ async function addCustomer() {
   err.style.display='none';
   const btn=document.getElementById('add-c-btn'); btn.textContent='Saving…'; btn.disabled=true;
   try {
-    const {data,error} = await sb.from('customers').insert({
+    const {data,error} = await sb.from('bt_customers').insert({
       reference:ref, owner_id:curUser.id,
       name:document.getElementById('c-name').value.trim(),
       contact:document.getElementById('c-contact').value.trim(),
@@ -750,20 +750,20 @@ async function toggleStage(job,idx,checked) {
   const pv=document.getElementById('prog-val'); if (pv) pv.innerHTML=`${p}% <span style="font-size:12px;font-weight:400;color:var(--text3)">(${comp}/${a.length})</span>`;
   showToast(checked?`✓ ${STAGES[idx].name} complete`:`${STAGES[idx].name} unmarked`);
   renderList();
-  const {error} = await sb.from('vehicles').update({ticked:v.ticked}).eq('job',job);
+  const {error} = await sb.from('bt_vehicles').update({ticked:v.ticked}).eq('job',job);
   if (error) showToast(`Save failed: ${error.message}`);
 }
 
 async function delVehicle(job) {
   if (!confirm('Delete this vehicle?')) return;
-  const {error} = await sb.from('vehicles').delete().eq('job',job);
+  const {error} = await sb.from('bt_vehicles').delete().eq('job',job);
   if (error) { showToast(`Error: ${error.message}`); return; }
   vehicles=vehicles.filter(v=>v.job!==job); renderList(); renderCustomerList(); showView('view-home'); showToast('Vehicle deleted');
 }
 
 async function delCustomer(id) {
   if (!confirm('Delete this customer?')) return;
-  const {error} = await sb.from('customers').delete().eq('id',id);
+  const {error} = await sb.from('bt_customers').delete().eq('id',id);
   if (error) { showToast(`Error: ${error.message}`); return; }
   customers=customers.filter(c=>c.id!==id);
   vehicles=vehicles.map(v=>v.customer_id===id?{...v,customer_id:null}:v);
@@ -802,10 +802,10 @@ async function renderCustomerPortal(token) {
   el.innerHTML=`<div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div><div class="loading"><div class="spinner"></div>Loading your builds…</div>`;
   try {
     // Use anon Supabase client — customers don't need to be logged in
-    const {data:cd,error:ce} = await sb.from('customers').select('*').eq('token',token).maybeSingle();
+    const {data:cd,error:ce} = await sb.from('bt_customers').select('*').eq('token',token).maybeSingle();
     if (ce||!cd) throw new Error('Portal not found. Check your link or contact your body builder.');
     const c=mapC(cd);
-    const {data:vd,error:ve} = await sb.from('vehicles').select('*').eq('customer_id',c.id).order('created_at',{ascending:false});
+    const {data:vd,error:ve} = await sb.from('bt_vehicles').select('*').eq('customer_id',c.id).order('created_at',{ascending:false});
     if (ve) throw ve;
     const cvs=vd.map(mapV);
     const activeCount=cvs.filter(v=>!done(v)).length;
