@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Status</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#12151F',
+                        darkCard: '#1E2333',
+                        textMuted: '#8B92A8',
+                        success: '#22C55E',
+                        accent: '#F97316'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark text-white min-h-screen p-4 md:p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Build Progress</h1>
+        <div id="build-content" class="space-y-4"></div>
+    </div>
+
+    <script>
+        // ✅ YOUR SUPABASE KEYS ADDED
+        const SUPABASE_URL = 'https://dcsshdemeodyipplrhnm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3NoZGVtZW9keWlwcGxyaG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTY4OTYsImV4cCI6MjA5NDM3Mjg5Nn0.4FyyfjnmGuwSq3C_V_0Hq3rsyF2Lmfxrpmt1suxv-fA';
+        
+        // ✅ Fixed variable name: supabaseJs → supabase
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const token = new URLSearchParams(window.location.search).get('token');
+        if (!token) return document.body.innerHTML = '<p class="text-center mt-20 text-red-400">Invalid link</p>';
+
+        async function loadBuild() {
+            // ✅ Match your existing table/column names from main app
+            const { data: vehicle, error: vehErr } = await supabase
+                .from('vehicles')
+                .select('*')
+                .eq('share_token', token)
+                .single();
+
+            if (vehErr || !vehicle) {
+                return document.body.innerHTML = '<p class="text-center mt-20 text-red-400">Build not found or link expired</p>';
+            }
+
+            // ✅ Use your existing stages array format
+            const stages = vehicle.stages || [];
+            const total = stages.length;
+            const completed = stages.filter(s => s.done).length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('build-content').innerHTML = `
+                <div class="bg-darkCard rounded-lg p-5 mb-6 border border-gray-700">
+                    <h2 class="text-xl font-bold text-accent mb-2">Job: ${vehicle.job_number}</h2>
+                    <p class="text-textMuted">Chassis/Reg: ${vehicle.chassis || '—'}</p>
+                    <p class="text-textMuted">Type: ${vehicle.vehicle_type || '—'}</p>
+                    <p class="text-textMuted">Status: <span class="${vehicle.status === 'completed' ? 'text-success' : 'text-amber-400'}">${vehicle.status || 'Active'}</span></p>
+                    
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm text-textMuted mb-1">
+                            <span>Progress</span>
+                            <span>${percent}%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-accent rounded-full" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    ${stages.map(s => `
+                        <div class="flex items-center justify-between p-3 rounded bg-darkCard border border-gray-700">
+                            <span>${s.name}</span>
+                            <span class="${s.done ? 'text-success' : 'text-textMuted'} font-medium">
+                                ${s.done ? '✓ Complete' : 'In progress'}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        loadBuild();
+    </script>
+</body>
+</html>
