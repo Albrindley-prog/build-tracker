@@ -314,7 +314,7 @@ const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
 // ── Use the Supabase JS client for EVERYTHING — no raw fetch for auth calls ──
-const sb = supabase.createClient(SB_URL, SB_KEY);
+const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true, storage: window.localStorage } });
 
 const STAGES = [
   {name:'Frame cut',phase:'fab'},{name:'Weld',phase:'fab'},
@@ -883,6 +883,11 @@ async function init() {
   else { showView('view-auth'); }
   await handlePaymentResult();
 }
+// Keep curUser in sync if session refreshes
+sb.auth.onAuthStateChange((event, session) => {
+  if (session?.user) { curUser = session.user; }
+  else if (event === 'SIGNED_OUT') { curUser = null; }
+});
 init();
 </script>
 </body>
