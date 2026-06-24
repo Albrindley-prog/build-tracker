@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workshop System | Build Tracker</title>
+    <!-- Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0099E5',
+                        build: {
+                            scheduled: '#94A3B8',
+                            in_progress: '#3B82F6',
+                            parts_ordered: '#F59E0B',
+                            inspection: '#10B981',
+                            approval: '#8B5CF6',
+                            ready: '#06B6D4',
+                            completed: '#64748B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* --- Calendar Fix --- */
+        #calendar {
+            min-height: auto !important;
+            height: auto !important;
+            width: 100%;
+        }
+        .fc-timegrid-slot { height: 36px !important; }
+        .fc-timegrid-slot-label { font-size: 0.85rem; }
+        .fc { font-family: inherit; font-size: 0.9rem; }
+
+        /* --- Logo Styling --- */
+        .logo { height: 48px; width: auto; margin-right: 14px; display: block; }
+        .logo-sm { height: 36px; width: auto; margin: 0 auto 1rem; display: block; }
+
+        /* --- General Styles --- */
+        .stage-bar { height: 8px; border-radius: 4px; overflow: hidden; background: #e2e8f0; }
+        .stage-fill { height: 100%; transition: width 0.3s; }
+        .timeline-item { position: relative; padding-left: 24px; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: 0; top: 6px;
+            width: 12px; height: 12px; border-radius: 50%; background: #0099E5;
+        }
+        .timeline-item::after {
+            content: ''; position: absolute; left: 5px; top: 18px;
+            width: 2px; height: calc(100% + 12px); background: #e2e8f0;
+        }
+        .timeline-item:last-child::after { display: none; }
+        .dark { background: #0F172A; color: #E2E8F0; }
+        .light { background: #F8FAFC; color: #0F172A; }
+
+        /* --- Trial Info --- */
+        .trial-info {
+            background: linear-gradient(135deg, #ecfeff, #e0f7fa);
+            border: 1px solid #a5f3fc;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #0e7490;
+            font-weight: 500;
+        }
+        .dark .trial-info {
+            background: linear-gradient(135deg, #164e63, #083344);
+            border-color: #0e7490;
+            color: #bae6fd;
+        }
+    </style>
+</head>
+<body class="light min-h-screen">
+
+<div class="max-w-7xl mx-auto p-4 md:p-6">
+
+    <!-- Header -->
+    <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
+        <div class="flex items-center">
+            <svg class="logo" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 34 L8 40 L8 60 L18 66 Z" fill="#00A651"/>
+                <path d="M34 26 L18 34 L18 66 L34 74 Z" fill="#6B7280"/>
+                <path d="M50 10 L34 18 L34 82 L50 74 Z" fill="#00B4FF"/>
+                <path d="M38 28 L46 24 M38 36 L46 32 M38 44 L46 40 M38 52 L46 48 M38 60 L46 56 M38 68 L46 64" stroke="#FFFFFF" stroke-width="1.4"/>
+                <text x="66" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="600" fill="#1E293B">Build</text>
+                <text x="180" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="300" fill="#6B7280">Tracker</text>
+                <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
+            </svg>
+            <h1 class="text-2xl md:text-3xl font-bold">Workshop System</h1>
+        </div>
+        <div class="flex items-center gap-3 hidden" id="header-user">
+            <span id="trial-days" class="text-sm font-medium text-green-600 dark:text-green-400"></span>
+            <button onclick="handleLogout()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex flex-wrap gap-2 mb-6 hidden" id="main-nav">
+        <button onclick="showSection('dashboard')" id="btn-dash" class="px-3 py-2 bg-primary text-white rounded">Dashboard</button>
+        <button onclick="showSection('jobs')" id="btn-jobs" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Jobs & Scheduler</button>
+        <button onclick="showSection('vehicles')" id="btn-veh" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Vehicles</button>
+        <button onclick="showSection('customers')" id="btn-cust" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Customers</button>
+        <button onclick="toggleDarkMode()" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Dark Mode</button>
+    </div>
+
+    <!-- Auth Screens -->
+    <div id="auth-container" class="max-w-md mx-auto mt-12">
+        <!-- Login -->
+        <div id="login-view" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <svg class="logo-sm" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 34 L8 40 L8 60 L18 66 Z" fill="#00A651"/>
+                <path d="M34 26 L18 34 L18 66 L34 74 Z" fill="#6B7280"/>
+                <path d="M50 10 L34 18 L34 82 L50 74 Z" fill="#00B4FF"/>
+                <path d="M38 28 L46 24 M38 36 L46 32 M38 44 L46 40 M38 52 L46 48 M38 60 L46 56 M38 68 L46 64" stroke="#FFFFFF" stroke-width="1.4"/>
+                <text x="66" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="600" fill="#1E293B">Build</text>
+                <text x="180" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="300" fill="#6B7280">Tracker</text>
+                <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
+            </svg>
+            <h2 class="text-xl font-semibold mb-4 text-center">Sign In</h2>
+            <div class="trial-info">✨ 14 Days FREE Trial<br>Then only £32 per month</div>
+            <input type="email" id="login-email" placeholder="Email" class="w-full border p-3 rounded mb-3 dark:bg-gray-700 dark:border-gray-600">
+            <input type="password" id="login-pass" placeholder="Password" class="w-full border p-3 rounded mb-4 dark:bg-gray-700 dark:border-gray-600">
+            <button onclick="handleLogin()" class="w-full bg-primary text-white p-3 rounded hover:bg-primary/90 font-medium">Sign In</button>
+            <p class="text-center mt-4 text-sm">Don't have an account? <a href="#" onclick="showSignUp()" class="text-primary">Start Free Trial</a></p>
+        </div>
+
+        <!-- Sign Up -->
+        <div id="signup-view" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hidden">
+            <svg class="logo-sm" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 34 L8 40 L8 60 L18 66 Z" fill="#00A651"/>
+                <path d="M34 26 L18 34 L18 66 L34 74 Z" fill="#6B7280"/>
+                <path d="M50 10 L34 18 L34 82 L50 74 Z" fill="#00B4FF"/>
+                <path d="M38 28 L46 24 M38 36 L46 32 M38 44 L46 40 M38 52 L46 48 M38 60 L46 56 M38 68 L46 64" stroke="#FFFFFF" stroke-width="1.4"/>
+                <text x="66" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="600" fill="#1E293B">Build</text>
+                <text x="180" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="300" fill="#6B7280">Tracker</text>
+                <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
+            </svg>
+            <h2 class="text-xl font-semibold mb-4 text-center">Create Your Account</h2>
+            <div class="trial-info">✨ 14 Days FREE<br>After that £32/month — cancel anytime</div>
+            <input type="text" id="signup-name" placeholder="Full Name" class="w-full border p-3 rounded mb-3 dark:bg-gray-700 dark:border-gray-600">
+            <input type="email" id="signup-email" placeholder="Email" class="w-full border p-3 rounded mb-3 dark:bg-gray-700 dark:border-gray-600">
+            <input type="password" id="signup-pass" placeholder="Password" class="w-full border p-3 rounded mb-3 dark:bg-gray-700 dark:border-gray-600">
+            <input type="password" id="signup-pass2" placeholder="Confirm Password" class="w-full border p-3 rounded mb-4 dark:bg-gray-700 dark:border-gray-600">
+            <button onclick="handleSignUp()" class="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 font-medium">Start My Free Trial</button>
+            <p class="text-center mt-4 text-sm">Already have an account? <a href="#" onclick="showLogin()" class="text-primary">Sign In</a></p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-view" class="hidden">
+        <div id="sec-dashboard" class="hidden">
+            <h2 class="text-xl font-semibold mb-4">Overview</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white dark:bg-gray-800 p-4 rounded shadow">
+                    <p class="text-sm text-gray-500">Total Jobs</p>
+                    <p class="text-2xl font-bold" id="stat-total">0</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded shadow">
+                    <p class="text-sm text-gray-500">In Progress</p>
+                    <p class="text-2xl font-bold text-blue-500" id="stat-inprogress">0</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded shadow">
+                    <p class="text-sm text-gray-500">Ready for Collection</p>
+                    <p class="text-2xl font-bold text-cyan-500" id="stat-ready">0</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded shadow">
+                    <p class="text-sm text-gray-500">Completed</p>
+                    <p class="text-2xl font-bold text-gray-500" id="stat-completed">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-jobs" class="hidden">
+            <h2 class="text-xl font-semibold mb-4">Workshop Scheduler</h2>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
+                <h3 class="font-medium mb-3">Create New Job</h3>
+                <div class="grid md:grid-cols-4 gap-3 mb-3">
+                    <select id="job-service" class="border p-2 rounded dark:bg-gray-700">
+                        <option value="">Select Service</option>
+                        <option value="MOT">MOT Test</option>
+                        <option value="Service">Full Service</option>
+                        <option value="Interim">Interim Service</option>
+                        <option value="Repair">General Repair</option>
+                        <option value="Tyres">Tyres & Fitting</option>
+                        <option value="Brakes">Brake Work</option>
+                        <option value="Exhaust">Exhaust System</option>
+                        <option value="Diagnostics">Diagnostics</option>
+                        <option value="Other">Other Work</option>
+                    </select>
+                    <input type="text" id="job-title" placeholder="Job Name" class="border p-2 rounded dark:bg-gray-700">
+                    <input type="text" id="job-reg" placeholder="Reg Number" class="border p-2 rounded uppercase dark:bg-gray-700">
+                    <input type="datetime-local" id="job-start" class="border p-2 rounded dark:bg-gray-700">
+                    <input type="datetime-local" id="job-end" class="border p-2 rounded dark:bg-gray-700">
+                    <select id="job-bay" class="border p-2 rounded dark:bg-gray-700">
+                        <option>Bay 1</option><option>Bay 2</option><option>Bay 3</option><option>Bay 4</option>
+                    </select>
+                    <input type="text" id="job-tech" placeholder="Technician" class="border p-2 rounded dark:bg-gray-700">
+                </div>
+                <textarea id="job-notes" placeholder="Notes" class="w-full border p-2 rounded mb-3 dark:bg-gray-700" rows="2"></textarea>
+                <button onclick="addNewJob()" class="bg-primary text-white px-4 py-2 rounded">Save Job</button>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
+                <div id="calendar"></div>
+            </div>
+            <div id="jobs-container" class="space-y-4"></div>
+        </div>
+
+        <div id="sec-vehicles" class="hidden">
+            <h2 class="text-xl font-semibold mb-4">Vehicles</h2>
+            <input type="text" id="search-vehicle" placeholder="Search reg, make, model..." class="w-full border p-2 rounded mb-4 dark:bg-gray-700">
+            <div id="vehicle-results" class="space-y-2"></div>
+        </div>
+
+        <div id="sec-customers" class="hidden">
+            <h2 class="text-xl font-semibold mb-4">Customers</h2>
+            <input type="text" id="search-customer" placeholder="Search name, email, phone..." class="w-full border p-2 rounded mb-4 dark:bg-gray-700">
+            <div id="customer-results" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <div id="customer-portal" class="hidden max-w-xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-8"></div>
+</div>
+
+<script>
+// --------------------------
+// SUPABASE CONFIG
+// --------------------------
+// Using your existing Supabase setup
+const SB_URL = 'https://dcsshdemeodyipplrhnm.supabase.co';
+const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3NoZGVtZW9keWlwcGxyaG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTM5NzE2NzQsImV4cCI6MjAyOTU0NzY3NH0.Ej6XfK3d7s8yP0gRjRbNx5nQeKbXaLmNpQrS2tUvWxY';
+const supabase = supabaseClient.createClient(SB_URL, SB_ANON_KEY);
+
+let currentUser = null;
+let jobs = [];
+let calendar;
+
+const STAGES = {
+    scheduled:      { label: '🟡 Scheduled', percent: 15, color: '#94A3B8' },
+    in_progress:    { label: '🔵 In Progress', percent: 35, color: '#3B82F6' },
+    parts_ordered:  { label: '🟠 Parts Ordered', percent: 50, color: '#F59E0B' },
+    inspection:     { label: '🟢 Inspection Complete', percent: 65, color: '#10B981' },
+    approval:       { label: '🟣 Awaiting Approval', percent: 80, color: '#8B5CF6' },
+    ready:          { label: '✅ Ready for Collection', percent: 90, color: '#06B6D4' },
+    completed:      { label: '🏁 Completed', percent: 100, color: '#64748B' }
+};
+
+// --------------------------
+// AUTH & TRIAL
+// --------------------------
+function showLogin() {
+    document.getElementById('login-view').classList.remove('hidden');
+    document.getElementById('signup-view').classList.add('hidden');
+}
+function showSignUp() {
+    document.getElementById('login-view').classList.add('hidden');
+    document.getElementById('signup-view').classList.remove('hidden');
+}
+
+async function handleSignUp() {
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const pass = document.getElementById('signup-pass').value;
+    const pass2 = document.getElementById('signup-pass2').value;
+
+    if (!name || !email || !pass) return alert('Fill all fields');
+    if (pass !== pass2) return alert('Passwords do not match');
+    if (pass.length < 6) return alert('Password min 6 characters');
+
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 14);
+
+    const { data, error } = await supabase.auth.signUp({
+        email, password: pass,
+        options: { data: { full_name: name, trial_end: trialEnd.toISOString() } }
+    });
+
+    if (error) return alert('Sign up failed: ' + error.message);
+    alert('Account created! Your 14-day free trial has started.');
+    currentUser = data.user;
+    startApp();
+}
+
+async function handleLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value;
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) return alert('Login failed: ' + error.message);
+
+    const trialEnd = new Date(data.user.user_metadata.trial_end);
+    if (new Date() > trialEnd) return alert('Your trial has ended. Please subscribe for £32/month.');
+
+    currentUser = data.user;
+    updateTrialDisplay(trialEnd);
+    startApp();
+}
+
+function updateTrialDisplay(trialEnd) {
+    const days = Math.ceil((trialEnd - new Date()) / (1000*60*60*24));
+    document.getElementById('trial-days').textContent = days > 0 ? `${days} days remaining` : 'Trial ended';
+}
+
+async function handleLogout() {
+    await supabase.auth.signOut();
+    currentUser = null;
+    document.getElementById('app-view').classList.add('hidden');
+    document.getElementById('main-nav').classList.add('hidden');
+    document.getElementById('header-user').classList.add('hidden');
+    document.getElementById('auth-container').classList.remove('hidden');
+    showLogin();
+}
+
+// --------------------------
+// DATA SYNC (SUPABASE)
+// --------------------------
+async function loadJobs() {
+    const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+    if (error) console.error('Load error:', error);
+    else jobs = data || [];
+    renderJobs(); updateStats(); updateCalendar();
+}
+
+async function saveJob(job) {
+    const { error } = await supabase.from('jobs').upsert([{ ...job, user_id: currentUser.id }]);
+    if (error) console.error('Save error:', error);
+    else loadJobs();
+}
+
+async function deleteJob(jobId) {
+    await supabase.from('jobs').delete().eq('id', jobId).eq('user_id', currentUser.id);
+    loadJobs();
+}
+
+// --------------------------
+// UI & APP
+// --------------------------
+function toggleDarkMode() {
+    document.body.classList.toggle('dark');
+    if(calendar) calendar.render();
+}
+
+function showSection(name) {
+    document.querySelectorAll('[id^="sec-"]').forEach(s => s.classList.add('hidden'));
+    document.querySelectorAll('button[id^="btn-"]').forEach(btn => {
+        btn.classList.remove('bg-primary', 'text-white');
+        btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+    });
+    document.getElementById(`sec-${name}`).classList.remove('hidden');
+    document.getElementById(`btn-${name}`).classList.add('bg-primary', 'text-white');
+    document.getElementById(`btn-${name}`).classList.remove('bg-gray-200', 'dark:bg-gray-700');
+    if (name === 'dashboard') updateStats();
+    if (name === 'jobs' && calendar) calendar.updateSize();
+}
+
+function startApp() {
+    document.getElementById('auth-container').classList.add('hidden');
+    document.getElementById('app-view').classList.remove('hidden');
+    document.getElementById('main-nav').classList.remove('hidden');
+    document.getElementById('header-user').classList.remove('hidden');
+    initCalendar();
+    showSection('jobs');
+    loadJobs();
+}
+
+function initCalendar() {
+    const el = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(el, {
+        locale: 'en-GB',
+        initialView: 'timeGridWeek',
+        slotMinTime: '08:00',
+        slotMaxTime: '18:00',
+        allDaySlot: false,
+        editable: true,
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }
+    });
+    calendar.render();
+}
+
+function updateCalendar() {
+    if (!calendar) return;
+    calendar.removeAllEvents();
+    calendar.addEventSource(jobs.map(j => ({
+        id: j.id,
+        title: `${j.service} | ${j.reg}`,
+        start: j.start,
+        end: j.end,
+        backgroundColor: STAGES[j.stage].color,
+        textColor: '#fff'
+    })));
+}
+
+function generateAccessKey() {
+    return Math.random().toString(36).slice(2, 18) + Math.random().toString(36).slice(2, 18);
+}
+
+async function addNewJob() {
+    const service = document.getElementById('job-service').value;
+    const title = document.getElementById('job-title').value.trim();
+    const reg = document.getElementById('job-reg').value.trim().toUpperCase();
+    const start = document.getElementById('job-start').value;
+    const end = document.getElementById('job-end').value;
+
+    if (!service || !title || !reg || !start || !end) return alert('Fill all required fields');
+
+    const newJob = {
+        service, title, reg,
+        bay: document.getElementById('job-bay').value,
+        technician: document.getElementById('job-tech').value || 'Not Assigned',
+        start, end,
+        internal_notes: document.getElementById('job-notes').value,
+        stage: 'scheduled',
+        access_key: generateAccessKey(),
+        timeline: [{ date: new Date().toLocaleString('en-GB'), text: 'Job created' }]
+    };
+    await saveJob(newJob);
+    document.querySelector('form').reset();
+}
+
+async function updateStage(jobId, newStage) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    job.stage = newStage;
+    job.timeline.unshift({ date: new Date().toLocaleString('en-GB'), text: `Status: ${STAGES[newStage].label}` });
+    await saveJob(job);
+}
+
+function renderJobs() {
+    const cont = document.getElementById('jobs-container');
+    cont.innerHTML = '';
+    jobs.forEach(job => {
+        const portalUrl = `${window.location.origin}${window.location.pathname}?job=${job.id}&key=${job.access_key}`;
+        const qrDiv = document.createElement('div');
+        new QRCode(qrDiv, { text: portalUrl, width: 90, height: 90 });
+
+        const div = document.createElement('div');
+        div.className = 'bg-white dark:bg-gray-800 p-4 rounded shadow';
+        div.innerHTML = `
+            <div class="flex flex-wrap justify-between gap-4">
+                <div>
+                    <h3 class="text-lg font-semibold">${job.id} — ${job.service} — ${job.reg}</h3>
+                    <p class="text-sm text-gray-600">${job.title} | Bay: ${job.bay} | Tech: ${job.technician}</p>
+                    <p class="mt-1 font-medium">${STAGES[job.stage].label}</p>
+                    <div class="stage-bar mt-2"><div class="stage-fill" style="width: ${STAGES[job.stage].percent}%; background: ${STAGES[job.stage].color}"></div></div>
+                </div>
+                <div class="text-center">${qrDiv.outerHTML}<p class="text-xs mt-1">QR Code</p></div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <select onchange="updateStage('${job.id}', this.value)" class="border p-1 rounded dark:bg-gray-700">
+                    ${Object.entries(STAGES).map(([k,v]) => `<option value="${k}" ${job.stage===k?'selected':''}>${v.label}</option>`).join('')}
+                </select>
+                <button onclick="viewDetails('${job.id}')" class="bg-gray-600 text-white px-2 py-1 rounded text-sm">View Details</button>
+            </div>
+            <div class="mt-2 text-sm">
+                <span class="font-medium">Customer Link:</span>
+                <input type="text" value="${portalUrl}" readonly class="w-full p-1 border rounded bg-gray-50 dark:bg-gray-700" onclick="this.select()">
+            </div>
+        `;
+        cont.appendChild(div);
+    });
+}
+
+function viewDetails(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    alert(`Job: ${job.id}\nService: ${job.service}\nReg: ${job.reg}\nStatus: ${STAGES[job.stage].label}\n\nNotes:\n${job.internal_notes || 'None'}`);
+}
+
+function updateStats() {
+    document.getElementById('stat-total').textContent = jobs.length;
+    document.getElementById('stat-inprogress').textContent = jobs.filter(j => j.stage === 'in_progress').length;
+    document.getElementById('stat-ready').textContent = jobs.filter(j => j.stage === 'ready').length;
+    document.getElementById('stat-completed').textContent = jobs.filter(j => j.stage === 'completed').length;
+}
+
+// --------------------------
+// CUSTOMER PORTAL
+// --------------------------
+async function loadCustomerPortal(jobId, key) {
+    const { data: job, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .eq('access_key', key)
+        .single();
+    const cont = document.getElementById('customer-portal');
+    if (error || !job) {
+        cont.innerHTML = `<h2 class="text-xl text-red-500 text-center">Invalid or expired link</h2>`;
+    } else {
+        cont.innerHTML = `
+            <svg class="logo-sm" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 34 L8 40 L8 60 L18 66 Z" fill="#00A651"/>
+                <path d="M34 26 L18 34 L18 66 L34 74 Z" fill="#6B7280"/>
+                <path d="M50 10 L34 18 L34 82 L50 74 Z" fill="#00B4FF"/>
+                <path d="M38 28 L46 24 M38 36 L46 32 M38 44 L46 40 M38 52 L46 48 M38 60 L46 56 M38 68 L46 64" stroke="#FFFFFF" stroke-width="1.4"/>
+                <text x="66" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="600" fill="#1E293B">Build</text>
+                <text x="180" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="300" fill="#6B7280">Tracker</text>
+                <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
+            </svg>
+            <h2 class="text-2xl font-bold text-center mb-4">Your Job Status</h2>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <span class="font-semibold">Reference:</span><span>${job.id}</span>
+                <span class="font-semibold">Service:</span><span>${job.service}</span>
+                <span class="font-semibold">Vehicle:</span><span>${job.reg}</span>
+                <span class="font-semibold">Status:</span><span class="font-bold">${STAGES[job.stage].label}</span>
+                <span class="font-semibold">Scheduled:</span><span>${new Date(job.start).toLocaleString('en-GB')}</span>
+                <span class="font-semibold">Due:</span><span>${new Date(job.end).toLocaleString('en-GB')}</span>
+            </div>
+            <div class="stage-bar mb-6"><div class="stage-fill" style="width: ${STAGES[job.stage].percent}%; background: ${STAGES[job.stage].color}"></div></div>
+            <h3 class="font-semibold mb-2">Updates</h3>
+            <div class="space-y-2">${job.timeline.map(t => `<div class="timeline-item"><span class="text-xs text-gray-500">${t.date}</span><p>${t.text}</p></div>`).join('')}</div>
+        `;
+    }
+    document.getElementById('app-view').classList.add('hidden');
+    document.getElementById('login-view').classList.add('hidden');
+    cont.classList.remove('hidden');
+}
+
+// --------------------------
+// INIT
+// --------------------------
+document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
+    const jobRef = params.get('job');
+    const key = params.get('key');
+    if (jobRef && key) {
+        loadCustomerPortal(jobRef, key);
+        return;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        currentUser = session.user;
+        updateTrialDisplay(new Date(session.user.user_metadata.trial_end));
+        startApp();
+    } else {
+        showLogin();
+    }
+});
+</script>
+
+</body>
+</html>
+</html>
