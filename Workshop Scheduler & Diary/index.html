@@ -35,21 +35,12 @@
     </script>
 
     <style>
-        /* --- Calendar Fix --- */
-        #calendar {
-            min-height: auto !important;
-            height: auto !important;
-            width: 100%;
-        }
+        #calendar { min-height: auto !important; height: auto !important; width: 100%; }
         .fc-timegrid-slot { height: 36px !important; }
         .fc-timegrid-slot-label { font-size: 0.85rem; }
         .fc { font-family: inherit; font-size: 0.9rem; }
-
-        /* --- Logo Styling --- */
         .logo { height: 48px; width: auto; margin-right: 14px; display: block; }
         .logo-sm { height: 36px; width: auto; margin: 0 auto 1rem; display: block; }
-
-        /* --- General Styles --- */
         .stage-bar { height: 8px; border-radius: 4px; overflow: hidden; background: #e2e8f0; }
         .stage-fill { height: 100%; transition: width 0.3s; }
         .timeline-item { position: relative; padding-left: 24px; }
@@ -64,8 +55,6 @@
         .timeline-item:last-child::after { display: none; }
         .dark { background: #0F172A; color: #E2E8F0; }
         .light { background: #F8FAFC; color: #0F172A; }
-
-        /* --- Trial Info --- */
         .trial-info {
             background: linear-gradient(135deg, #ecfeff, #e0f7fa);
             border: 1px solid #a5f3fc;
@@ -236,10 +225,12 @@
 
 <script>
 // --------------------------
-// SUPABASE CONFIG — MATCHES YOUR MAIN SITE
+// ✅ SUPABASE CONFIG — EXACTLY MATCHES YOUR PROJECT
 // --------------------------
 const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
+
+// Initialize correctly
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
@@ -272,45 +263,63 @@ function showSignUp() {
 
 async function handleSignUp() {
     const name = document.getElementById('signup-name').value.trim();
-    const email = document.getElementById('signup-email').value.trim();
+    const email = document.getElementById('signup-email').value.trim().toLowerCase();
     const pass = document.getElementById('signup-pass').value;
     const pass2 = document.getElementById('signup-pass2').value;
 
-    if (!name || !email || !pass) return alert('Fill all fields');
+    if (!name || !email || !pass) return alert('Please fill all fields');
     if (pass !== pass2) return alert('Passwords do not match');
-    if (pass.length < 6) return alert('Password min 6 characters');
+    if (pass.length < 6) return alert('Password must be at least 6 characters');
 
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 14);
 
-    const { data, error } = await supabase.auth.signUp({
-        email, password: pass,
-        options: { data: { full_name: name, trial_end: trialEnd.toISOString() } }
-    });
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: pass,
+            options: {
+                data: { full_name: name, trial_end: trialEnd.toISOString() }
+            }
+        });
 
-    if (error) return alert('Sign up failed: ' + error.message);
-    alert('Account created! Your 14-day free trial has started.');
-    currentUser = data.user;
-    startApp();
+        if (error) throw error;
+        alert('✅ Account created successfully! You can now sign in.');
+        showLogin();
+    } catch (err) {
+        alert('❌ Sign up failed: ' + err.message);
+        console.error(err);
+    }
 }
 
 async function handleLogin() {
-    const email = document.getElementById('login-email').value.trim();
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
     const pass = document.getElementById('login-pass').value;
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) return alert('Login failed: ' + error.message);
+    if (!email || !pass) return alert('Please enter email and password');
 
-    const trialEnd = new Date(data.user.user_metadata.trial_end);
-    if (new Date() > trialEnd) return alert('Your trial has ended. Please subscribe for £32/month.');
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
 
-    currentUser = data.user;
-    updateTrialDisplay(trialEnd);
-    startApp();
+        const trialEnd = new Date(data.user.user_metadata?.trial_end || new Date());
+        if (new Date() > trialEnd) {
+            alert('⚠️ Your trial has ended. Please subscribe for £32/month.');
+            await supabase.auth.signOut();
+            return;
+        }
+
+        currentUser = data.user;
+        updateTrialDisplay(trialEnd);
+        startApp();
+    } catch (err) {
+        alert('❌ Login failed: ' + err.message);
+        console.error(err);
+    }
 }
 
 function updateTrialDisplay(trialEnd) {
-    const days = Math.ceil((trialEnd - new Date()) / (1000*60*60*24));
+    const days = Math.ceil((trialEnd - new Date()) / (1000 * 60 * 60 * 24));
     document.getElementById('trial-days').textContent = days > 0 ? `${days} days remaining` : 'Trial ended';
 }
 
@@ -325,41 +334,49 @@ async function handleLogout() {
 }
 
 // --------------------------
-// DATA SYNC — MATCHES YOUR CORRECTED JOBS TABLE
+// DATA SYNC
 // --------------------------
 async function loadJobs() {
     if (!currentUser) return;
-    const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-    if (error) {
-        console.error('Load error:', error);
-        alert('Could not load jobs: ' + error.message);
-    } else {
+    try {
+        const { data, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
         jobs = data || [];
         renderJobs();
         updateStats();
         updateCalendar();
+    } catch (err) {
+        console.error('Load error:', err);
     }
 }
 
 async function saveJob(job) {
     if (!currentUser) return;
-    const { error } = await supabase.from('jobs').upsert([{ 
-        ...job, 
-        user_id: currentUser.id,
-        start_time: job.start,
-        end_time: job.end
-    }]);
-    if (error) console.error('Save error:', error);
-    else loadJobs();
-}
-
-async function deleteJob(jobId) {
-    await supabase.from('jobs').delete().eq('id', jobId).eq('user_id', currentUser.id);
-    loadJobs();
+    try {
+        const { error } = await supabase.from('jobs').upsert([{
+            user_id: currentUser.id,
+            service: job.service,
+            title: job.title,
+            reg: job.reg,
+            bay: job.bay,
+            technician: job.technician,
+            start_time: job.start,
+            end_time: job.end,
+            internal_notes: job.internal_notes,
+            stage: job.stage,
+            access_key: job.access_key,
+            timeline: job.timeline
+        }]);
+        if (error) throw error;
+        loadJobs();
+    } catch (err) {
+        console.error('Save error:', err);
+        alert('Could not save job: ' + err.message);
+    }
 }
 
 // --------------------------
@@ -367,7 +384,7 @@ async function deleteJob(jobId) {
 // --------------------------
 function toggleDarkMode() {
     document.body.classList.toggle('dark');
-    if(calendar) calendar.render();
+    if (calendar) calendar.render();
 }
 
 function showSection(name) {
@@ -514,43 +531,47 @@ function updateStats() {
 // CUSTOMER PORTAL
 // --------------------------
 async function loadCustomerPortal(jobId, key) {
-    const { data: job, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', jobId)
-        .eq('access_key', key)
-        .single();
-    const cont = document.getElementById('customer-portal');
-    if (error || !job) {
-        cont.innerHTML = `<h2 class="text-xl text-red-500 text-center">Invalid or expired link</h2>`;
-    } else {
-        cont.innerHTML = `
-            <svg class="logo-sm" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 34 L8 40 L8 60 L18 66 Z" fill="#00A651"/>
-                <path d="M34 26 L18 34 L18 66 L34 74 Z" fill="#6B7280"/>
-                <path d="M50 10 L34 18 L34 82 L50 74 Z" fill="#00B4FF"/>
-                <path d="M38 28 L46 24 M38 36 L46 32 M38 44 L46 40 M38 52 L46 48 M38 60 L46 56 M38 68 L46 64" stroke="#FFFFFF" stroke-width="1.4"/>
-                <text x="66" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="600" fill="#1E293B">Build</text>
-                <text x="180" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="300" fill="#6B7280">Tracker</text>
-                <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
-            </svg>
-            <h2 class="text-2xl font-bold text-center mb-4">Your Job Status</h2>
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <span class="font-semibold">Reference:</span><span>${job.id}</span>
-                <span class="font-semibold">Service:</span><span>${job.service}</span>
-                <span class="font-semibold">Vehicle:</span><span>${job.reg}</span>
-                <span class="font-semibold">Status:</span><span class="font-bold">${STAGES[job.stage].label}</span>
-                <span class="font-semibold">Scheduled:</span><span>${new Date(job.start_time).toLocaleString('en-GB')}</span>
-                <span class="font-semibold">Due:</span><span>${new Date(job.end_time).toLocaleString('en-GB')}</span>
-            </div>
-            <div class="stage-bar mb-6"><div class="stage-fill" style="width: ${STAGES[job.stage].percent}%; background: ${STAGES[job.stage].color}"></div></div>
-            <h3 class="font-semibold mb-2">Updates</h3>
-            <div class="space-y-2">${job.timeline.map(t => `<div class="timeline-item"><span class="text-xs text-gray-500">${t.date}</span><p>${t.text}</p></div>`).join('')}</div>
-        `;
+    try {
+        const { data: job, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('id', jobId)
+            .eq('access_key', key)
+            .single();
+        const cont = document.getElementById('customer-portal');
+        if (error || !job) {
+            cont.innerHTML = `<h2 class="text-xl text-red-500 text-center">Invalid or expired link</h2>`;
+        } else {
+            cont.innerHTML = `
+                <svg class="logo-sm" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 34 L8 40 L8 60 L18 66 Z" fill="#00A651"/>
+                    <path d="M34 26 L18 34 L18 66 L34 74 Z" fill="#6B7280"/>
+                    <path d="M50 10 L34 18 L34 82 L50 74 Z" fill="#00B4FF"/>
+                    <path d="M38 28 L46 24 M38 36 L46 32 M38 44 L46 40 M38 52 L46 48 M38 60 L46 56 M38 68 L46 64" stroke="#FFFFFF" stroke-width="1.4"/>
+                    <text x="66" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="600" fill="#1E293B">Build</text>
+                    <text x="180" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="300" fill="#6B7280">Tracker</text>
+                    <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
+                </svg>
+                <h2 class="text-2xl font-bold text-center mb-4">Your Job Status</h2>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <span class="font-semibold">Reference:</span><span>${job.id}</span>
+                    <span class="font-semibold">Service:</span><span>${job.service}</span>
+                    <span class="font-semibold">Vehicle:</span><span>${job.reg}</span>
+                    <span class="font-semibold">Status:</span><span class="font-bold">${STAGES[job.stage].label}</span>
+                    <span class="font-semibold">Scheduled:</span><span>${new Date(job.start_time).toLocaleString('en-GB')}</span>
+                    <span class="font-semibold">Due:</span><span>${new Date(job.end_time).toLocaleString('en-GB')}</span>
+                </div>
+                <div class="stage-bar mb-6"><div class="stage-fill" style="width: ${STAGES[job.stage].percent}%; background: ${STAGES[job.stage].color}"></div></div>
+                <h3 class="font-semibold mb-2">Updates</h3>
+                <div class="space-y-2">${job.timeline.map(t => `<div class="timeline-item"><span class="text-xs text-gray-500">${t.date}</span><p>${t.text}</p></div>`).join('')}</div>
+            `;
+        }
+        document.getElementById('app-view').classList.add('hidden');
+        document.getElementById('login-view').classList.add('hidden');
+        cont.classList.remove('hidden');
+    } catch (err) {
+        console.error('Portal error:', err);
     }
-    document.getElementById('app-view').classList.add('hidden');
-    document.getElementById('login-view').classList.add('hidden');
-    cont.classList.remove('hidden');
 }
 
 // --------------------------
@@ -564,12 +585,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadCustomerPortal(jobRef, key);
         return;
     }
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        currentUser = session.user;
-        updateTrialDisplay(new Date(session.user.user_metadata.trial_end));
-        startApp();
-    } else {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            updateTrialDisplay(new Date(session.user.user_metadata?.trial_end || new Date()));
+            startApp();
+        } else {
+            showLogin();
+        }
+    } catch (err) {
+        console.error('Session check:', err);
         showLogin();
     }
 });
