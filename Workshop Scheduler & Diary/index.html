@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workshop System | Build Tracker</title>
+    <title>Workshop Scheduler & Diary | Build Tracker</title>
     <!-- Libraries -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
@@ -99,7 +99,7 @@
                 <text x="180" y="52" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="42" font-weight="300" fill="#6B7280">Tracker</text>
                 <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
             </svg>
-            <h1 class="text-2xl md:text-3xl font-bold">Workshop System</h1>
+            <h1 class="text-2xl md:text-3xl font-bold">Workshop Scheduler & Diary</h1>
         </div>
         <div class="flex items-center gap-3 hidden" id="header-user">
             <span id="trial-days" class="text-sm font-medium text-green-600 dark:text-green-400"></span>
@@ -110,7 +110,7 @@
     <!-- Navigation -->
     <div class="flex flex-wrap gap-2 mb-6 hidden" id="main-nav">
         <button onclick="showSection('dashboard')" id="btn-dash" class="px-3 py-2 bg-primary text-white rounded">Dashboard</button>
-        <button onclick="showSection('jobs')" id="btn-jobs" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Jobs & Scheduler</button>
+        <button onclick="showSection('jobs')" id="btn-jobs" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Scheduler & Jobs</button>
         <button onclick="showSection('vehicles')" id="btn-veh" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Vehicles</button>
         <button onclick="showSection('customers')" id="btn-cust" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Customers</button>
         <button onclick="toggleDarkMode()" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">Dark Mode</button>
@@ -184,7 +184,7 @@
         </div>
 
         <div id="sec-jobs" class="hidden">
-            <h2 class="text-xl font-semibold mb-4">Workshop Scheduler</h2>
+            <h2 class="text-xl font-semibold mb-4">Workshop Scheduler & Diary</h2>
             <div class="bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
                 <h3 class="font-medium mb-3">Create New Job</h3>
                 <div class="grid md:grid-cols-4 gap-3 mb-3">
@@ -236,12 +236,13 @@
 
 <script>
 // --------------------------
-// SUPABASE CONFIG
+// SUPABASE CONFIG — MATCHES YOUR MAIN SITE
 // --------------------------
-// Using your existing Supabase setup
-const SB_URL = 'https://dcsshdemeodyipplrhnm.supabase.co';
-const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3NoZGVtZW9keWlwcGxyaG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTM5NzE2NzQsImV4cCI6MjAyOTU0NzY3NH0.Ej6XfK3d7s8yP0gRjRbNx5nQeKbXaLmNpQrS2tUvWxY';
-const supabase = supabaseClient.createClient(SB_URL, SB_ANON_KEY);
+const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+});
 
 let currentUser = null;
 let jobs = [];
@@ -324,21 +325,34 @@ async function handleLogout() {
 }
 
 // --------------------------
-// DATA SYNC (SUPABASE)
+// DATA SYNC — MATCHES YOUR CORRECTED JOBS TABLE
 // --------------------------
 async function loadJobs() {
+    if (!currentUser) return;
     const { data, error } = await supabase
         .from('jobs')
         .select('*')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
-    if (error) console.error('Load error:', error);
-    else jobs = data || [];
-    renderJobs(); updateStats(); updateCalendar();
+    if (error) {
+        console.error('Load error:', error);
+        alert('Could not load jobs: ' + error.message);
+    } else {
+        jobs = data || [];
+        renderJobs();
+        updateStats();
+        updateCalendar();
+    }
 }
 
 async function saveJob(job) {
-    const { error } = await supabase.from('jobs').upsert([{ ...job, user_id: currentUser.id }]);
+    if (!currentUser) return;
+    const { error } = await supabase.from('jobs').upsert([{ 
+        ...job, 
+        user_id: currentUser.id,
+        start_time: job.start,
+        end_time: job.end
+    }]);
     if (error) console.error('Save error:', error);
     else loadJobs();
 }
@@ -399,8 +413,8 @@ function updateCalendar() {
     calendar.addEventSource(jobs.map(j => ({
         id: j.id,
         title: `${j.service} | ${j.reg}`,
-        start: j.start,
-        end: j.end,
+        start: j.start_time,
+        end: j.end_time,
         backgroundColor: STAGES[j.stage].color,
         textColor: '#fff'
     })));
@@ -430,7 +444,14 @@ async function addNewJob() {
         timeline: [{ date: new Date().toLocaleString('en-GB'), text: 'Job created' }]
     };
     await saveJob(newJob);
-    document.querySelector('form').reset();
+    document.getElementById('job-service').value = '';
+    document.getElementById('job-title').value = '';
+    document.getElementById('job-reg').value = '';
+    document.getElementById('job-start').value = '';
+    document.getElementById('job-end').value = '';
+    document.getElementById('job-bay').value = 'Bay 1';
+    document.getElementById('job-tech').value = '';
+    document.getElementById('job-notes').value = '';
 }
 
 async function updateStage(jobId, newStage) {
@@ -519,8 +540,8 @@ async function loadCustomerPortal(jobId, key) {
                 <span class="font-semibold">Service:</span><span>${job.service}</span>
                 <span class="font-semibold">Vehicle:</span><span>${job.reg}</span>
                 <span class="font-semibold">Status:</span><span class="font-bold">${STAGES[job.stage].label}</span>
-                <span class="font-semibold">Scheduled:</span><span>${new Date(job.start).toLocaleString('en-GB')}</span>
-                <span class="font-semibold">Due:</span><span>${new Date(job.end).toLocaleString('en-GB')}</span>
+                <span class="font-semibold">Scheduled:</span><span>${new Date(job.start_time).toLocaleString('en-GB')}</span>
+                <span class="font-semibold">Due:</span><span>${new Date(job.end_time).toLocaleString('en-GB')}</span>
             </div>
             <div class="stage-bar mb-6"><div class="stage-fill" style="width: ${STAGES[job.stage].percent}%; background: ${STAGES[job.stage].color}"></div></div>
             <h3 class="font-semibold mb-2">Updates</h3>
@@ -555,5 +576,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 </script>
 
 </body>
-</html>
 </html>
