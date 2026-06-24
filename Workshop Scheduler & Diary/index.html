@@ -225,13 +225,13 @@
 
 <script>
 // --------------------------
-// ✅ SUPABASE CONFIG — EXACTLY MATCHES YOUR PROJECT
+// ✅ SUPABASE CONFIG — FIXED NAMING
 // --------------------------
 const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
 
-// Initialize correctly
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+// Initialize correctly — no name conflict
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
 
@@ -250,7 +250,7 @@ const STAGES = {
 };
 
 // --------------------------
-// AUTH & TRIAL
+// AUTH & TRIAL — FULLY FIXED
 // --------------------------
 function showLogin() {
     document.getElementById('login-view').classList.remove('hidden');
@@ -275,7 +275,7 @@ async function handleSignUp() {
     trialEnd.setDate(trialEnd.getDate() + 14);
 
     try {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: pass,
             options: {
@@ -299,13 +299,13 @@ async function handleLogin() {
     if (!email || !pass) return alert('Please enter email and password');
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
         if (error) throw error;
 
         const trialEnd = new Date(data.user.user_metadata?.trial_end || new Date());
         if (new Date() > trialEnd) {
             alert('⚠️ Your trial has ended. Please subscribe for £32/month.');
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             return;
         }
 
@@ -324,7 +324,7 @@ function updateTrialDisplay(trialEnd) {
 }
 
 async function handleLogout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     currentUser = null;
     document.getElementById('app-view').classList.add('hidden');
     document.getElementById('main-nav').classList.add('hidden');
@@ -334,12 +334,12 @@ async function handleLogout() {
 }
 
 // --------------------------
-// DATA SYNC
+// DATA SYNC — FIXED REFERENCES
 // --------------------------
 async function loadJobs() {
     if (!currentUser) return;
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('jobs')
             .select('*')
             .eq('user_id', currentUser.id)
@@ -357,7 +357,7 @@ async function loadJobs() {
 async function saveJob(job) {
     if (!currentUser) return;
     try {
-        const { error } = await supabase.from('jobs').upsert([{
+        const { error } = await supabaseClient.from('jobs').upsert([{
             user_id: currentUser.id,
             service: job.service,
             title: job.title,
@@ -384,7 +384,7 @@ async function saveJob(job) {
 // --------------------------
 function toggleDarkMode() {
     document.body.classList.toggle('dark');
-    if (calendar) calendar.render();
+    if(calendar) calendar.render();
 }
 
 function showSection(name) {
@@ -532,7 +532,7 @@ function updateStats() {
 // --------------------------
 async function loadCustomerPortal(jobId, key) {
     try {
-        const { data: job, error } = await supabase
+        const { data: job, error } = await supabaseClient
             .from('jobs')
             .select('*')
             .eq('id', jobId)
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             currentUser = session.user;
             updateTrialDisplay(new Date(session.user.user_metadata?.trial_end || new Date()));
