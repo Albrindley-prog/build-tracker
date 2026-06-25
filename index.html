@@ -152,6 +152,40 @@
     .price-box { background:#F2F3F5; border:3px solid #0EA5E9; border-radius:12px; padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
     .price-box .price { font-size:3rem; color:#0EA5E9; font-weight:bold; }
 
+    /* ✅ NEW: Coming Soon Section Style */
+    .coming-soon-box {
+      background: linear-gradient(135deg, #F0F9FF, #E0F7FA);
+      border: 2px solid #7DD3FC;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 2rem auto;
+      text-align: center;
+    }
+    .coming-soon-box h4 {
+      color: #0369A1;
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    .coming-soon-box ul {
+      list-style: none;
+      padding: 0;
+      margin: 1rem 0;
+      font-size: 1.05rem;
+    }
+    .coming-soon-box li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.7rem;
+    }
+    .coming-soon-box p {
+      color: #0E7490;
+      font-weight: 500;
+      margin-top: 1rem;
+    }
+
     /* Popup Styles */
     .popup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999; align-items:center; justify-content:center; }
     .popup-content { background:#fff; padding:2rem; border-radius:10px; max-width:450px; width:90%; max-height:90vh; overflow-y:auto; }
@@ -264,6 +298,18 @@
       <li>✅ Cancel anytime</li>
     </ul>
     <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Start Your Free Trial</button>
+  </div>
+
+  <!-- ✅ NEW: Coming Soon Section Added Here -->
+  <div class="coming-soon-box">
+    <h4>🚀 New Features Currently in Development</h4>
+    <p>We are constantly improving and adding new tools to make running your workshop even easier. Coming soon to Build Tracker:</p>
+    <ul>
+      <li>💾 <strong>Build Tracker Cloud Storage</strong> – Secure online storage to save job documents, photos, invoices and records, accessible from anywhere</li>
+      <li>⏱️ <strong>Clocking On & Job Time Tracking System</strong> – Log start/finish times, track hours worked per job, calculate labour costs and generate timesheets</li>
+      <li>📊 Advanced reporting, stock value tracking and more useful tools</li>
+    </ul>
+    <p>These updates are being built right now and will be added to your subscription at no extra cost.</p>
   </div>
 </section>
 
@@ -495,8 +541,8 @@
 function hideAllSections() { document.querySelectorAll('.section').forEach(s => s.classList.add('hidden')); }
 function showLogin() { hideAllSections(); document.getElementById('loginForm').classList.remove('hidden'); window.scrollTo(0,0); }
 function showSignup() { hideAllSections(); document.getElementById('signupForm').classList.remove('hidden'); window.scrollTo(0,0); }
-function showDashboard() { hideAllSections(); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('mainNav').classList.add('hidden'); document.getElementById('loggedInNav').class.remove('hidden'); window.scrollTo(0,0); }
-function showHome() { hideAllSections(); document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden')); document.getElementById('mainNav').classList.remove('hidden'); document.getElementById('loggedInNav').class.add('hidden'); window.scrollTo(0,0); }
+function showDashboard() { hideAllSections(); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('mainNav').classList.add('hidden'); document.getElementById('loggedInNav').classList.remove('hidden'); window.scrollTo(0,0); }
+function showHome() { hideAllSections(); document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard)').forEach(s => s.classList.remove('hidden')); document.getElementById('mainNav').classList.remove('hidden'); document.getElementById('loggedInNav').classList.add('hidden'); window.scrollTo(0,0); }
 
 // Popups
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
