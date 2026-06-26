@@ -582,13 +582,24 @@ async function signup() {
   });
   if (error) return alert("❌ Signup failed: " + error.message);
   if (data.user) {
-    const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 14);
-    await supabaseClient.from('subscriptions').insert({ user_id: data.user.id, status: 'trial', expires_at: trialEnd.toISOString() });
+    // Set trial end date = 14 days from now
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 14);
+
+    // Insert into subscriptions table — now matches your column names
+    const { error: insertErr } = await supabaseClient
+      .from('subscriptions')
+      .insert({
+        user_id: data.user.id,
+        status: 'trial',
+        expires_at: trialEnd.toISOString()
+      });
+
+    if (insertErr) console.error("❌ Failed to save trial:", insertErr);
   }
   alert("✅ Account created! Check your email — links are full‑length and will work perfectly.");
   showLogin();
 }
-
 async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
 
 async function checkSubscription() {
