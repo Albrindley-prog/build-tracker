@@ -1015,6 +1015,22 @@ async function saveEdit(){
   showToast('✅ Job updated.');
   await loadJobs(); renderJobs();
 }
+async function checkAccess() {
+  const { data: profile } = await sb.from('profiles').select('trial_start, subscription_active').eq('id', curUser.id).single();
+  
+  const trialStart = new Date(profile.trial_start);
+  const now = new Date();
+  const diffTime = Math.abs(now - trialStart);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // If trial > 14 days and no active subscription, lock the app
+  if (diffDays > 14 && !profile.subscription_active) {
+    document.getElementById('payment-lock').classList.remove('hidden');
+    document.getElementById('payment-lock').classList.add('open');
+    return false;
+  }
+  return true;
+}
 
 // ── INVOICE ───────────────────────────────────────────────────
 function openInvoice(id){
