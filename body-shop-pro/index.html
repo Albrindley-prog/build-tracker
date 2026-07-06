@@ -257,14 +257,14 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
 }
 
 /* ——— PAYMENT LOCK SCREEN ——— */
+/* NOTE: no hardcoded display:flex here — that used to override the
+   .modal-overlay / .open show-hide toggle via CSS specificity, which
+   meant this screen could get stuck showing (or stuck hidden) regardless
+   of trial/subscription state. Visibility is controlled purely by the
+   .open class, same as every other modal in this app. */
 #payment-lock {
   background: rgba(0, 0, 0, 0.85);
-  position: fixed;
-  inset: 0;
   z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   backdrop-filter: blur(6px);
 }
 #payment-lock .modal {
@@ -272,14 +272,6 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
   width: 100%;
   text-align: center;
 }
-#card-element {
-  padding: 14px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin: 16px 0;
-}
-
 </style>
 </head>
 <body>
@@ -541,89 +533,24 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
 <script>
 
 // ── SUPABASE ──────────────────────────────────────────────────
+const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
 const { createClient } = supabase;
 const sb = createClient(
-  'https://dkdnlgwflrwdxtrovrrq.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk',
+  SB_URL,
+  SB_KEY,
   { auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true } }
 );
 
 
-// ── STRIPE CONFIG ─────────────────────────────────────────────
+// ── STRIPE / SUBSCRIPTION CONFIG ────────────────────────────────
 // Replace with YOUR actual LIVE public key
 const STRIPE_PUBLIC_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
 // Replace with your actual Price ID from Stripe Dashboard
 const STRIPE_PRICE_ID   = 'price_1TgOwNICF2fQjVNyZi4seWgw';
-
-
-let stripe;
-let elements;
-
-// Load Stripe script dynamically and initialise
-async function loadStripe() {
-  if (!window.Stripe) {
-    await new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://js.stripe.com/v3/';
-      script.onload = resolve;
-      document.head.appendChild(script);
-    });
-  }
-  stripe = Stripe(STRIPE_PUBLIC_KEY);
-  elements = stripe.elements();
-}
-/* ── TRIAL / SUBSCRIPTION ── */
-function isTrialActive(user) {
-  const ts=user?.user_metadata?.trial_start; if (!ts) return false;
-  return Math.floor((new Date()-new Date(ts))/(864e5)) < 14;
-}
-function getTrialDaysLeft(user) {
-  const ts=user?.user_metadata?.trial_start; if (!ts) return 0;
-  return Math.max(0, 14 - Math.floor((new Date()-new Date(ts))/(864e5)));
-}
-async function hasActiveSubscription(user) {
-  if (!user) return false;
-  try {
-    const {data,error} = await sb.from('bt_subscriptions').select('status').eq('user_id',user.id).eq('status','active').maybeSingle();
-    return !error && !!data;
-  } catch(e) { return false; }
-}
-async function checkAccess() {
-  if (!curUser) return false;
-  if (isTrialActive(curUser)) return true;
-  const sub = await hasActiveSubscription(curUser);
-  if (!sub) { showSubscriptionRequiredView(); return false; }
-  return true;
-}
-function showSubscriptionRequiredView() {
-  document.getElementById('view-expired').innerHTML=`<div class="expired-wrap"><div class="expired-box"><h2>Subscription Required</h2><p>Your free trial has ended. Subscribe now for £32.00 / month.</p><button class="btn btn-primary" onclick="startSubscription()" style="margin:10px 0">Subscribe Now</button><p id="payment-message" style="margin-top:15px;color:var(--text2)"></p><br><button class="btn" onclick="doSignOut()">Sign out</button></div></div>`;
-  showView('view-expired');
-}
-async function startSubscription() {
-  const msg=document.getElementById('payment-message'); msg.textContent='Preparing payment...'; msg.style.color='var(--amber)';
-  try {
-    const {data:{session}} = await sb.auth.getSession();
-    if (!session?.access_token) throw new Error('Not logged in');
-    const res = await fetch(`${SB_URL}/functions/v1/create-checkout-session`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({price_id:STRIPE_PRICE_ID,currency:'gbp',success_url:location.origin+location.pathname+'?payment=success',cancel_url:location.origin+location.pathname+'?payment=cancel'})});
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    await stripe.redirectToCheckout({sessionId:data.id});
-  } catch(e) { msg.textContent=`Error: ${e.message}`; msg.style.color='#f87171'; }
-}
-async function handlePaymentResult() {
-  const status=new URLSearchParams(location.search).get('payment'); if (!status) return;
-  if (status==='success') { showToast('Payment successful! Subscription active.'); window.history.replaceState({},document.title,location.pathname); await startApp(); }
-  else if (status==='cancel') { showToast('Payment cancelled.'); window.history.replaceState({},document.title,location.pathname); }
-}
-async function updateBannerDisplay() {
-  const banner=document.getElementById('trial-banner');
-  const daysLeft=getTrialDaysLeft(curUser);
-  const subActive=await hasActiveSubscription(curUser);
-  if (subActive) { banner.style.display='block'; banner.textContent='✅ Subscription active'; banner.style.background='var(--green-dim)'; banner.style.color='var(--green)'; banner.style.borderBottom='1px solid var(--green-border)'; }
-  else if (daysLeft>0) { banner.style.display='block'; banner.textContent=`⏳ Free trial: ${daysLeft} day${daysLeft!==1?'s':''} remaining`; banner.style.background='var(--amber-dim)'; banner.style.color='var(--amber)'; banner.style.borderBottom='1px solid var(--amber-border)'; }
-  else { banner.style.display='none'; }
-}
-
+// Table your create-checkout-session webhook writes active subscriptions to.
+// Change this if your webhook for THIS project uses a different table name.
+const SUBSCRIPTIONS_TABLE = 'bs_subscriptions';
 
 
 // ── STAGES ────────────────────────────────────────────────────
@@ -660,9 +587,6 @@ let jobs = [];
 let customers = [];
 let staffList = [];
 let payments = [];
-let subscriptionActive = false;
-let trialEndDate = null;
-let nextPaymentDate = null;
 let filterMode = 'all';
 let mainTab = 'jobs';
 
@@ -686,138 +610,136 @@ function setMsg(id,msg,isErr){const el=document.getElementById(id);if(!el)return
 function formatMoney(amount){return '£' + Number(amount).toFixed(2);}
 function formatDate(dateStr){return new Date(dateStr).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
 
-// ── PAYMENT & SUBSCRIPTION FUNCTIONS ─────────────────────────
-async function initStripeCard() {
-  if (!stripe) await loadStripe();
-  const card = elements.create('card', {
-    style: { base: { fontSize: '16px', color: '#32325d' } }
-  });
-  card.mount('#card-element');
-  return card;
+// ── TRIAL & SUBSCRIPTION GATE ──────────────────────────────────
+// Mirrors the working pattern from the first app: trial_start is stamped
+// into user_metadata at signup, checked on every load, and access is hard
+// blocked via the #payment-lock overlay until 14 days pass AND there's no
+// active row in SUBSCRIPTIONS_TABLE for this user.
+
+function isTrialActive(user) {
+  const start = user?.user_metadata?.trial_start;
+  if(!start) return false; // no trial_start recorded → treat as expired, not active
+  const trialEnd = new Date(start);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  return new Date() < trialEnd;
 }
 
-async function processStripePayment() {
-  const amountInPence = Math.round(SUBSCRIPTION_PRICE * 100); // £32 → 3200p
-  const card = await initStripeCard();
+function getTrialDaysLeft(user) {
+  const start = user?.user_metadata?.trial_start;
+  if(!start) return 0;
+  const trialEnd = new Date(start);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  const msLeft = trialEnd - new Date();
+  return Math.max(0, Math.ceil(msLeft / (1000*60*60*24)));
+}
 
-  const {error, paymentMethod} = await stripe.createPaymentMethod({
-    type: 'card',
-    card: card,
-    billing_details: { name: currentUser?.email || 'Customer' }
-  });
+async function hasActiveSubscription(user) {
+  if(!user) return false;
+  const { data, error } = await sb.from(SUBSCRIPTIONS_TABLE)
+    .select('status')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle();
+  if(error){ console.error('Subscription check failed:', error.message); return false; }
+  return !!data;
+}
 
-  if (error) {
-    showToast('Payment failed: ' + error.message, true);
-    return {success: false};
+// Called right after login, before the app UI is shown.
+// Returns true if the user may proceed, false if they've been shown the lock screen.
+async function checkAccess() {
+  if(!currentUser) return false;
+
+  // Staff accounts ride on their shop owner's subscription, not their own trial.
+  if(userProfile && userProfile.role === 'staff') {
+    hidePaymentLock();
+    return true;
   }
 
-  // Save payment record
-  await recordPayment(SUBSCRIPTION_PRICE, 'Card', 'Stripe subscription payment');
-  showToast('✅ Payment successful — subscription active!');
-  return {success: true, paymentMethodId: paymentMethod.id};
-}
-
-async function recordPayment(amount, method, note = '') {
-  if(!currentUser) return;
-  const paymentData = {
-    shop_id: shopId,
-    user_id: currentUser.id,
-    amount: Number(amount),
-    method: method,
-    note: note,
-    date: new Date().toISOString(),
-    type: 'subscription'
-  };
-  const { data, error } = await sb.from('bs_payments').insert([paymentData]).select();
-  if(error){showToast('Error saving payment: ' + error.message, true); return null;}
-  payments.push(data[0]);
-  updateSubscriptionStatus();
-  return data[0];
-}
-
-function calculateTrialEndDate(signupDate) {
-  const d = new Date(signupDate);
-  d.setDate(d.getDate() + TRIAL_DAYS);
-  return d;
-}
-
-function calculateNextPaymentDate(lastDate) {
-  const d = new Date(lastDate);
-  d.setMonth(d.getMonth() + 1);
-  return d.toISOString();
-}
-
-async function updateSubscriptionStatus() {
-  if(!userProfile) return;
-
-  // 1. Check if still in 14-day trial
-  const signupDate = new Date(userProfile.created_at);
-  trialEndDate = calculateTrialEndDate(signupDate);
-  const now = new Date();
-
-  if(now < trialEndDate) {
-    subscriptionActive = true;
-    nextPaymentDate = trialEndDate;
-    updateSubscriptionUI();
-    return;
+  if(isTrialActive(currentUser)) {
+    updateSubscriptionBanner();
+    hidePaymentLock();
+    return true;
   }
 
-  // 2. Trial ended — check if paid
-  const { data: latest } = await sb.from('bs_payments')
-    .select('date')
-    .eq('shop_id', shopId)
-    .eq('type', 'subscription')
-    .order('date', { ascending: false })
-    .limit(1)
-    .single();
-
-  if(latest) {
-    const lastPaid = new Date(latest.date);
-    nextPaymentDate = calculateNextPaymentDate(lastPaid);
-    subscriptionActive = now < new Date(nextPaymentDate);
-  } else {
-    subscriptionActive = false;
-    nextPaymentDate = null;
+  const active = await hasActiveSubscription(currentUser);
+  if(active) {
+    updateSubscriptionBanner();
+    hidePaymentLock();
+    return true;
   }
 
-  updateSubscriptionUI();
-  lockAppIfExpired();
+  showPaymentLock();
+  return false;
 }
 
-function updateSubscriptionUI() {
+function updateSubscriptionBanner() {
   const el = document.getElementById('subscription-status');
   if(!el) return;
-
-  const now = new Date();
-  if(now < trialEndDate) {
-    const daysLeft = Math.ceil((trialEndDate - now) / (1000*60*60*24));
-    el.innerHTML = `<span class="badge badge-info">🎁 Free Trial — ${daysLeft} day(s) left. Pay ${formatMoney(SUBSCRIPTION_PRICE)} after trial ends.</span>`;
-  } else if(subscriptionActive) {
-    el.innerHTML = `<span class="badge badge-success">✅ Subscription Active — Next payment: ${formatDate(nextPaymentDate)}</span>`;
+  if(userProfile && userProfile.role === 'staff') { el.innerHTML=''; return; }
+  if(isTrialActive(currentUser)) {
+    const daysLeft = getTrialDaysLeft(currentUser);
+    el.innerHTML = `<span class="badge badge-info">🎁 Free Trial — ${daysLeft} day(s) left. Pay ${formatMoney(SUBSCRIPTION_PRICE)}/month after trial ends.</span>`;
   } else {
-    el.innerHTML = `<span class="badge badge-danger">❌ Trial Ended — Pay ${formatMoney(SUBSCRIPTION_PRICE)} now to continue using the system.</span>`;
+    el.innerHTML = `<span class="badge badge-success">✅ Subscription Active</span>`;
   }
 }
 
-function lockAppIfExpired() {
+function showPaymentLock() {
   const overlay = document.getElementById('payment-lock');
-  if(!overlay) return;
+  if(overlay) overlay.classList.add('open');
+  const el = document.getElementById('subscription-status');
+  if(el) el.innerHTML = `<span class="badge badge-danger">❌ Trial Ended — Pay ${formatMoney(SUBSCRIPTION_PRICE)} now to continue using the system.</span>`;
+}
 
-  if(!subscriptionActive && new Date() >= trialEndDate) {
-    overlay.classList.add('show');
-  } else {
-    overlay.classList.remove('show');
+function hidePaymentLock() {
+  const overlay = document.getElementById('payment-lock');
+  if(overlay) overlay.classList.remove('open');
+}
+
+// Redirects to a real Stripe Checkout session (created server-side by your
+// existing 'create-checkout-session' Edge Function), instead of taking card
+// details directly in the browser.
+async function startSubscription() {
+  const msgEl = document.getElementById('payment-msg');
+  if(msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(`${SB_URL}/functions/v1/create-checkout-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        price_id: STRIPE_PRICE_ID,
+        user_id: currentUser.id,
+        email: currentUser.email,
+        success_url: window.location.origin + window.location.pathname + '?payment=success',
+        cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
+      })
+    });
+    const { url, error } = await res.json();
+    if(error || !url) throw new Error(error || 'No checkout URL returned');
+    window.location.href = url;
+  } catch(err) {
+    if(msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
+    showToast('Checkout error: ' + err.message, true);
   }
 }
 
-async function getPaymentHistory() {
-  const { data, error } = await sb.from('bs_payments')
-    .select('*')
-    .eq('shop_id', shopId)
-    .eq('type', 'subscription')
-    .order('date', { ascending: false });
-  if(!error) payments = data;
-  return payments;
+// Checks for ?payment=success/cancel on the URL after redirect back from Stripe.
+async function handlePaymentResult() {
+  const params = new URLSearchParams(window.location.search);
+  const result = params.get('payment');
+  if(!result) return;
+  window.history.replaceState({}, '', window.location.pathname);
+  if(result === 'success') {
+    showToast('✅ Payment successful — checking subscription…');
+    // Webhook may take a moment to write the active row; brief delay then reload the app fully.
+    setTimeout(async () => { await loadApp(); }, 1500);
+  } else if(result === 'cancel') {
+    showToast('Checkout cancelled.', true);
+  }
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
@@ -835,7 +757,7 @@ async function register(){
   const pw=document.getElementById('reg-password').value;
   if(!name||!shop||!email||!pw){setMsg('reg-msg','All fields required.',true);return;}
   if(pw.length<6){setMsg('reg-msg','Password must be 6+ characters.',true);return;}
-  const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name,shop_name:shop,role:'owner'}}});
+  const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name,shop_name:shop,role:'owner',trial_start:new Date().toISOString()}}});
   if(error){setMsg('reg-msg',error.message,true);return;}
   setMsg('reg-msg','✅ Account created! You have 14 days free trial.','');
 }
@@ -874,6 +796,9 @@ async function loadApp(){
     const st=document.getElementById('ntab-staff');
     if(st)st.classList.add('hidden');
   }
+
+  const allowed = await checkAccess();
+  if(!allowed) return; // trial expired & no active subscription — payment-lock overlay is now shown
 
   await Promise.all([loadJobs(),loadCustomers()]);
   if(userProfile.role==='owner') await loadStaff();
@@ -1068,23 +993,6 @@ async function saveEdit(){
   showToast('✅ Job updated.');
   await loadJobs(); renderJobs();
 }
-async function checkAccess() {
-  const { data: profile } = await sb.from('profiles').select('trial_start, subscription_active').eq('id', curUser.id).single();
-  
-  const trialStart = new Date(profile.trial_start);
-  const now = new Date();
-  const diffTime = Math.abs(now - trialStart);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  // If trial > 14 days and no active subscription, lock the app
-  if (diffDays > 14 && !profile.subscription_active) {
-    document.getElementById('payment-lock').classList.remove('hidden');
-    document.getElementById('payment-lock').classList.add('open');
-    return false;
-  }
-  return true;
-}
-
 // ── INVOICE ───────────────────────────────────────────────────
 function openInvoice(id){
   const job=jobs.find(j=>j.id===id);
@@ -1566,6 +1474,7 @@ async function init(){
   if(session){
     currentUser=session.user;
     await loadApp();
+    await handlePaymentResult();
   } else {
     document.getElementById('loading-view').classList.add('hidden');
     document.getElementById('auth-view').classList.remove('hidden');
@@ -1574,26 +1483,21 @@ async function init(){
 init();
 
 </script>
-    init();
-</script> <!-- END OF JAVASCRIPT -->
 
-<!-- ↓↓↓ LIVE PAYMENT SYSTEM ↓↓↓ -->
 <!-- ——— PAYMENT STATUS BAR ——— -->
 <div id="subscription-status" class="no-print" style="position: sticky; top: 62px; z-index: 99; background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; font-size: 13px; text-align: center;"></div>
 
 <!-- ——— PAYMENT LOCK SCREEN ——— -->
-<div id="payment-lock" class="modal-overlay hidden">
+<div id="payment-lock" class="modal-overlay">
   <div class="modal">
     <h2 class="modal-title" style="color: var(--orange); text-align: center;">⚠️ Trial Ended</h2>
     <p style="margin-bottom: 20px; line-height: 1.5;">Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Body Shop Pro.</p>
-    
-    <div id="card-element"></div> <!-- Live card input → REAL PAYMENTS -->
 
-    <button class="btn btn-primary" style="width: 100%;" onclick="processStripePayment()">💳 Pay £32.00 Now</button>
+    <button class="btn btn-primary" style="width: 100%;" onclick="startSubscription()">💳 Subscribe Now — £32.00/month</button>
     <p id="payment-msg" style="margin-top: 12px;"></p>
+    <button class="btn" style="width: 100%; margin-top: 8px;" onclick="sb.auth.signOut().then(()=>location.reload())">Sign out</button>
   </div>
 </div>
-<!-- ↑↑↑ LIVE SYSTEM - NO TEST MODE ↑↑↑ -->
 
 </body>
 </html>
