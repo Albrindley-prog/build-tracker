@@ -318,12 +318,23 @@ textarea{resize:vertical;} select option{background:var(--surface2);}
 
 <script>
 // ── GLOBAL SETUP ───────────────────────────────────────────────
+const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
 const { createClient } = supabase;
 const sb = createClient(
-  'https://dkdnlgwflrwdxtrovrrq.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk',
+  SB_URL,
+  SB_KEY,
   { auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true } }
 );
+
+// ── TRIAL / SUBSCRIPTION CONFIG ─────────────────────────────────
+const SUBSCRIPTION_PRICE = 32.00; // £32.00 per month
+const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw'; // same Stripe product as Body Shop Pro — update if this app should bill separately
+// Same Supabase project as Body Shop Pro, so reusing its subscriptions table/webhook.
+// Change this if this app should track subscriptions separately.
+const SUBSCRIPTIONS_TABLE = 'bs_subscriptions';
+function formatMoney(amount){ return '£' + Number(amount).toFixed(2); }
+
 
 // Repair workflow stages (customised for electronics)
 const STAGES = [
@@ -345,52 +356,141 @@ const STAGES = [
 ];
 const TAG_LABELS = {checkin:'Check-In',diagnosis:'Diagnosis',parts:'Parts',repair:'Repair',testing:'Testing'};
 
-// State
-// ── TRIAL SYSTEM ───────────────────────────────────────────────
+// ── TRIAL & SUBSCRIPTION GATE ───────────────────────────────────
+// trial_start is stamped into auth user_metadata at signup (not a DB
+// column, so no migration needed) and checked on every login AND every
+// page reload, with a real Stripe Checkout redirect for payment.
 const TRIAL_DAYS = 14;
 
-// ✅ ADDED SAFE CHECKS — NO MORE NULL ERRORS
-function checkTrialStatus(){
-  if(!userProfile || !userProfile.id) return;
+function isTrialActive(user){
+  const start = user?.user_metadata?.trial_start;
+  if(!start) return false; // no trial_start recorded → treat as expired, not active
+  const trialEnd = new Date(start);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  return new Date() < trialEnd;
+}
 
-  // If already paid → skip
-  if(userProfile.subscription_active) {
-    document.getElementById('subscription-status').innerText = '✅ Subscription active';
-    return;
+function getTrialDaysLeft(user){
+  const start = user?.user_metadata?.trial_start;
+  if(!start) return 0;
+  const trialEnd = new Date(start);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  const msLeft = trialEnd - new Date();
+  return Math.max(0, Math.ceil(msLeft / (1000*60*60*24)));
+}
+
+async function hasActiveSubscription(user){
+  if(!user) return false;
+  const { data, error } = await sb.from(SUBSCRIPTIONS_TABLE)
+    .select('status')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle();
+  if(error){ console.error('Subscription check failed:', error.message); return false; }
+  return !!data;
+}
+
+// Call after loadUserProfile(), before showing the app. Returns true if
+// the user may proceed, false if the payment-lock screen was shown instead.
+async function checkAccess(){
+  if(!currentUser) return false;
+
+  // Staff accounts ride on their shop owner's subscription, not their own trial.
+  if(userProfile && userProfile.role !== 'owner'){
+    hidePaymentLock();
+    return true;
   }
 
-  // Get or set trial start date
-  let startDate = userProfile.trial_start_at;
-  if(!startDate){
-    startDate = new Date().toISOString();
-    // Save to database safely
-    if (currentUser?.id) {
-      sb.from('profiles').update({trial_start_at: startDate}).eq('id', currentUser.id).catch(()=>{});
-    }
+  if(isTrialActive(currentUser)){
+    updateSubscriptionBanner();
+    hidePaymentLock();
+    return true;
   }
 
-  // Calculate days remaining
-  const start = new Date(startDate);
-  const now = new Date();
-  const daysUsed = Math.floor((now - start) / (1000*60*60*24));
-  const daysLeft = TRIAL_DAYS - daysUsed;
+  const active = await hasActiveSubscription(currentUser);
+  if(active){
+    updateSubscriptionBanner();
+    hidePaymentLock();
+    return true;
+  }
 
-  const statusEl = document.getElementById('subscription-status');
+  showPaymentLock();
+  return false;
+}
 
-  if(daysLeft > 0){
-    statusEl.className = 'trial-active';
-    statusEl.innerText = `✅ Free trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
+function updateSubscriptionBanner(){
+  const el = document.getElementById('subscription-status');
+  if(!el) return;
+  if(userProfile && userProfile.role !== 'owner'){ el.innerText=''; return; }
+  if(isTrialActive(currentUser)){
+    const daysLeft = getTrialDaysLeft(currentUser);
+    el.className = 'trial-active';
+    el.innerText = `✅ Free trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
   } else {
-    statusEl.className = 'trial-expired';
-    statusEl.innerText = '❌ Trial expired — please pay to continue';
-    // LOCK THE APP
-    document.getElementById('payment-lock').classList.add('open');
-    // Hide everything else
-    document.getElementById('app-view').classList.add('hidden');
+    el.className = 'trial-active';
+    el.innerText = '✅ Subscription active';
   }
 }
 
-let currentUser = null;
+function showPaymentLock(){
+  document.getElementById('payment-lock').classList.add('open');
+  document.getElementById('app-view').classList.add('hidden');
+  const el = document.getElementById('subscription-status');
+  if(el){ el.className='trial-expired'; el.innerText = '❌ Trial expired — please pay to continue'; }
+}
+
+function hidePaymentLock(){
+  document.getElementById('payment-lock').classList.remove('open');
+}
+
+// Redirects to a real Stripe Checkout session created by your existing
+// 'create-checkout-session' Edge Function (same one used by Body Shop Pro,
+// since this app shares that Supabase project).
+async function startSubscription(){
+  const msgEl = document.getElementById('payment-msg');
+  if(msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
+  try{
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(`${SB_URL}/functions/v1/create-checkout-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        price_id: STRIPE_PRICE_ID,
+        user_id: currentUser.id,
+        email: currentUser.email,
+        success_url: window.location.origin + window.location.pathname + '?payment=success',
+        cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
+      })
+    });
+    const { url, error } = await res.json();
+    if(error || !url) throw new Error(error || 'No checkout URL returned');
+    window.location.href = url;
+  }catch(err){
+    if(msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
+    showToast('Checkout error: ' + err.message, true);
+  }
+}
+
+// Checks for ?payment=success/cancel after redirect back from Stripe.
+async function handlePaymentResult(){
+  const params = new URLSearchParams(window.location.search);
+  const result = params.get('payment');
+  if(!result) return;
+  window.history.replaceState({}, '', window.location.pathname);
+  if(result === 'success'){
+    showToast('✅ Payment successful — checking subscription…');
+    setTimeout(async () => {
+      const allowed = await checkAccess();
+      if(allowed) showApp();
+    }, 1500);
+  } else if(result === 'cancel'){
+    showToast('Checkout cancelled.', true);
+  }
+}
+
 let userProfile = null;
 let shopId = null;
 let jobs = [];
@@ -427,11 +527,11 @@ function openModal(id){document.getElementById(id).classList.add('open');}
   <div class="modal">
     <h2 class="modal-title" style="color: var(--orange); text-align: center;">⚠️ Trial Ended</h2>
     <p style="margin-bottom: 20px; line-height: 1.5;">Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Tech Repair Pro.</p>
-    <button class="btn btn-primary" style="width: 100%;" onclick="alert('Stripe goes here')">💳 Pay Now</button>
+    <button class="btn btn-primary" style="width: 100%;" onclick="startSubscription()">💳 Subscribe Now — £32.00/month</button>
+    <p id="payment-msg" style="margin-top: 12px;"></p>
+    <button class="btn" style="width: 100%; margin-top: 8px;" onclick="sb.auth.signOut().then(()=>location.reload())">Sign out</button>
   </div>
 </div>
-</body>
-</html>
 <!-- APP VIEW -->
 <div id="app-view" class="hidden">
   <div class="header no-print">
@@ -694,7 +794,10 @@ async function signIn(){
     if(error) throw error;
     currentUser = data.user;
     await loadUserProfile();
-    showApp();checkTrialStatus();
+    const allowed = await checkAccess();
+    document.getElementById('loading-view').classList.add('hidden');
+    document.getElementById('auth-view').classList.add('hidden');
+    if(allowed) showApp();
   }catch(e){msg.innerText=e.message;}
 }
 
@@ -707,7 +810,7 @@ async function register(){
   msg.innerText=''; msg.className='err';
   if(pw.length<6) return msg.innerText='Password must be at least 6 characters';
   try{
-    const {data,error} = await sb.auth.signUp({email,password:pw,options:{data:{name,shop_name:shop}}});
+    const {data,error} = await sb.auth.signUp({email,password:pw,options:{data:{name,shop_name:shop,trial_start:new Date().toISOString()}}});
     if(error) throw error;
     msg.className='suc';
     msg.innerText='Account created! You can now sign in.';
@@ -1401,7 +1504,11 @@ window.onload = async function(){
   if(session.session){
     currentUser = session.session.user;
     await loadUserProfile();
-    showApp();
+    const allowed = await checkAccess();
+    document.getElementById('loading-view').classList.add('hidden');
+    document.getElementById('auth-view').classList.add('hidden');
+    if(allowed) showApp();
+    await handlePaymentResult();
   } else {
     document.getElementById('loading-view').classList.add('hidden');
     document.getElementById('auth-view').classList.remove('hidden');
@@ -1544,3 +1651,5 @@ IMPORTANT NOTES:
 - The app is fully responsive and works on mobile, tablet, and desktop
 - The client public view is accessible via links like "yourdomain.com?client=JOB_ID"
 -->
+</body>
+</html>
