@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -399,6 +400,13 @@
     /* ── Hidden ── */
     .hidden { display: none !important; }
 
+    /* ── Payment lock ── */
+    #payment-lock { display: none; position: fixed; inset: 0; background: rgba(28,28,26,0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+    #payment-lock.open { display: flex; }
+    #payment-lock .auth-box { text-align: center; }
+    #payment-lock h2 { font-size: 20px; font-weight: 600; color: #A32D2D; margin-bottom: 10px; }
+    #payment-lock p { font-size: 13px; color: #5F5E5A; margin-bottom: 18px; line-height: 1.5; }
+
     @media (max-width: 900px) {
       .sidebar { width: 100%; min-height: auto; position: relative; }
       .main-content { margin-left: 0; padding: 16px; width: 100%; }
@@ -421,7 +429,7 @@
     </div>
 
     <!-- ✅ 14‑DAY TRIAL NOTICE HERE -->
-    <div class="trial-notice">🎉 You are on a 14‑day free trial — all features unlocked!</div>
+    <div class="trial-notice">🎉 14‑day free trial, then £32/month — all features unlocked</div>
 
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
@@ -471,9 +479,23 @@
       <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doSignup()">Create account</button>
     </div>
 
-    <div class="auth-footer">Your data is saved in this browser only</div>
+    <div class="auth-footer">Your data is stored securely via Supabase</div>
   </div>
 </div>
+
+<!-- ════════════════════════════════════════════════════════════
+     PAYMENT LOCK SCREEN
+════════════════════════════════════════════════════════════ -->
+<div id="payment-lock">
+  <div class="auth-box">
+    <h2>⚠️ Trial ended</h2>
+    <p>Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Quoting & Estimating.</p>
+    <button class="btn btn-primary btn-full" onclick="startSubscription()">💳 Subscribe now — £32.00/month</button>
+    <p id="payment-msg" style="margin-top:10px;font-size:12px;color:#888780"></p>
+    <button class="btn btn-full" style="margin-top:6px" onclick="doLogout()">Sign out</button>
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════════════════
      APP
 ════════════════════════════════════════════════════════════ -->
@@ -503,7 +525,7 @@
       </nav>
       <div class="sidebar-footer">
         <!-- ✅ 14‑DAY TRIAL BANNER IN SIDEBAR -->
-        <div class="trial-banner">📅 14‑day trial — 12 days remaining</div>
+        <div class="trial-banner" id="trial-banner">📅 14‑day trial</div>
 
         <div class="user-chip">
           <div class="user-avatar" id="user-avatar">?</div>
@@ -732,26 +754,29 @@ const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
 const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
 
 // ════════════════════════════════════════════════════════════════
-// ⚙️  TRIAL SETTINGS
+// ⚙️  SUPABASE — same project as your other rented apps
+// ════════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+});
+
+// ════════════════════════════════════════════════════════════════
+// ⚙️  TRIAL / SUBSCRIPTION SETTINGS
 // ════════════════════════════════════════════════════════════════
 const TRIAL_DAYS = 14;
+const SUBSCRIPTION_PRICE = 32.00;
+const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw'; // same Stripe product as your other apps — change if this should bill separately
+// Same Supabase project as your other apps, reusing its subscriptions table/webhook.
+const SUBSCRIPTIONS_TABLE = 'bs_subscriptions';
+// This app's own quotes table (see SQL setup notes at the bottom of this file).
+const QUOTES_TABLE = 'qt_quotes';
 
 // ════════════════════════════════════════════════════════════════
 // AUTH STATE
 // ════════════════════════════════════════════════════════════════
 let currentUser = null;
-
-function getUsers() {
-  return JSON.parse(localStorage.getItem('qt_users') || '{}');
-}
-
-function saveUsers(users) {
-  localStorage.setItem('qt_users', JSON.stringify(users));
-}
-
-function getSession() {
-  return localStorage.getItem('qt_session');
-}
 
 function switchTab(tab) {
   document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
@@ -780,25 +805,19 @@ function clearAuthMessages() {
   document.getElementById('auth-success').style.display = 'none';
 }
 
-function doLogin() {
+async function doLogin() {
   const email    = document.getElementById('login-email').value.trim().toLowerCase();
   const password = document.getElementById('login-password').value;
 
   if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
 
-  const users = getUsers();
-  const user  = users[email];
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) { showAuthError('Login failed: ' + error.message); return; }
 
-  if (!user || user.password !== btoa(password)) {
-    showAuthError('Email or password is incorrect. Please try again.');
-    return;
-  }
-
-  localStorage.setItem('qt_session', email);
-  launchApp(user);
+  await launchApp(data.user);
 }
 
-function doSignup() {
+async function doSignup() {
   const firstName = document.getElementById('signup-firstname').value.trim();
   const lastName  = document.getElementById('signup-lastname').value.trim();
   const email     = document.getElementById('signup-email').value.trim().toLowerCase();
@@ -811,30 +830,28 @@ function doSignup() {
   if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
   if (password !== confirm)  { showAuthError('Passwords do not match.'); return; }
 
-  const users = getUsers();
-  if (users[email]) { showAuthError('An account with this email already exists. Please sign in.'); return; }
+  const { data, error } = await supabaseClient.auth.signUp({
+    email, password,
+    options: {
+      data: { first_name: firstName, last_name: lastName, trial_start: new Date().toISOString() }
+    }
+  });
 
-  // Set trial start date on signup
-  const user = { 
-    firstName, lastName, email, 
-    password: btoa(password), 
-    quotes: [],
-    trialStart: new Date().toISOString()
-  };
-  users[email] = user;
-  saveUsers(users);
+  if (error) { showAuthError('Sign up failed: ' + error.message); return; }
 
-  showAuthSuccess('Account created! Signing you in…');
-  setTimeout(() => {
-    localStorage.setItem('qt_session', email);
-    launchApp(user);
-  }, 800);
+  if (data.session) {
+    showAuthSuccess('Account created! Signing you in…');
+    setTimeout(() => launchApp(data.user), 800);
+  } else {
+    showAuthSuccess('✅ Account created! Check your email and click the confirmation link to activate, then sign in.');
+  }
 }
 
-function doLogout() {
-  localStorage.removeItem('qt_session');
+async function doLogout() {
+  await supabaseClient.auth.signOut();
   currentUser = null;
   quotes = [];
+  hidePaymentLock();
   document.getElementById('screen-app').classList.add('hidden');
   document.getElementById('screen-auth').classList.remove('hidden');
   document.getElementById('login-email').value    = '';
@@ -843,43 +860,155 @@ function doLogout() {
   switchTab('login');
 }
 
-function launchApp(user) {
-  currentUser = user;
-  quotes = user.quotes || [];
+// ════════════════════════════════════════════════════════════════
+// TRIAL & SUBSCRIPTION GATE
+// trial_start is stamped into auth user_metadata at signup and checked
+// on every login AND every page reload, with a real Stripe Checkout
+// redirect for payment — same pattern as your other apps.
+// ════════════════════════════════════════════════════════════════
+function isTrialActive(user) {
+  const start = user?.user_metadata?.trial_start;
+  if (!start) return false; // no trial_start recorded → treat as expired, not active
+  const trialEnd = new Date(start);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  return new Date() < trialEnd;
+}
 
-  // Calculate and show trial days remaining
-  if (user.trialStart) {
-    const start = new Date(user.trialStart);
-    const now = new Date();
-    const daysUsed = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-    const daysLeft = Math.max(0, TRIAL_DAYS - daysUsed);
-    const banner = document.querySelector('.trial-banner');
-    if (daysLeft > 0) {
-      banner.textContent = `📅 14‑day trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
-    } else {
-      banner.textContent = '⏳ Trial expired — upgrade to continue';
-      banner.style.background = '#FCEBEB';
-      banner.style.color = '#A32D2D';
-    }
+function getTrialDaysLeft(user) {
+  const start = user?.user_metadata?.trial_start;
+  if (!start) return 0;
+  const trialEnd = new Date(start);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  const msLeft = trialEnd - new Date();
+  return Math.max(0, Math.ceil(msLeft / (1000*60*60*24)));
+}
+
+async function hasActiveSubscription(user) {
+  if (!user) return false;
+  const { data, error } = await supabaseClient.from(SUBSCRIPTIONS_TABLE)
+    .select('status')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (error) { console.error('Subscription check failed:', error.message); return false; }
+  return !!data;
+}
+
+// Runs on every login and every page reload, before quotes are loaded.
+// Returns true if the user may proceed, false if the lock screen was shown.
+async function checkAccess(user) {
+  if (!user) return false;
+
+  if (isTrialActive(user)) {
+    hidePaymentLock();
+    updateTrialBanner(user);
+    return true;
   }
 
+  const active = await hasActiveSubscription(user);
+  if (active) {
+    hidePaymentLock();
+    updateTrialBanner(user);
+    return true;
+  }
+
+  showPaymentLock();
+  return false;
+}
+
+function updateTrialBanner(user) {
+  const banner = document.getElementById('trial-banner');
+  if (!banner) return;
+  if (isTrialActive(user)) {
+    const daysLeft = getTrialDaysLeft(user);
+    banner.textContent = `📅 14‑day trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
+    banner.style.background = '#EAF3DE';
+    banner.style.color = '#3B6D11';
+  } else {
+    banner.textContent = '✅ Subscription active';
+    banner.style.background = '#EAF3DE';
+    banner.style.color = '#3B6D11';
+  }
+}
+
+function showPaymentLock() {
+  document.getElementById('payment-lock').classList.add('open');
+  const banner = document.getElementById('trial-banner');
+  if (banner) {
+    banner.textContent = '⏳ Trial expired — payment required';
+    banner.style.background = '#FCEBEB';
+    banner.style.color = '#A32D2D';
+  }
+}
+
+function hidePaymentLock() {
+  document.getElementById('payment-lock').classList.remove('open');
+}
+
+// Redirects to a real Stripe Checkout session created by your existing
+// 'create-checkout-session' Edge Function (shared with your other apps).
+async function startSubscription() {
+  const msgEl = document.getElementById('payment-msg');
+  if (msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        price_id: STRIPE_PRICE_ID,
+        user_id: currentUser.id,
+        email: currentUser.email,
+        success_url: window.location.origin + window.location.pathname + '?payment=success',
+        cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
+      })
+    });
+    const { url, error } = await res.json();
+    if (error || !url) throw new Error(error || 'No checkout URL returned');
+    window.location.href = url;
+  } catch (err) {
+    if (msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
+  }
+}
+
+// Checks for ?payment=success/cancel after redirect back from Stripe.
+async function handlePaymentResult() {
+  const params = new URLSearchParams(window.location.search);
+  const result = params.get('payment');
+  if (!result) return;
+  window.history.replaceState({}, '', window.location.pathname);
+  if (result === 'success' && currentUser) {
+    const msgEl = document.getElementById('payment-msg');
+    if (msgEl) msgEl.textContent = 'Payment successful — checking subscription…';
+    setTimeout(async () => {
+      const allowed = await checkAccess(currentUser);
+      if (allowed) { await loadQuotes(); renderDashboard(); }
+    }, 1500);
+  }
+}
+
+async function launchApp(user) {
+  currentUser = user;
+
   // Set sidebar user info
-  const initials = (user.firstName[0] + user.lastName[0]).toUpperCase();
+  const firstName = user.user_metadata?.first_name || user.email;
+  const lastName  = user.user_metadata?.last_name || '';
+  const initials  = ((firstName[0]||'?') + (lastName[0]||'')).toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
-  document.getElementById('user-name').textContent   = user.firstName + ' ' + user.lastName;
+  document.getElementById('user-name').textContent   = (firstName + ' ' + lastName).trim();
   document.getElementById('user-email').textContent  = user.email;
 
   document.getElementById('screen-auth').classList.add('hidden');
   document.getElementById('screen-app').classList.remove('hidden');
-  showView('dashboard');
-}
 
-function persistQuotes() {
-  const users = getUsers();
-  if (users[currentUser.email]) {
-    users[currentUser.email].quotes = quotes;
-    saveUsers(users);
-  }
+  const allowed = await checkAccess(user);
+  if (!allowed) return; // payment-lock overlay is now shown; don't load quote data
+
+  await loadQuotes();
+  showView('dashboard');
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -889,6 +1018,36 @@ let quotes       = [];
 let editingId    = null;
 let viewingQuote = null;
 let itemCount    = 0;
+
+// ════════════════════════════════════════════════════════════════
+// QUOTES — persisted to Supabase (qt_quotes table), not localStorage
+// ════════════════════════════════════════════════════════════════
+async function loadQuotes() {
+  const { data, error } = await supabaseClient.from(QUOTES_TABLE)
+    .select('*')
+    .order('created_at', { ascending: true });
+  if (error) { console.error('Failed to load quotes:', error.message); quotes = []; return; }
+  quotes = (data || []).map(rowToQuote);
+}
+
+// DB rows use snake_case + jsonb items; the rest of the app works with
+// this camelCase shape, so convert both ways at the boundary.
+function rowToQuote(row) {
+  return {
+    id: row.id, ref: row.ref, customer: row.customer, email: row.email, phone: row.phone,
+    title: row.title, date: row.date, expiry: row.expiry, status: row.status,
+    items: row.items || [], labour: row.labour, discount: row.discount, notes: row.notes,
+  };
+}
+
+function quoteToRow(q) {
+  return {
+    ref: q.ref, customer: q.customer, email: q.email, phone: q.phone,
+    title: q.title, date: q.date, expiry: q.expiry, status: q.status,
+    items: q.items, labour: q.labour, discount: q.discount, notes: q.notes,
+    user_id: currentUser.id,
+  };
+}
 
 // ════════════════════════════════════════════════════════════════
 // HELPERS
@@ -965,7 +1124,7 @@ function renderDashboard() {
 
   tbody.innerHTML = quotes.map(q => {
     const { total: qt } = calcTotals(q.items, q.labour, q.discount);
-    return `<tr onclick="openQuote(${q.id})">
+    return `<tr onclick="openQuote('${q.id}')">
       <td><span class="ref-chip">${q.ref}</span></td>
       <td style="font-weight:500">${q.customer}</td>
       <td style="color:#5F5E5A">${q.title}</td>
@@ -973,7 +1132,7 @@ function renderDashboard() {
       <td style="color:#888780">${q.expiry||'—'}</td>
       <td style="font-weight:600">${fmt(qt)}</td>
       <td>${badgeHTML(q.status)}</td>
-      <td><button class="btn btn-sm" onclick="event.stopPropagation();openQuote(${q.id})">View</button></td>
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();openQuote('${q.id}')">View</button></td>
     </tr>`;
   }).join('');
 }
@@ -1075,14 +1234,12 @@ function editQuote() {
   showView('builder');
 }
 
-function saveQuote() {
+async function saveQuote() {
   const customer = document.getElementById('f-customer').value.trim();
   const title    = document.getElementById('f-title').value.trim();
   if (!customer || !title) { alert('Please enter a customer name and job title.'); return; }
 
-  const quote = {
-    id:       editingId ?? Date.now(),
-    ref:      editingId ? quotes.find(q=>q.id===editingId).ref : nextRef(),
+  const quoteData = {
     customer,
     email:    document.getElementById('f-email').value,
     phone:    document.getElementById('f-phone').value,
@@ -1097,13 +1254,20 @@ function saveQuote() {
   };
 
   if (editingId) {
-    quotes = quotes.map(q => q.id === editingId ? quote : q);
-    viewingQuote = quote;
+    const ref = quotes.find(q => q.id === editingId).ref;
+    const row = quoteToRow({ ...quoteData, ref });
+    const { data, error } = await supabaseClient.from(QUOTES_TABLE).update(row).eq('id', editingId).select().single();
+    if (error) { alert('Error saving quote: ' + error.message); return; }
+    const updated = rowToQuote(data);
+    quotes = quotes.map(q => q.id === editingId ? updated : q);
+    viewingQuote = updated;
   } else {
-    quotes.push(quote);
+    const row = quoteToRow({ ...quoteData, ref: nextRef() });
+    const { data, error } = await supabaseClient.from(QUOTES_TABLE).insert(row).select().single();
+    if (error) { alert('Error saving quote: ' + error.message); return; }
+    quotes.push(rowToQuote(data));
   }
 
-  persistQuotes();
   showView('dashboard');
 }
 
@@ -1111,7 +1275,7 @@ function saveQuote() {
 // QUOTE VIEW
 // ════════════════════════════════════════════════════════════════
 function openQuote(id) {
-  const q = quotes.find(q => q.id === id);
+  const q = quotes.find(q => String(q.id) === String(id));
   if (!q) return;
   viewingQuote = q;
   renderQuoteView(q);
@@ -1165,10 +1329,13 @@ function renderQuoteView(q) {
       </button>`).join('');
 }
 
-function changeStatus(status) {
-  viewingQuote = { ...viewingQuote, status };
-  quotes = quotes.map(q => q.id === viewingQuote.id ? viewingQuote : q);
-  persistQuotes();
+async function changeStatus(status) {
+  const { data, error } = await supabaseClient.from(QUOTES_TABLE)
+    .update({ status }).eq('id', viewingQuote.id).select().single();
+  if (error) { alert('Error updating status: ' + error.message); return; }
+  const updated = rowToQuote(data);
+  viewingQuote = updated;
+  quotes = quotes.map(q => q.id === updated.id ? updated : q);
   renderQuoteView(viewingQuote);
 }
 
@@ -1319,17 +1486,56 @@ function showError(msg) { const el=document.getElementById('qv-error'); el.textC
 function clearError()   { document.getElementById('qv-error').classList.add('hidden'); }
 
 // ════════════════════════════════════════════════════════════════
-// INIT — check for existing session
+// INIT — check for existing Supabase session on load/reload
 // ════════════════════════════════════════════════════════════════
-(function init() {
-  const session = getSession();
+(async function init() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
-    const users = getUsers();
-    const user  = users[session];
-    if (user) { launchApp(user); return; }
+    await launchApp(session.user);
   }
-  // No session — show auth screen
+  await handlePaymentResult();
 })();
+
+supabaseClient.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') {
+    document.getElementById('screen-app').classList.add('hidden');
+    document.getElementById('screen-auth').classList.remove('hidden');
+  }
+});
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+  DATABASE SETUP INSTRUCTIONS (run once in your Supabase SQL editor)
+═══════════════════════════════════════════════════════════════
+
+  create table qt_quotes (
+    id          bigint generated always as identity primary key,
+    user_id     uuid references auth.users(id) not null,
+    ref         text,
+    customer    text,
+    email       text,
+    phone       text,
+    title       text,
+    date        date,
+    expiry      date,
+    status      text default 'pending',
+    items       jsonb default '[]',
+    labour      numeric,
+    discount    numeric,
+    notes       text,
+    created_at  timestamptz default now()
+  );
+
+  alter table qt_quotes enable row level security;
+
+  create policy "Users manage their own quotes"
+    on qt_quotes for all
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id);
+
+  -- This app reuses the bs_subscriptions table and create-checkout-session
+  -- Edge Function already set up for your other apps on this same
+  -- Supabase project — no extra setup needed there.
+═══════════════════════════════════════════════════════════════ -->
 </body>
 </html>
