@@ -79,6 +79,16 @@
     .empty { text-align: center; color: #9ca3af; padding: 3rem; }
 
     .auth-footer { font-size: 0.8rem; color: #9ca3af; margin-top: 1.2rem; }
+
+    /* ── Trial banner & payment lock ── */
+    #trialBanner { text-align: center; padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 500; }
+    #trialBanner.trial-active  { background: #eff6ff; color: #1e40af; }
+    #trialBanner.trial-expired { background: #fef2f2; color: #dc2626; }
+    #paymentLock { display: none; position: fixed; inset: 0; background: rgba(17,24,39,0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+    #paymentLock.open { display: flex; }
+    #paymentLock .lock-modal { max-width: 420px; width: 90%; background: white; border-radius: 12px; padding: 2rem; text-align: center; }
+    #paymentLock h2 { border: none; color: #dc2626; margin-bottom: 0.8rem; }
+    #paymentLock p { color: #4b5563; margin-bottom: 1.5rem; }
   </style>
 </head>
 <body>
@@ -100,6 +110,20 @@
   </a>
   <a href="https://build-tracker.co.uk" class="back-btn">← Back to Dashboard</a>
 </header>
+
+<!-- ——— TRIAL STATUS BAR ——— -->
+<div id="trialBanner" class="hidden"></div>
+
+<!-- ——— PAYMENT LOCK SCREEN ——— -->
+<div id="paymentLock">
+  <div class="lock-modal">
+    <h2>⚠️ Trial Ended</h2>
+    <p>Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Workshop Job Cards & Logs.</p>
+    <button class="btn btn-primary" onclick="startSubscription()">💳 Subscribe Now — £32.00/month</button>
+    <p id="paymentMsg" style="margin-top:12px; font-size:0.85rem;"></p>
+    <button class="btn" style="width:100%; margin-top:8px; background:#e5e7eb; color:#374151;" onclick="supabaseClient.auth.signOut().then(()=>location.reload())">Sign out</button>
+  </div>
+</div>
 
 <div class="container">
 
@@ -139,7 +163,7 @@
     <div class="auth-footer">Your data is stored securely via Supabase</div>
   </div>
 
-  <!-- Main app — ONLY SHOWS AFTER SUCCESSFUL LOGIN -->
+  <!-- Main app — ONLY SHOWS AFTER SUCCESSFUL LOGIN AND WHILE TRIAL/SUBSCRIPTION IS ACTIVE -->
   <div id="mainContent" class="hidden">
     <h1>Workshop Job Cards & Daily Logs</h1>
 
@@ -193,6 +217,15 @@
 </div>
 
 <script>
+// ── TRIAL / SUBSCRIPTION CONFIG ─────────────────────────────────
+// Same Supabase project as your other rented apps, so reusing its
+// subscriptions table/checkout function. Change SUBSCRIPTIONS_TABLE if
+// this app should track subscriptions separately.
+const TRIAL_DAYS = 14;
+const SUBSCRIPTION_PRICE = 32.00;
+const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
+const SUBSCRIPTIONS_TABLE = 'bs_subscriptions';
+
 // ── Auth tab switching ──────────────────────────────────────────
 function switchTab(tab) {
   document.getElementById('tab-login').classList.toggle('active',  tab==='login');
@@ -233,7 +266,7 @@ async function doSignup() {
   const { data, error } = await supabaseClient.auth.signUp({
     email, password: pass,
     options: {
-      data: { first_name: firstName, last_name: lastName },
+      data: { first_name: firstName, last_name: lastName, trial_start: new Date().toISOString() },
       emailRedirectTo: 'https://build-tracker.co.uk/'
     }
   });
@@ -248,18 +281,134 @@ async function doSignup() {
   }
 }
 
-// ── CHECK AUTH — ONLY HIDES LOGIN WHEN ACTUALLY LOGGED IN ──────────
+// ── TRIAL & SUBSCRIPTION GATE ───────────────────────────────────
+function isTrialActive(user) {
+  const start = user?.user_metadata?.trial_start;
+  if(!start) return false; // no trial_start recorded → treat as expired, not active
+  const trialEnd = new Date(start);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  return new Date() < trialEnd;
+}
+
+function getTrialDaysLeft(user) {
+  const start = user?.user_metadata?.trial_start;
+  if(!start) return 0;
+  const trialEnd = new Date(start);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  const msLeft = trialEnd - new Date();
+  return Math.max(0, Math.ceil(msLeft / (1000*60*60*24)));
+}
+
+async function hasActiveSubscription(user) {
+  if(!user) return false;
+  const { data, error } = await supabaseClient.from(SUBSCRIPTIONS_TABLE)
+    .select('status')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle();
+  if(error){ console.error('Subscription check failed:', error.message); return false; }
+  return !!data;
+}
+
+function updateTrialBanner(user) {
+  const el = document.getElementById('trialBanner');
+  if(!el) return;
+  el.classList.remove('hidden');
+  if(isTrialActive(user)) {
+    const daysLeft = getTrialDaysLeft(user);
+    el.className = 'trial-active';
+    el.textContent = `🎁 Free trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
+  } else {
+    el.className = 'trial-active';
+    el.textContent = '✅ Subscription active';
+  }
+}
+
+function showPaymentLock() {
+  document.getElementById('paymentLock').classList.add('open');
+  document.getElementById('mainContent').classList.add('hidden');
+  const el = document.getElementById('trialBanner');
+  if(el){ el.classList.remove('hidden'); el.className='trial-expired'; el.textContent='❌ Trial expired — please pay to continue'; }
+}
+
+function hidePaymentLock() {
+  document.getElementById('paymentLock').classList.remove('open');
+}
+
+// Redirects to a real Stripe Checkout session created by your existing
+// 'create-checkout-session' Edge Function (shared with your other apps).
+async function startSubscription() {
+  const msgEl = document.getElementById('paymentMsg');
+  if(msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        price_id: STRIPE_PRICE_ID,
+        user_id: user.id,
+        email: user.email,
+        success_url: window.location.origin + window.location.pathname + '?payment=success',
+        cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
+      })
+    });
+    const { url, error } = await res.json();
+    if(error || !url) throw new Error(error || 'No checkout URL returned');
+    window.location.href = url;
+  } catch(err) {
+    if(msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
+  }
+}
+
+// Checks for ?payment=success/cancel after redirect back from Stripe.
+async function handlePaymentResult() {
+  const params = new URLSearchParams(window.location.search);
+  const result = params.get('payment');
+  if(!result) return;
+  window.history.replaceState({}, '', window.location.pathname);
+  if(result === 'success') {
+    const msgEl = document.getElementById('paymentMsg');
+    if(msgEl) msgEl.textContent = 'Payment successful — checking subscription…';
+    setTimeout(() => { checkAuth(); }, 1500);
+  }
+}
+
+// ── CHECK AUTH — ONLY HIDES LOGIN WHEN ACTUALLY LOGGED IN, THEN GATES BY TRIAL/SUBSCRIPTION ──
 async function checkAuth() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (user) {
     // ✅ ONLY hide login if user is confirmed/logged in
     document.getElementById('authSection').classList.add('hidden');
-    document.getElementById('mainContent').classList.remove('hidden');
-    loadJobs();
+
+    // Trial / subscription gate — runs on every login AND every page reload
+    if (isTrialActive(user)) {
+      hidePaymentLock();
+      updateTrialBanner(user);
+      document.getElementById('mainContent').classList.remove('hidden');
+      loadJobs();
+      return;
+    }
+    const active = await hasActiveSubscription(user);
+    if (active) {
+      hidePaymentLock();
+      updateTrialBanner(user);
+      document.getElementById('mainContent').classList.remove('hidden');
+      loadJobs();
+      return;
+    }
+    // Trial expired and no active subscription — lock them out
+    showPaymentLock();
   } else {
     // ✅ ALWAYS SHOW LOGIN / CREATE ACCOUNT IF NOT LOGGED IN
     document.getElementById('authSection').classList.remove('hidden');
     document.getElementById('mainContent').classList.add('hidden');
+    document.getElementById('trialBanner').classList.add('hidden');
+    hidePaymentLock();
   }
 }
 
@@ -330,6 +479,7 @@ async function loadJobs() {
 // ── Initialise ─────────────────────────────────────────────────
 supabaseClient.auth.onAuthStateChange(() => checkAuth());
 checkAuth();
+handlePaymentResult();
 </script>
 </body>
 </html>
