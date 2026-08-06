@@ -331,8 +331,10 @@ const sb = createClient(
 const SUBSCRIPTION_PRICE = 32.00; // £32.00 per month
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw'; // same Stripe product as Body Shop Pro — update if this app should bill separately
 // Same Supabase project as Body Shop Pro, so reusing its subscriptions table/webhook.
-// Change this if this app should track subscriptions separately.
-const SUBSCRIPTIONS_TABLE = 'bs_subscriptions';
+// Each app bills separately, so rows are scoped by (user_id, product) —
+// PRODUCT_ID identifies this app.
+const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
+const PRODUCT_ID = 'electronics-repair';
 function formatMoney(amount){ return '£' + Number(amount).toFixed(2); }
 
 
@@ -384,6 +386,7 @@ async function hasActiveSubscription(user){
   const { data, error } = await sb.from(SUBSCRIPTIONS_TABLE)
     .select('status')
     .eq('user_id', user.id)
+    .eq('product', PRODUCT_ID)
     .eq('status', 'active')
     .maybeSingle();
   if(error){ console.error('Subscription check failed:', error.message); return false; }
@@ -459,6 +462,7 @@ async function startSubscription(){
       },
       body: JSON.stringify({
         price_id: STRIPE_PRICE_ID,
+        product: PRODUCT_ID,
         user_id: currentUser.id,
         email: currentUser.email,
         success_url: window.location.origin + window.location.pathname + '?payment=success',

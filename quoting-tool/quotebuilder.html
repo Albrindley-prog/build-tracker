@@ -767,9 +767,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // ════════════════════════════════════════════════════════════════
 const TRIAL_DAYS = 14;
 const SUBSCRIPTION_PRICE = 32.00;
-const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw'; // same Stripe product as your other apps — change if this should bill separately
+const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 // Same Supabase project as your other apps, reusing its subscriptions table/webhook.
-const SUBSCRIPTIONS_TABLE = 'bs_subscriptions';
+// Each app bills separately, so rows are scoped by (user_id, product).
+const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
+const PRODUCT_ID = 'quoting-tool';
 // This app's own quotes table (see SQL setup notes at the bottom of this file).
 const QUOTES_TABLE = 'qt_quotes';
 
@@ -888,6 +890,7 @@ async function hasActiveSubscription(user) {
   const { data, error } = await supabaseClient.from(SUBSCRIPTIONS_TABLE)
     .select('status')
     .eq('user_id', user.id)
+    .eq('product', PRODUCT_ID)
     .eq('status', 'active')
     .maybeSingle();
   if (error) { console.error('Subscription check failed:', error.message); return false; }
@@ -960,6 +963,7 @@ async function startSubscription() {
       },
       body: JSON.stringify({
         price_id: STRIPE_PRICE_ID,
+        product: PRODUCT_ID,
         user_id: currentUser.id,
         email: currentUser.email,
         success_url: window.location.origin + window.location.pathname + '?payment=success',
@@ -1533,9 +1537,10 @@ supabaseClient.auth.onAuthStateChange((event) => {
     using (auth.uid() = user_id)
     with check (auth.uid() = user_id);
 
-  -- This app reuses the bs_subscriptions table and create-checkout-session
-  -- Edge Function already set up for your other apps on this same
-  -- Supabase project — no extra setup needed there.
+  -- This app reuses the bt_subscriptions table (scoped by product =
+  -- 'quoting-tool') and create-checkout-session Edge Function already set
+  -- up for your other apps on this same Supabase project — no extra
+  -- setup needed there.
 ═══════════════════════════════════════════════════════════════ -->
 </body>
 </html>

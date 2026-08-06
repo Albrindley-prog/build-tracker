@@ -309,7 +309,7 @@ input,select,textarea{font-family:inherit}
 <script>
 const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZ16YICF2fQjVNfM7zLkgw24kRiDtf39YPppbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSdf17p00bGe517yQ';
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZl6YICF2fQjVNyfM7zLkgw24kRiDtf39YPpbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSDf17p00bGe517yQ';
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
@@ -409,7 +409,7 @@ function getTrialDaysLeft(user) {
 async function hasActiveSubscription(user) {
   if (!user) return false;
   try {
-    const {data,error} = await sb.from('bt_subscriptions').select('status').eq('user_id',user.id).eq('status','active').maybeSingle();
+    const {data,error} = await sb.from('bt_subscriptions').select('status').eq('user_id',user.id).eq('product','build-tracker').eq('status','active').maybeSingle();
     return !error && !!data;
   } catch(e) { return false; }
 }
@@ -429,7 +429,7 @@ async function startSubscription() {
   try {
     const {data:{session}} = await sb.auth.getSession();
     if (!session?.access_token) throw new Error('Not logged in');
-    const res = await fetch(`${SB_URL}/functions/v1/create-checkout-session`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({price_id:STRIPE_PRICE_ID,currency:'gbp',success_url:location.origin+location.pathname+'?payment=success',cancel_url:location.origin+location.pathname+'?payment=cancel'})});
+    const res = await fetch(`${SB_URL}/functions/v1/create-checkout-session`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({price_id:STRIPE_PRICE_ID,product:'build-tracker',currency:'gbp',success_url:location.origin+location.pathname+'?payment=success',cancel_url:location.origin+location.pathname+'?payment=cancel'})});
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     await stripe.redirectToCheckout({sessionId:data.id});

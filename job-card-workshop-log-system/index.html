@@ -219,12 +219,13 @@
 <script>
 // ── TRIAL / SUBSCRIPTION CONFIG ─────────────────────────────────
 // Same Supabase project as your other rented apps, so reusing its
-// subscriptions table/checkout function. Change SUBSCRIPTIONS_TABLE if
-// this app should track subscriptions separately.
+// subscriptions table/checkout function. Each app bills separately, so
+// rows are scoped by (user_id, product) — PRODUCT_ID identifies this app.
 const TRIAL_DAYS = 14;
 const SUBSCRIPTION_PRICE = 32.00;
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
-const SUBSCRIPTIONS_TABLE = 'bs_subscriptions';
+const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
+const PRODUCT_ID = 'job-card-workshop-log-system';
 
 // ── Auth tab switching ──────────────────────────────────────────
 function switchTab(tab) {
@@ -304,6 +305,7 @@ async function hasActiveSubscription(user) {
   const { data, error } = await supabaseClient.from(SUBSCRIPTIONS_TABLE)
     .select('status')
     .eq('user_id', user.id)
+    .eq('product', PRODUCT_ID)
     .eq('status', 'active')
     .maybeSingle();
   if(error){ console.error('Subscription check failed:', error.message); return false; }
@@ -351,6 +353,7 @@ async function startSubscription() {
       },
       body: JSON.stringify({
         price_id: STRIPE_PRICE_ID,
+        product: PRODUCT_ID,
         user_id: user.id,
         email: user.email,
         success_url: window.location.origin + window.location.pathname + '?payment=success',
