@@ -245,6 +245,7 @@
         <a href="supplier-purchase-order-system/index.html">Supplier & Purchase Order System</a>
         <a href="job-card-workshop-log-system/index.html">Job Card & Workshop Log System</a>
         <a href="quoting-tool/quotebuilder.html">Quote Builder</a>
+        <a href="https://app.build-tracker.co.uk" target="_blank" rel="noopener">Workshop Tracker</a>
       </div>
     </div>
     <button class="mkt-btn mkt-btn-signin" onclick="showLogin()">Sign In</button>
@@ -283,6 +284,8 @@
     <div class="mkt-card"><h4>📋 Purchase Order System</h4><p>Manage suppliers, create orders and track deliveries easily.</p></div>
     <div class="mkt-card"><h4>🛠️ Job Card & Workshop Log</h4><p>Workshop job log system — track time, materials and costs for every job.</p></div>
     <div class="mkt-card"><h4>📄 Quote Builder</h4><p>Create professional quotes, send via link and convert straight to jobs.</p></div>
+    <!-- ✅ NEW: Workshop Tracker card -->
+    <div class="mkt-card"><h4>🧰 Workshop Tracker</h4><p>All-in-one workshop management system for jobs, scheduling and records.</p></div>
   </div>
 </section>
 
@@ -483,6 +486,12 @@
       <p>Quoting, estimates & approvals</p>
       <a href="quoting-tool/quotebuilder.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
+    <!-- ✅ NEW: Workshop Tracker card in dashboard -->
+    <div class="dashboard-card">
+      <h3>🧰 Workshop Tracker</h3>
+      <p>All-in-one workshop management</p>
+      <a href="https://app.build-tracker.co.uk" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue">Open</a>
+    </div>
   </div>
   <div style="text-align:center; margin-top:2rem;">
     <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Subscribe / Pay £32/month</button>
@@ -526,6 +535,11 @@
     <div class="option-item" onclick="selectSoftware('Quote Builder')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
       <strong>📄 Quote Builder</strong><br>
       <small>Quotes & estimates — £32/month</small>
+    </div>
+    <!-- ✅ NEW: Added to selection popup -->
+    <div class="option-item" onclick="selectSoftware('Workshop Tracker')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
+      <strong>🧰 Workshop Tracker</strong><br>
+      <small>All-in-one workshop management — £32/month</small>
     </div>
   </div>
 </div>
