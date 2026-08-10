@@ -502,6 +502,7 @@
   </div>
   <div style="text-align:center; margin-top:2rem;">
     <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Subscribe / Pay £32/month</button>
+    <button class="mkt-btn mkt-btn-manage" onclick="openCancelModal()">Cancel Subscription</button>
   </div>
 </section>
 
@@ -548,6 +549,15 @@
       <strong>🧰 Workshop Tracker</strong><br>
       <small>All-in-one workshop management — £32/month</small>
     </div>
+  </div>
+</div>
+
+<!-- Cancel Subscription Popup -->
+<div id="cancelModal" class="popup">
+  <div class="popup-content">
+    <span class="close-btn" onclick="closeModal('cancelModal')">×</span>
+    <h4>Your active subscriptions</h4>
+    <div id="cancel-modal-list"></div>
   </div>
 </div>
 
@@ -644,6 +654,13 @@ async function checkSubscription() {
 // Order System, Workshop Tracker) have no product slug to check yet, so
 // they're left out and keep their normal Open-only behaviour.
 const MANAGED_PRODUCTS = ['build-tracker', 'body-shop-pro', 'electronics-repair', 'job-card-workshop-log-system', 'quoting-tool'];
+const PRODUCT_LABELS = {
+  'build-tracker': 'Build Tracker',
+  'body-shop-pro': 'Body Shop Pro',
+  'electronics-repair': 'Electronics Repair',
+  'job-card-workshop-log-system': 'Job Card & Workshop Log',
+  'quoting-tool': 'Quote Builder'
+};
 
 async function refreshDashboardSubscriptions(userId) {
   const { data, error } = await supabaseClient.from('bt_subscriptions').select('product').eq('user_id', userId).eq('status', 'active').in('product', MANAGED_PRODUCTS);
@@ -654,19 +671,42 @@ async function refreshDashboardSubscriptions(userId) {
   });
 }
 
-async function openBillingPortal(product) {
+async function openBillingPortal(product, flow) {
   try {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session?.access_token) throw new Error('Not logged in');
+    const body = { product, return_url: window.location.origin + window.location.pathname };
+    if (flow) body.flow = flow;
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-portal-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ product, return_url: window.location.origin + window.location.pathname })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     window.location.href = data.url;
   } catch (e) { alert('Could not open the billing portal: ' + e.message); }
+}
+
+// Cancel Subscription modal — mirrors the existing #selectionModal pattern
+// (same .popup/.popup-content shell), but populated live from
+// bt_subscriptions instead of a static product list, showing only the
+// products this account is actually actively subscribed to right now.
+async function openCancelModal() {
+  openModal('cancelModal');
+  const list = document.getElementById('cancel-modal-list');
+  list.innerHTML = '<p style="text-align:center;color:#666;padding:1rem 0;">Loading…</p>';
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) { list.innerHTML = '<p style="text-align:center;color:#666;padding:1rem 0;">Please sign in first.</p>'; return; }
+  const { data, error } = await supabaseClient.from('bt_subscriptions').select('product').eq('user_id', user.id).eq('status', 'active').in('product', MANAGED_PRODUCTS);
+  if (error) { list.innerHTML = '<p style="text-align:center;color:#c00;padding:1rem 0;">Could not load your subscriptions.</p>'; return; }
+  const activeProducts = (data || []).map(row => row.product);
+  if (!activeProducts.length) { list.innerHTML = '<p style="text-align:center;color:#666;padding:1rem 0;">No active subscriptions to cancel.</p>'; return; }
+  list.innerHTML = activeProducts.map(product => `
+    <div class="option-item" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+      <strong>${PRODUCT_LABELS[product] || product}</strong>
+      <button type="button" class="mkt-btn mkt-btn-manage" style="margin:0;" onclick="openBillingPortal('${product}','cancel')">Cancel</button>
+    </div>`).join('');
 }
 
 // Payments — Stripe tested for UK cards
