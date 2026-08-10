@@ -200,7 +200,9 @@
     .auth-box input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid #ccc; border-radius:6px; font-family:inherit; font-size:1rem; }
     .dashboard-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:2rem; margin:2rem 0; }
     .dashboard-card { background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
-    .dashboard-card a { display:inline-block; margin-top:1rem; }
+    .dashboard-card a, .dashboard-card button.mkt-btn { display:inline-block; margin-top:1rem; }
+    .mkt-btn-manage { background:#64748B; }
+    .mkt-btn-manage:hover { background:#475569; }
     .payment-note { font-size:0.9rem; color:#666; margin:1rem 0; }
 
     #form-status { margin-top:1rem; font-weight:bold; display:none; }
@@ -449,11 +451,13 @@
       <h3>🏗️ Build Tracker</h3>
       <p>Project & build management</p>
       <a href="build-tracker/index.html" class="mkt-btn mkt-btn-blue">Open</a>
+      <button type="button" id="ms-btn-build-tracker" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('build-tracker')">Manage Subscription</button>
     </div>
     <div class="dashboard-card">
       <h3>🚗 Body Shop Pro</h3>
       <p>Repair & estimate tools</p>
       <a href="body-shop-pro/index.html" class="mkt-btn mkt-btn-blue">Open</a>
+      <button type="button" id="ms-btn-body-shop-pro" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('body-shop-pro')">Manage Subscription</button>
     </div>
     <!-- ✅ NEW: Workshop Scheduler card in dashboard -->
     <div class="dashboard-card">
@@ -465,6 +469,7 @@
       <h3>🔧 Electronics Repair</h3>
       <p>Repair logging & records</p>
       <a href="electronics-repair/index.html" class="mkt-btn mkt-btn-blue">Open</a>
+      <button type="button" id="ms-btn-electronics-repair" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('electronics-repair')">Manage Subscription</button>
     </div>
     <div class="dashboard-card">
       <h3>📦 Stock Control</h3>
@@ -480,11 +485,13 @@
       <h3>🛠️ Job Card & Workshop Log</h3>
       <p>Job cards, time & cost tracking</p>
       <a href="job-card-workshop-log-system/index.html" class="mkt-btn mkt-btn-blue">Open</a>
+      <button type="button" id="ms-btn-job-card-workshop-log-system" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('job-card-workshop-log-system')">Manage Subscription</button>
     </div>
     <div class="dashboard-card">
       <h3>📄 Quote Builder</h3>
       <p>Quoting, estimates & approvals</p>
       <a href="quoting-tool/quotebuilder.html" class="mkt-btn mkt-btn-blue">Open</a>
+      <button type="button" id="ms-btn-quoting-tool" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('quoting-tool')">Manage Subscription</button>
     </div>
     <!-- ✅ NEW: Workshop Tracker card in dashboard -->
     <div class="dashboard-card">
@@ -626,7 +633,40 @@ async function checkSubscription() {
       alert("⚠️ Your trial has ended — please subscribe to continue.");
     }
     showDashboard();
+    refreshDashboardSubscriptions(user.id);
   } catch (err) { console.warn(err); showDashboard(); }
+}
+
+// Per-product "Manage Subscription" buttons on the dashboard tiles — only
+// the apps below have a working bt_subscriptions integration (each app's
+// own hasActiveSubscription() reads the same table, scoped by product).
+// The other tiles (Workshop Scheduler & Diary, Stock Control, Purchase
+// Order System, Workshop Tracker) have no product slug to check yet, so
+// they're left out and keep their normal Open-only behaviour.
+const MANAGED_PRODUCTS = ['build-tracker', 'body-shop-pro', 'electronics-repair', 'job-card-workshop-log-system', 'quoting-tool'];
+
+async function refreshDashboardSubscriptions(userId) {
+  const { data, error } = await supabaseClient.from('bt_subscriptions').select('product').eq('user_id', userId).eq('status', 'active').in('product', MANAGED_PRODUCTS);
+  if (error) { console.error('refreshDashboardSubscriptions failed:', error.message); return; }
+  (data || []).forEach(row => {
+    const btn = document.getElementById('ms-btn-' + row.product);
+    if (btn) btn.classList.remove('hidden');
+  });
+}
+
+async function openBillingPortal(product) {
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session?.access_token) throw new Error('Not logged in');
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-portal-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ product, return_url: window.location.origin + window.location.pathname })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    window.location.href = data.url;
+  } catch (e) { alert('Could not open the billing portal: ' + e.message); }
 }
 
 // Payments — Stripe tested for UK cards
