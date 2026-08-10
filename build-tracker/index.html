@@ -148,6 +148,10 @@ input,select,textarea{font-family:inherit}
     <p id="pw-ok" style="font-size:12px;color:var(--green);margin-bottom:8px;display:none">Password updated!</p>
     <button class="drawer-btn" onclick="doChangePw()">Save new password</button>
   </div>
+  <button class="drawer-btn" id="manage-subscription-btn" type="button" style="display:none" onclick="openBillingPortal()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    Manage subscription
+  </button>
   <button class="drawer-btn danger" onclick="doSignOut()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     Sign out
@@ -435,6 +439,16 @@ async function startSubscription() {
     await stripe.redirectToCheckout({sessionId:data.id});
   } catch(e) { msg.textContent=`Error: ${e.message}`; msg.style.color='#f87171'; }
 }
+async function openBillingPortal() {
+  try {
+    const {data:{session}} = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('Not logged in');
+    const res = await fetch(`${SB_URL}/functions/v1/create-portal-session`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({product:'build-tracker',return_url:location.origin+location.pathname})});
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    window.location.href = data.url;
+  } catch(e) { showToast(`Could not open billing portal: ${e.message}`); }
+}
 async function handlePaymentResult() {
   const status=new URLSearchParams(location.search).get('payment'); if (!status) return;
   if (status==='success') { showToast('Payment successful! Subscription active.'); window.history.replaceState({},document.title,location.pathname); await startApp(); }
@@ -444,6 +458,7 @@ async function updateBannerDisplay() {
   const banner=document.getElementById('trial-banner');
   const daysLeft=getTrialDaysLeft(curUser);
   const subActive=await hasActiveSubscription(curUser);
+  document.getElementById('manage-subscription-btn').style.display=subActive?'flex':'none';
   if (subActive) { banner.style.display='block'; banner.textContent='✅ Subscription active'; banner.style.background='var(--green-dim)'; banner.style.color='var(--green)'; banner.style.borderBottom='1px solid var(--green-border)'; }
   else if (daysLeft>0) { banner.style.display='block'; banner.textContent=`⏳ Free trial: ${daysLeft} day${daysLeft!==1?'s':''} remaining`; banner.style.background='var(--amber-dim)'; banner.style.color='var(--amber)'; banner.style.borderBottom='1px solid var(--amber-border)'; }
   else { banner.style.display='none'; }
