@@ -315,6 +315,7 @@ const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
 const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZl6YICF2fQjVNyfM7zLkgw24kRiDtf39YPpbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSDf17p00bGe517yQ';
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
+const PRODUCT_ID = 'build-tracker';
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
 // ── Use the Supabase JS client for EVERYTHING — no raw fetch for auth calls ──
@@ -361,7 +362,7 @@ async function doSignUp() {
   if (!company||!email||!pw) { err.textContent='All fields are required.'; err.style.display='block'; return; }
   if (pw!==pw2) { err.textContent='Passwords do not match.'; err.style.display='block'; return; }
   if (pw.length<6) { err.textContent='Password must be at least 6 characters.'; err.style.display='block'; return; }
-  const {data,error} = await sb.auth.signUp({email,password:pw,options:{data:{company_name:company,trial_start:new Date().toISOString()}}});
+  const {data,error} = await sb.auth.signUp({email,password:pw,options:{data:{company_name:company}}});
   if (error) { err.textContent=error.message; err.style.display='block'; return; }
   curUser = data.user;
   showToast('Account created! Welcome to Build Tracker.');
@@ -379,7 +380,7 @@ async function doForgotPw() {
 
 async function doSignOut() {
   await sb.auth.signOut();
-  curUser=null; vehicles=[]; customers=[];
+  curUser=null; vehicles=[]; customers=[]; trialStartCache=null;
   closeDrawer(); showView('view-auth');
 }
 
@@ -402,13 +403,26 @@ function openDrawer() { document.getElementById('settings-drawer').classList.add
 function closeDrawer() { document.getElementById('settings-drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('open'); document.getElementById('pw-change-form').style.display='none'; }
 
 /* ── TRIAL / SUBSCRIPTION ── */
-function isTrialActive(user) {
-  const ts=user?.user_metadata?.trial_start; if (!ts) return false;
-  return Math.floor((new Date()-new Date(ts))/(864e5)) < 14;
+// trial_start now lives in bt_trials (user_id, product), not
+// user_metadata — see start_trial_if_missing() in the DB. That RPC is
+// the only thing that ever writes trial_start, so a signed-in user
+// can no longer reset their own trial via auth.updateUser() devtools
+// calls. trialStartCache holds this session's value once fetched.
+let trialStartCache = null;
+async function ensureTrialStarted() {
+  if (!curUser) return false;
+  const {data,error} = await sb.rpc('start_trial_if_missing', {p_product: PRODUCT_ID});
+  if (error) { console.error('start_trial_if_missing failed:', error.message); return false; }
+  trialStartCache = data?.[0]?.trial_start ?? null;
+  return true;
 }
-function getTrialDaysLeft(user) {
-  const ts=user?.user_metadata?.trial_start; if (!ts) return 0;
-  return Math.max(0, 14 - Math.floor((new Date()-new Date(ts))/(864e5)));
+function isTrialActive() {
+  if (!trialStartCache) return false;
+  return Math.floor((new Date()-new Date(trialStartCache))/(864e5)) < 14;
+}
+function getTrialDaysLeft() {
+  if (!trialStartCache) return 0;
+  return Math.max(0, 14 - Math.floor((new Date()-new Date(trialStartCache))/(864e5)));
 }
 async function hasActiveSubscription(user) {
   if (!user) return false;
@@ -419,13 +433,23 @@ async function hasActiveSubscription(user) {
 }
 async function checkAccess() {
   if (!curUser) return false;
-  if (isTrialActive(curUser)) return true;
+  const trialCheckOk = await ensureTrialStarted();
+  if (!trialCheckOk) { showAccessCheckFailedView(); return false; }
+  if (isTrialActive()) return true;
   const sub = await hasActiveSubscription(curUser);
   if (!sub) { showSubscriptionRequiredView(); return false; }
   return true;
 }
 function showSubscriptionRequiredView() {
-  document.getElementById('view-expired').innerHTML=`<div class="expired-wrap"><div class="expired-box"><h2>Subscription Required</h2><p>Your free trial has ended. Subscribe now for £32.00 / month.</p><button class="btn btn-primary" onclick="startSubscription()" style="margin:10px 0">Subscribe Now</button><p id="payment-message" style="margin-top:15px;color:var(--text2)"></p><br><button class="btn" onclick="doSignOut()">Sign out</button></div></div>`;
+  document.getElementById('view-expired').innerHTML=`<div class="expired-wrap"><div class="expired-box"><h2>Subscription Required</h2><p>Your free trial has ended. Subscribe now for £32.00 / month.</p><p style="font-size:12px;color:var(--text3);margin-top:2px">(approx. $43 USD)</p><button class="btn btn-primary" onclick="startSubscription()" style="margin:10px 0">Subscribe Now</button><p id="payment-message" style="margin-top:15px;color:var(--text2)"></p><br><button class="btn" onclick="doSignOut()">Sign out</button></div></div>`;
+  showView('view-expired');
+}
+// Shown when we genuinely can't tell trial/subscription status (e.g. a
+// network blip or RPC error) — deliberately distinct copy from
+// "Subscription Required" so a real outage is never mistaken for, or
+// mistakable as, an expired trial.
+function showAccessCheckFailedView() {
+  document.getElementById('view-expired').innerHTML=`<div class="expired-wrap"><div class="expired-box"><h2>Couldn't verify your account</h2><p>We had trouble checking your account status just now — this is usually temporary.</p><button class="btn btn-primary" onclick="startApp()" style="margin:10px 0">Try again</button><br><button class="btn" onclick="doSignOut()">Sign out</button></div></div>`;
   showView('view-expired');
 }
 async function startSubscription() {
@@ -456,7 +480,7 @@ async function handlePaymentResult() {
 }
 async function updateBannerDisplay() {
   const banner=document.getElementById('trial-banner');
-  const daysLeft=getTrialDaysLeft(curUser);
+  const daysLeft=getTrialDaysLeft();
   const subActive=await hasActiveSubscription(curUser);
   document.getElementById('manage-subscription-btn').style.display=subActive?'flex':'none';
   if (subActive) { banner.style.display='block'; banner.textContent='✅ Subscription active'; banner.style.background='var(--green-dim)'; banner.style.color='var(--green)'; banner.style.borderBottom='1px solid var(--green-border)'; }
