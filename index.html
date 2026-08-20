@@ -12,7 +12,7 @@
   <link rel="canonical" href="https://build-tracker.co.uk/">
 
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-8YECQQ8E0K"></script>
@@ -93,121 +93,197 @@
   </script>
 
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family: 'DM Sans', sans-serif; }
-    html, body { color:#1D2129; background:#fff; line-height:1.6; }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'DM Sans', sans-serif; }
+    html, body { color:var(--text); background:var(--bg); line-height:1.6; }
 
-    nav { 
-      background: #1E293B; 
-      color:white; 
-      padding:0.5rem 5%; 
-      display:flex; 
-      justify-content:space-between; 
-      align-items:center; 
-      flex-wrap:wrap; 
-      gap:.5rem; 
-      position:sticky; 
-      top:0; 
-      z-index:50; 
-      border-bottom: 4px solid #0EA5E9;
+    :root{
+      --bg:#0f1115;
+      --bg2:#171a22;
+      --bg3:#1e222c;
+      --bg4:#262c39;
+      --border:rgba(255,255,255,.08);
+      --border2:rgba(255,255,255,.16);
+      --text:#f3f4f8;
+      --text2:#9ba1b5;
+      --text3:#606782;
+      --accent:#f97316;
+      --accent-hover:#fb8a3c;
+      --accent-dim:rgba(249,115,22,.14);
+      --accent-border:rgba(249,115,22,.4);
+      --steel:#2c3546;
+      --radius:14px;
+      --radius-sm:8px;
+    }
+
+    h1,h2,h3,h4,.logo-word,.price-box .price { font-family:'Space Grotesk', sans-serif; letter-spacing:-.01em; }
+
+    .icon { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+    .icon-sm { width:16px; height:16px; }
+    .icon-lg { width:30px; height:30px; }
+
+    nav {
+      background:var(--bg2);
+      color:var(--text);
+      padding:.7rem 5%;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:.5rem;
+      position:sticky;
+      top:0;
+      z-index:50;
+      border-bottom:1px solid var(--border);
     }
     .logo { display:flex; align-items:center; text-decoration:none; }
-    .logo svg { height:45px; width:auto; }
-    nav a { color:white; text-decoration:none; margin:0 0.8rem; }
-    nav a:hover { color:#0EA5E9; }
+    .logo svg { height:42px; width:auto; }
+    nav a { color:var(--text2); text-decoration:none; margin:0 .8rem; font-size:.92rem; transition:color .15s; }
+    nav a:hover { color:var(--accent); }
     .nav-right { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
 
-    /* ✅ ORIGINAL DROPDOWN MENU KEPT */
     .dropdown { position:relative; display:inline-block; }
-    .dropbtn { background:transparent; color:white; border:none; padding:.6rem 1rem; font-size:1rem; cursor:pointer; }
-    .dropdown-content { display:none; position:absolute; background:#fff; min-width:200px; box-shadow:0 8px 16px rgba(0,0,0,0.15); z-index:100; border-radius:4px; overflow:hidden; }
-    .dropdown-content a { color:#1D2129; padding:.7rem 1rem; text-decoration:none; display:block; margin:0; }
-    .dropdown-content a:hover { background:#f5f5f5; color:#0EA5E9; }
+    .dropbtn { background:transparent; color:var(--text2); border:none; padding:.6rem 1rem; font-size:.92rem; cursor:pointer; font-family:inherit; }
+    .dropdown-content { display:none; position:absolute; background:var(--bg2); border:1px solid var(--border2); min-width:230px; box-shadow:0 16px 32px rgba(0,0,0,.5); z-index:100; border-radius:var(--radius-sm); overflow:hidden; }
+    .dropdown-content a { color:var(--text2); padding:.7rem 1rem; text-decoration:none; display:block; margin:0; font-size:.9rem; }
+    .dropdown-content a:hover { background:var(--bg3); color:var(--accent); }
     .dropdown:hover .dropdown-content { display:block; }
-    .dropdown:hover .dropbtn { color:#0EA5E9; }
+    .dropdown:hover .dropbtn { color:var(--accent); }
 
-    .mkt-btn { display:inline-block; background:#0EA5E9; color:white; padding:.6rem 1.3rem; border-radius:6px; text-decoration:none; font-weight:bold; margin:.5rem; transition:opacity .2s; border:none; cursor:pointer; font-size:.9rem; }
-    .mkt-btn:hover { opacity:.9; }
-    .mkt-btn-blue { background:#0EA5E9; }
-    .mkt-btn-blue:hover { background:#0284C7; opacity:1; }
-    .mkt-btn-green { background:#22C55E; }
-    .mkt-btn-green:hover { background:#16A34A; }
-    .mkt-btn-signin { background:transparent; border:2px solid rgba(255,255,255,.5); color:white; padding:.5rem 1.2rem; font-size:.9rem; margin:0; }
-    .mkt-btn-signin:hover { border-color:white; opacity:1; }
+    .mkt-btn { display:inline-flex; align-items:center; gap:.5rem; background:var(--steel); color:var(--text); padding:.7rem 1.4rem; border-radius:var(--radius-sm); text-decoration:none; font-weight:600; margin:.5rem; transition:all .15s; border:1px solid var(--border2); cursor:pointer; font-size:.9rem; font-family:'DM Sans',sans-serif; }
+    .mkt-btn:hover { background:var(--bg4); border-color:var(--border2); }
+    .mkt-btn-blue, .mkt-btn-green { background:var(--accent); border-color:var(--accent); color:#14161d; font-weight:700; }
+    .mkt-btn-blue:hover, .mkt-btn-green:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
+    .mkt-btn-signin { background:transparent; border:1px solid var(--border2); color:var(--text); padding:.55rem 1.2rem; font-size:.9rem; margin:0; }
+    .mkt-btn-signin:hover { border-color:var(--accent); color:var(--accent); background:transparent; }
+    .mkt-btn-manage { background:transparent; border:1px solid var(--border2); color:var(--text2); }
+    .mkt-btn-manage:hover { color:var(--text); border-color:var(--border2); background:var(--bg4); }
 
-    .header-divider { height: 4px; background: #0EA5E9; }
+    .header-divider { height:2px; background:linear-gradient(90deg, transparent, var(--accent) 20%, var(--accent) 80%, transparent); opacity:.6; }
 
-    .hero { background:linear-gradient(135deg,#0EA5E9 0%,#1E293B 100%); color:white; padding:4rem 5%; text-align:center; }
-    .hero h1 { font-size:2.5rem; margin-bottom:.5rem; }
-    .hero h2 { font-size:1.3rem; font-weight:normal; margin-bottom:2rem; opacity:.9; }
-
-    .section { padding:3rem 5%; max-width:1200px; margin:0 auto; }
-    .section h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#0EA5E9; text-align:center; }
-
-    #about p { text-align: center; max-width: 800px; margin: 0 auto 1.5rem; }
-
-    .mkt-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:2rem; margin:2rem 0; }
-    .mkt-card { background:#F2F3F5; padding:1.8rem; border-radius:8px; }
-    .mkt-card h4 { color:#0EA5E9; margin-bottom:1rem; font-size:1.2rem; }
-
-    .price-box { background:#F2F3F5; border:3px solid #0EA5E9; border-radius:12px; padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
-    .price-box .price { font-size:3rem; color:#0EA5E9; font-weight:bold; }
-
-    /* ✅ NEW: Coming Soon Section Style */
-    .coming-soon-box {
-      background: linear-gradient(135deg, #F0F9FF, #E0F7FA);
-      border: 2px solid #7DD3FC;
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 800px;
-      margin: 2rem auto;
-      text-align: center;
+    .hero { position:relative; overflow:hidden; color:var(--text); padding:5rem 5% 4.5rem; text-align:center;
+      background:
+        radial-gradient(ellipse 900px 500px at 12% -10%, rgba(249,115,22,.16), transparent 60%),
+        linear-gradient(165deg, #14161d 0%, #1b1f2a 55%, #12141a 100%);
+      border-bottom:1px solid var(--border);
     }
-    .coming-soon-box h4 {
-      color: #0369A1;
-      font-size: 1.4rem;
-      margin-bottom: 1rem;
+    .hero::before{ content:''; position:absolute; inset:0; pointer-events:none;
+      background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 1px, transparent 34px);
     }
-    .coming-soon-box ul {
-      list-style: none;
-      padding: 0;
-      margin: 1rem 0;
-      font-size: 1.05rem;
-    }
-    .coming-soon-box li {
-      padding: 0.5rem 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.7rem;
-    }
-    .coming-soon-box p {
-      color: #0E7490;
-      font-weight: 500;
-      margin-top: 1rem;
-    }
+    .hero > * { position:relative; z-index:1; }
+    .hero h1 { font-weight:700; font-size:2.6rem; margin-bottom:.6rem; }
+    .hero h2 { font-weight:500; font-size:1.2rem; color:var(--text2); margin-bottom:1.75rem; }
+    .hero-lede { font-size:1.05rem; max-width:800px; margin:0 auto 2rem; color:var(--text2); }
+    .hero-list { list-style:none; margin-bottom:2rem; font-size:1rem; display:inline-flex; flex-direction:column; gap:.5rem; text-align:left; color:var(--text2); }
+    .hero-list li { display:flex; align-items:center; gap:.6rem; }
+    .hero-list .icon { color:var(--accent); }
 
-    /* Popup Styles */
-    .popup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999; align-items:center; justify-content:center; }
-    .popup-content { background:#fff; padding:2rem; border-radius:10px; max-width:450px; width:90%; max-height:90vh; overflow-y:auto; }
-    .popup-content h4 { text-align:center; margin-bottom:1.5rem; color:#1D2129; }
-    .popup-content input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid #ccc; border-radius:6px; }
-    .close-btn { text-align:right; margin-top:1rem; cursor:pointer; font-weight:bold; color:#666; }
+    .section { padding:3.5rem 5%; max-width:1200px; margin:0 auto; }
+    .section h3 { font-size:1.7rem; font-weight:700; margin-bottom:.6rem; color:var(--text); text-align:center; }
+    .section-lede { text-align:center; color:var(--text2); max-width:640px; margin:0 auto 2rem; font-size:.98rem; }
+    .bg-alt { background:var(--bg2); }
 
-    footer { background:#1E293B; color:white; padding:2rem 5%; text-align:center; margin-top:3rem; }
+    #about p { text-align:center; max-width:800px; margin:0 auto 1.5rem; color:var(--text2); }
+
+    .mkt-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.5rem; margin:1.5rem 0; }
+    .mkt-card { background:var(--bg3); border:1px solid var(--border); padding:1.6rem; border-radius:var(--radius); transition:border-color .15s, transform .15s; }
+    .mkt-card:hover { border-color:var(--border2); transform:translateY(-2px); }
+    .card-icon { width:44px; height:44px; border-radius:10px; background:var(--accent-dim); border:1px solid var(--accent-border); display:flex; align-items:center; justify-content:center; color:var(--accent); margin-bottom:1rem; }
+    .mkt-card h4 { color:var(--text); margin-bottom:.5rem; font-size:1.08rem; font-weight:600; }
+    .mkt-card p { color:var(--text2); font-size:.92rem; }
+
+    .tool-group { margin-bottom:2.2rem; }
+    .tool-group-label { text-transform:uppercase; letter-spacing:.08em; font-size:.75rem; font-weight:600; color:var(--text3); margin-bottom:.9rem; }
+    .tool-featured { display:flex; align-items:center; gap:1.4rem; background:var(--bg3); border:1px solid var(--accent-border); border-radius:var(--radius); padding:1.8rem; margin-top:.5rem; }
+    .tool-featured .card-icon { width:56px; height:56px; margin-bottom:0; flex-shrink:0; }
+    .tool-featured .card-icon .icon { width:28px; height:28px; }
+    .tool-featured h4 { font-size:1.15rem; margin-bottom:.35rem; }
+    .tool-featured p { color:var(--text2); font-size:.92rem; }
+
+    .price-box { background:var(--bg3); border:1px solid var(--accent-border); border-radius:var(--radius); padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
+    .price-box .price { font-size:3rem; color:var(--accent); font-weight:700; }
+    .price-box .price-usd { font-size:.95rem; color:var(--text3); margin-top:-.5rem; margin-bottom:.5rem; }
+    .price-box .price-period { font-size:1.15rem; margin-bottom:1rem; color:var(--text2); }
+    .price-box .price-period small { color:var(--text3); }
+    .price-disclaimer { font-size:.8rem; color:var(--text3); margin-bottom:1.5rem; }
+    .price-box ul { text-align:left; display:inline-block; margin-bottom:1.5rem; list-style:none; color:var(--text2); }
+    .price-box ul li { display:flex; align-items:center; gap:.6rem; padding:.25rem 0; }
+    .price-box ul li .icon { color:var(--accent); }
+
+    .coming-soon-box { background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius); padding:2rem; max-width:800px; margin:2rem auto 0; text-align:center; }
+    .coming-soon-box h4 { color:var(--text); font-size:1.25rem; margin-bottom:1rem; display:flex; align-items:center; justify-content:center; gap:.6rem; font-family:'Space Grotesk',sans-serif; font-weight:600; }
+    .coming-soon-box > p { color:var(--text2); }
+    .coming-soon-box ul { list-style:none; padding:0; margin:1.2rem 0; font-size:1rem; }
+    .coming-soon-box li { padding:.55rem 0; display:flex; align-items:center; justify-content:center; gap:.7rem; text-align:left; color:var(--text2); }
+    .coming-soon-box li .icon { color:var(--accent); }
+    .coming-soon-box .cs-note { color:var(--text3); font-weight:500; margin-top:1rem; font-size:.9rem; }
+
+    .trust-section { text-align:center; }
+    .trust-badge { display:inline-flex; align-items:center; gap:.5rem; background:var(--accent-dim); border:1px solid var(--accent-border); color:var(--accent); padding:.45rem 1rem; border-radius:30px; font-size:.82rem; font-weight:600; margin-bottom:1.2rem; }
+    .trust-section p { max-width:680px; margin:0 auto 1rem; color:var(--text2); }
+    .trust-sub { color:var(--text3) !important; font-size:.92rem; }
+
+    .popup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,6,9,.75); z-index:999; align-items:center; justify-content:center; }
+    .popup-content { background:var(--bg2); border:1px solid var(--border2); padding:2rem; border-radius:var(--radius); max-width:450px; width:90%; max-height:90vh; overflow-y:auto; color:var(--text); }
+    .popup-content h4 { text-align:center; margin-bottom:1.5rem; color:var(--text); font-weight:600; }
+    .popup-content input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid var(--border2); border-radius:var(--radius-sm); background:var(--bg3); color:var(--text); font-family:inherit; }
+    .close-btn { text-align:right; margin-top:1rem; cursor:pointer; font-weight:bold; color:var(--text2); }
+    .close-btn:hover { color:var(--text); }
+    .option-item { display:flex; align-items:center; gap:.9rem; padding:1rem; margin-bottom:1rem; border:1px solid var(--border2); border-radius:var(--radius-sm); cursor:pointer; background:var(--bg3); transition:border-color .15s, background .15s; }
+    .option-item:hover { border-color:var(--accent-border); background:var(--bg4); }
+    .option-item strong { color:var(--text); font-weight:600; display:block; }
+    .option-item small { color:var(--text2); }
+    .option-item .usd { color:var(--text3); font-size:.85em; }
+    .option-item .card-icon { width:38px; height:38px; margin-bottom:0; }
+    .option-item .card-icon .icon { width:19px; height:19px; }
+    /* Cancel-modal rows are built by inline JS with hardcoded light-theme
+       colours in a style="" attribute we don't touch (it's part of the
+       subscription-modal logic) — override just the colours here. */
+    #cancel-modal-list p { color:var(--text2) !important; }
+    #cancel-modal-list .option-item { border-color:var(--border2) !important; background:var(--bg3) !important; color:var(--text) !important; }
+
+    footer { background:var(--bg2); color:var(--text2); padding:2rem 5%; text-align:center; margin-top:3rem; border-top:1px solid var(--border); }
+    footer strong { color:var(--text); }
 
     .hidden { display:none !important; }
-    .auth-box { max-width:400px; margin:3rem auto; background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
-    .auth-box input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid #ccc; border-radius:6px; font-family:inherit; font-size:1rem; }
-    .dashboard-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:2rem; margin:2rem 0; }
-    .dashboard-card { background:#F2F3F5; padding:2rem; border-radius:10px; text-align:center; }
+    .auth-box { max-width:400px; margin:3rem auto; background:var(--bg3); border:1px solid var(--border2); padding:2rem; border-radius:var(--radius); text-align:center; }
+    .auth-box h2 { color:var(--text); margin-bottom:1rem; font-weight:700; }
+    .auth-box input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid var(--border2); background:var(--bg2); color:var(--text); border-radius:var(--radius-sm); font-family:inherit; font-size:1rem; }
+    .auth-box p { color:var(--text2); }
+    .auth-box a { color:var(--accent); text-decoration:none; }
+
+    .dashboard-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1.5rem; margin:2rem 0; }
+    .dashboard-card { background:var(--bg3); border:1px solid var(--border); padding:1.8rem; border-radius:var(--radius); text-align:center; }
+    .dashboard-card .card-icon { margin:0 auto 1rem; }
+    .dashboard-card h3 { font-size:1.05rem; margin-bottom:.4rem; font-weight:600; }
+    .dashboard-card p { color:var(--text2); font-size:.9rem; }
     .dashboard-card a, .dashboard-card button.mkt-btn { display:inline-block; margin-top:1rem; }
-    .mkt-btn-manage { background:#64748B; }
-    .mkt-btn-manage:hover { background:#475569; }
-    .payment-note { font-size:0.9rem; color:#666; margin:1rem 0; }
+    .payment-note { font-size:.9rem; color:var(--text3); margin:1rem 0; }
 
     #form-status { margin-top:1rem; font-weight:bold; display:none; }
-    .success { color:green; }
-    .error { color:red; }
+    .success { color:#4ade80; }
+    .error { color:#f87171; }
+
+    .contact-icon-row { display:flex; align-items:center; gap:.6rem; margin-bottom:1rem; color:var(--text); font-weight:600; font-family:'Space Grotesk',sans-serif; }
+    .contact-icon-row .icon { color:var(--accent); }
+    #contact p { color:var(--text2); }
+    #contact a { color:var(--accent); text-decoration:none; }
+    #contactMessage, #contactForm input, #contactForm textarea { background:var(--bg3); border:1px solid var(--border2); color:var(--text); padding:.8rem; border-radius:var(--radius-sm); font-family:inherit; }
+
+    #lead-magnet input, #referral input { background:var(--bg3); border:1px solid var(--border2); color:var(--text); }
+    #lead-magnet p, #referral p { color:var(--text2); }
+
+    #faq h4 { color:var(--accent); font-family:'Space Grotesk',sans-serif; font-weight:600; margin-bottom:.3rem; }
+    #faq p { color:var(--text2); }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size:2rem; }
+      .hero h2 { font-size:1.05rem; }
+      .section { padding:2.5rem 6%; }
+      nav { padding:.6rem 4%; }
+      .logo svg { height:34px; }
+      .dropdown-content { position:static; box-shadow:none; width:100%; margin-top:.4rem; }
+      .tool-featured { flex-direction:column; text-align:center; }
+    }
   </style>
 </head>
 <body>
@@ -216,16 +292,16 @@
 <nav>
   <a href="#" class="logo" onclick="showHome(); return false;">
     <svg width="320" height="100" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#4B5563"/>
-      <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#22C55E"/>
-      <path d="M40 60 L40 20 L55 20 L55 60 Z" fill="#0EA5E9"/>
-      <rect x="42" y="26" width="11" height="4" fill="white"/>
-      <rect x="42" y="34" width="11" height="4" fill="white"/>
-      <rect x="42" y="42" width="11" height="4" fill="white"/>
-      <rect x="42" y="50" width="11" height="4" fill="white"/>
-      <text x="75" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="600" fill="#FFFFFF">Build</text>
-      <text x="175" y="58" font-family="Arial, sans-serif" font-size="42" font-weight="400" fill="#FFFFFF">Tracker</text>
-      <text x="298" y="38" font-family="Arial, sans-serif" font-size="12" fill="#FFFFFF">™</text>
+      <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#64748B"/>
+      <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#94A3B8"/>
+      <path d="M40 60 L40 20 L55 20 L55 60 Z" fill="#F97316"/>
+      <rect x="42" y="26" width="11" height="4" fill="#14161d"/>
+      <rect x="42" y="34" width="11" height="4" fill="#14161d"/>
+      <rect x="42" y="42" width="11" height="4" fill="#14161d"/>
+      <rect x="42" y="50" width="11" height="4" fill="#14161d"/>
+      <text x="75" y="58" font-family="'Space Grotesk', Arial, sans-serif" font-size="42" font-weight="700" fill="#F3F4F8">Build</text>
+      <text x="175" y="58" font-family="'Space Grotesk', Arial, sans-serif" font-size="42" font-weight="500" fill="#9BA1B5">Tracker</text>
+      <text x="298" y="38" font-family="Arial, sans-serif" font-size="12" fill="#9BA1B5">™</text>
     </svg>
   </a>
 
@@ -235,7 +311,6 @@
     <a href="#pricing">Pricing</a>
     <a href="#about">About</a>
     <a href="#contact">Contact</a>
-    <!-- ✅ UPDATED DROPDOWN: Added Workshop Scheduler & Diary -->
     <div class="dropdown">
       <button class="dropbtn">Open Software ▾</button>
       <div class="dropdown-content">
@@ -263,139 +338,193 @@
 
 <section id="home" class="hero">
   <h1>Workshop & Business Management Software UK</h1>
-<h2>Tools for car builds, repairs, scheduling, stock control, quotes and more</h2>
-  <p style="font-size:1.1rem;max-width:800px;margin:0 auto 2rem;">Simple, reliable UK‑built software. All plans include a <strong>14‑day free trial</strong>, then just £32 per month.</p>
-  <ul style="list-style:none;margin-bottom:2rem;font-size:1.05rem;">
-    <li>✅ Full access for 14 days — no card required to start</li>
-    <li>✅ Car build & restoration progress tracker</li>
-    <li>✅ Workshop job log system</li>
-    <li>✅ Cancel anytime, no long‑term contracts</li>
+  <h2>Tools for car builds, repairs, scheduling, stock control, quotes and more</h2>
+  <p class="hero-lede">Simple, reliable UK‑built software. All plans include a <strong style="color:var(--text)">14‑day free trial</strong>, then just £32 per month <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span>.</p>
+  <ul class="hero-list">
+    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Full access for 14 days — no card required to start</li>
+    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Car build & restoration progress tracker</li>
+    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Workshop job log system</li>
+    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cancel anytime, no long‑term contracts</li>
   </ul>
+  <br>
   <button class="mkt-btn mkt-btn-blue" onclick="openSelection()">Choose Software & Start Trial</button>
 </section>
 
 <section id="features" class="section">
   <h3>Our Software Tools</h3>
-  <div class="mkt-grid">
-    <div class="mkt-card"><h4>🏗️ Build Tracker</h4><p>Car build tracking software and restoration progress log — keep every stage documented.</p></div>
-    <div class="mkt-card"><h4>🚗 Body Shop Pro</h4><p>Garage management tool for repairs, estimates, parts and job records.</p></div>
-    <!-- ✅ NEW: Workshop Scheduler card -->
-    <div class="mkt-card"><h4>🗓️ Workshop Scheduler & Diary</h4><p>Plan jobs, manage bays, track technicians and view your full workshop calendar at a glance.</p></div>
-    <div class="mkt-card"><h4>🔧 Electronics Repair</h4><p>Log faults, parts used and repair history for phones, laptops and appliances.</p></div>
-    <div class="mkt-card"><h4>📦 Stock Control</h4><p>Manage inventory, reorder levels, suppliers and costs for all your parts.</p></div>
-    <div class="mkt-card"><h4>📋 Purchase Order System</h4><p>Manage suppliers, create orders and track deliveries easily.</p></div>
-    <div class="mkt-card"><h4>🛠️ Job Card & Workshop Log</h4><p>Workshop job log system — track time, materials and costs for every job.</p></div>
-    <div class="mkt-card"><h4>📄 Quote Builder</h4><p>Create professional quotes, send via link and convert straight to jobs.</p></div>
-    <!-- ✅ NEW: Workshop Tracker card -->
-    <div class="mkt-card"><h4>🧰 Workshop Tracker</h4><p>All-in-one workshop management system for jobs, scheduling and records.</p></div>
+  <p class="section-lede">Nine focused tools built for UK trade businesses — pick what your workshop actually needs.</p>
+
+  <div class="tool-group">
+    <p class="tool-group-label">Build &amp; Repair</p>
+    <div class="mkt-grid">
+      <div class="mkt-card">
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="8" width="13" height="7" rx="1"/><path d="M15 10h3l3 3v2h-6z"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/></svg></div>
+        <h4>Build Tracker</h4>
+        <p>Car build tracking software and restoration progress log — keep every stage documented.</p>
+      </div>
+      <div class="mkt-card">
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12l1.5-4.5A2 2 0 0 1 6.4 6h11.2a2 2 0 0 1 1.9 1.5L21 12"/><rect x="2" y="12" width="20" height="5" rx="1.5"/><circle cx="7" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg></div>
+        <h4>Body Shop Pro</h4>
+        <p>Garage management tool for repairs, estimates, parts and job records.</p>
+      </div>
+      <div class="mkt-card">
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.3"/><circle cx="15" cy="15" r="1.3"/><path d="M9 10.3V13a2 2 0 0 0 2 2h1.7"/><path d="M15 13.7V11a2 2 0 0 0-2-2h-1.7"/></svg></div>
+        <h4>Electronics Repair</h4>
+        <p>Log faults, parts used and repair history for phones, laptops and appliances.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-group">
+    <p class="tool-group-label">Operations</p>
+    <div class="mkt-grid">
+      <div class="mkt-card">
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+        <h4>Stock Control</h4>
+        <p>Manage inventory, reorder levels, suppliers and costs for all your parts.</p>
+      </div>
+      <div class="mkt-card">
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
+        <h4>Purchase Order System</h4>
+        <p>Manage suppliers, create orders and track deliveries easily.</p>
+      </div>
+      <div class="mkt-card">
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="7" y1="13.5" x2="9" y2="13.5"/><line x1="11" y1="13.5" x2="13" y2="13.5"/><line x1="15" y1="13.5" x2="17" y2="13.5"/></svg></div>
+        <h4>Workshop Scheduler & Diary</h4>
+        <p>Plan jobs, manage bays, track technicians and view your full workshop calendar at a glance.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-group">
+    <p class="tool-group-label">Admin &amp; Sales</p>
+    <div class="mkt-grid">
+      <div class="mkt-card">
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><polyline points="9 13 11 15 15 10"/></svg></div>
+        <h4>Job Card & Workshop Log</h4>
+        <p>Workshop job log system — track time, materials and costs for every job.</p>
+      </div>
+      <div class="mkt-card">
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>
+        <h4>Quote Builder</h4>
+        <p>Create professional quotes, send via link and convert straight to jobs.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-featured">
+    <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+    <div>
+      <p class="tool-group-label" style="margin-bottom:.3rem">All‑in‑one</p>
+      <h4>Workshop Tracker</h4>
+      <p>All-in-one workshop management system for jobs, scheduling and records.</p>
+    </div>
   </div>
 </section>
 
-<section id="pricing" class="section">
+<section id="pricing" class="section bg-alt">
   <h3>Simple Pricing</h3>
   <div class="price-box">
     <div class="price">£32.00</div>
-    <div style="font-size:1.2rem;margin-bottom:2rem;">per month<br><small>14‑day free trial included</small></div>
-    <ul style="text-align:left;display:inline-block;margin-bottom:1.5rem;">
-      <li>✅ Choose the tool you need</li>
-      <li>✅ Unlimited jobs & customers</li>
-      <li>✅ Access from any device</li>
-      <li>✅ Cancel anytime</li>
+    <div class="price-usd">(approx. $43 USD)</div>
+    <div class="price-period">per month<br><small>14‑day free trial included</small></div>
+    <p class="price-disclaimer">All payments are processed in GBP. USD prices shown are for guidance and may differ slightly from your bank's exchange rate.</p>
+    <ul>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Choose the tool you need</li>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Unlimited jobs & customers</li>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Access from any device</li>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cancel anytime</li>
     </ul>
+    <br>
     <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Start Your Free Trial</button>
   </div>
 
-  <!-- ✅ NEW: Coming Soon Section Added Here -->
   <div class="coming-soon-box">
-    <h4>🚀 New Features Currently in Development</h4>
+    <h4><svg class="icon" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> New Features Currently in Development</h4>
     <p>We are constantly improving and adding new tools to make running your workshop even easier. Coming soon to Build Tracker:</p>
     <ul>
-      <li>💾 <strong>Build Tracker Cloud Storage</strong> – Secure online storage to save job documents, photos, invoices and records, accessible from anywhere</li>
-      <li>⏱️ <strong>Clocking On & Job Time Tracking System</strong> – Log start/finish times, track hours worked per job, calculate labour costs and generate timesheets</li>
-      <li>📊 Advanced reporting, stock value tracking and more useful tools</li>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M6 19a5 5 0 0 1-1-9.9A6 6 0 0 1 17 8a4 4 0 0 1 1 7.87"/><path d="M6 19h12"/></svg> <span><strong style="color:var(--text)">Build Tracker Cloud Storage</strong> – Secure online storage to save job documents, photos, invoices and records, accessible from anywhere</span></li>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> <span><strong style="color:var(--text)">Clocking On & Job Time Tracking System</strong> – Log start/finish times, track hours worked per job, calculate labour costs and generate timesheets</span></li>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="8"/><line x1="16" y1="20" x2="16" y2="4"/></svg> <span>Advanced reporting, stock value tracking and more useful tools</span></li>
     </ul>
-    <p>These updates are being built right now and will be added as soon as they are ready.</p>
+    <p class="cs-note">These updates are being built right now and will be added as soon as they are ready.</p>
   </div>
 </section>
 
-<section id="about" class="section" style="background:#F2F3F5;">
+<section id="about" class="section">
   <h3>About Build Tracker Solutions</h3>
   <p>Based in Cheshire East, we create UK‑made software for trade and service businesses. Our car build tracking, workshop job log and garage management tools are built to save you time and reduce paperwork every day.</p>
 </section>
 
-<section id="faq" class="section">
+<section id="faq" class="section bg-alt">
   <h3>Frequently Asked Questions</h3>
   <div style="max-width:800px;margin:0 auto;">
     <div style="margin-bottom:1.5rem;">
-      <h4 style="color:#0EA5E9;">Do I need to install anything?</h4>
+      <h4>Do I need to install anything?</h4>
       <p>No — everything runs in your web browser. Access from any computer, tablet or phone.</p>
     </div>
     <div style="margin-bottom:1.5rem;">
-      <h4 style="color:#0EA5E9;">How does the free trial work?</h4>
-      <p>Full access for 14 days completely free. Pay only £32/month if you want to continue.</p>
+      <h4>How does the free trial work?</h4>
+      <p>Full access for 14 days completely free. Pay only £32/month <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span> if you want to continue.</p>
     </div>
     <div style="margin-bottom:1.5rem;">
-      <h4 style="color:#0EA5E9;">Can I add more tools later?</h4>
+      <h4>Can I add more tools later?</h4>
       <p>Yes — switch or add any software package whenever you need.</p>
     </div>
     <div style="margin-bottom:1.5rem;">
-      <h4 style="color:#0EA5E9;">Can I cancel anytime?</h4>
+      <h4>Can I cancel anytime?</h4>
       <p>No long‑term contracts — cancel whenever you want, no questions asked.</p>
     </div>
   </div>
 </section>
 
-<!-- ✅ NEW: Email Capture Section -->
-<section id="lead-magnet" class="section" style="background:#F0F9FF;">
+<section id="lead-magnet" class="section">
   <h3>Save Time in Your Workshop</h3>
   <div style="max-width:600px;margin:0 auto;text-align:center;">
-    <p style="font-size:1.1rem;margin-bottom:1.5rem;">Get our free guide: <strong>“5 Ways to Cut Workshop Admin Time”</strong> — simple steps to reduce paperwork and get more work done.</p>
+    <p style="font-size:1.1rem;margin-bottom:1.5rem;">Get our free guide: <strong style="color:var(--text)">"5 Ways to Cut Workshop Admin Time"</strong> — simple steps to reduce paperwork and get more work done.</p>
     <div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;">
-      <input type="email" id="guide-email" placeholder="Your email address" style="padding:.8rem;flex:1;min-width:220px;border:1px solid #ccc;border-radius:6px;">
+      <input type="email" id="guide-email" placeholder="Your email address" style="padding:.8rem;flex:1;min-width:220px;border-radius:var(--radius-sm);">
       <button class="mkt-btn mkt-btn-blue" onclick="sendGuide()">Send Me the Guide</button>
     </div>
-    <p style="font-size:.85rem;color:#666;margin-top:.8rem;">We respect your privacy — no spam, unsubscribe anytime.</p>
+    <p style="font-size:.85rem;color:var(--text3);margin-top:.8rem;">We respect your privacy — no spam, unsubscribe anytime.</p>
   </div>
 </section>
 
-<!-- ✅ NEW: Referral Program -->
-<section id="referral" class="section">
+<section id="referral" class="section bg-alt">
   <h3>Refer a Friend & Save</h3>
   <div style="max-width:700px;margin:0 auto;text-align:center;">
-    <p style="font-size:1.1rem;margin-bottom:1.5rem;">Our simple referral plan: <strong>Give 1 month free, Get 1 month free</strong></p>
+    <p style="font-size:1.1rem;margin-bottom:1.5rem;">Our simple referral plan: <strong style="color:var(--text)">Give 1 month free, Get 1 month free</strong></p>
     <p>When someone you refer signs up and pays for their first month, both of you get your next month completely free.</p>
+    <br>
     <button class="mkt-btn mkt-btn-green" onclick="alert('Once logged in, your unique referral link will appear in your dashboard.');">Get My Referral Link</button>
   </div>
 </section>
 
-<!-- ✅ NEW: Reviews Section -->
-<section id="reviews" class="section" style="background:#F8FAFC;">
-  <h3>What Our Users Say</h3>
-  <div style="text-align:center;">
-    <p style="margin-bottom:1.5rem;">Join hundreds of garages and builders using Build Tracker every day.</p>
-    <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;">
-      <a href="https://trustpilot.com/" target="_blank" class="mkt-btn">Review on Trustpilot</a>
-      <a href="https://business.google.com/" target="_blank" class="mkt-btn mkt-btn-blue">Review on Google</a>
-      <a href="https://capterra.com/" target="_blank" class="mkt-btn">Review on Capterra</a>
-    </div>
-  </div>
+<section id="reviews" class="section trust-section">
+  <div class="trust-badge"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> Newly launched</div>
+  <h3>Fresh out the gate — no fake reviews here</h3>
+  <p>Build Tracker Solutions is a genuinely new UK company. We haven't padded this page with review badges because we don't have a stack of them yet — what we do have is a straightforward 14‑day free trial, so you can put the software through its paces on a real job before you pay a penny.</p>
+  <p class="trust-sub">Sign up, try it, and judge it on that.</p>
 </section>
 
-<section id="guides" class="section" style="background:#F8FAFC;">
+<section id="guides" class="section bg-alt">
   <h3>Workshop Guides & Tips</h3>
   <div class="mkt-grid">
     <div class="mkt-card">
-      <h4>🔧 How to Track a Full Restoration</h4>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg></div>
+      <h4>How to Track a Full Restoration</h4>
       <p>Keep parts, costs and progress organised with a simple restoration progress tracker.</p>
       <a href="/guides/restoration-tracking.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
     </div>
     <div class="mkt-card">
-      <h4>⏱️ 5 Ways to Cut Workshop Admin Time</h4>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div>
+      <h4>5 Ways to Cut Workshop Admin Time</h4>
       <p>Cut paperwork using a proper workshop job log system and save hours every week.</p>
       <a href="/guides/cut-workshop-admin-time.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
     </div>
     <div class="mkt-card">
-      <h4>📋 Why Use a Garage Management Tool?</h4>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
+      <h4>Why Use a Garage Management Tool?</h4>
       <p>Estimates, stock, jobs and invoices all in one place — built for UK garages.</p>
       <a href="/guides/cut-workshop-admin-time.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
     </div>
@@ -406,18 +535,18 @@
   <h3>Get in touch</h3>
   <div class="mkt-grid">
     <div>
-      <h4 style="color:#0EA5E9;margin-bottom:1rem;">📞 Contact Details</h4>
-      <p><strong>Location</strong>: Cheshire East, UK<br>
-      <strong>Phone</strong>: 07931095631<br>
-      <strong>Email</strong>: <a href="mailto:info.buildtracker@gmail.com" style="color:#0EA5E9; text-decoration:none;">info.buildtracker@gmail.com</a></p>
+      <div class="contact-icon-row"><svg class="icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> Contact Details</div>
+      <p><strong style="color:var(--text)">Location</strong>: Cheshire East, UK<br>
+      <strong style="color:var(--text)">Phone</strong>: 07931095631<br>
+      <strong style="color:var(--text)">Email</strong>: <a href="mailto:info.buildtracker@gmail.com">info.buildtracker@gmail.com</a></p>
     </div>
     <div>
-      <h4 style="color:#0EA5E9;margin-bottom:1rem;">✉️ Send us a message</h4>
+      <div class="contact-icon-row"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Send us a message</div>
       <form id="contactForm" style="display:flex;flex-direction:column;gap:1rem;">
         <input type="text" id="contactName" placeholder="Your Name" required>
         <input type="email" id="contactEmail" placeholder="Your Email" required>
         <textarea id="contactMessage" placeholder="Message" rows="4" required></textarea>
-        <button type="submit" class="mkt-btn">Send Message</button>
+        <button type="submit" class="mkt-btn mkt-btn-blue">Send Message</button>
         <div id="form-status"></div>
       </form>
     </div>
@@ -426,76 +555,83 @@
 
 <section id="loginForm" class="section hidden">
   <div class="auth-box">
-    <h2 style="color:#0EA5E9; margin-bottom:1rem;">Sign In</h2>
+    <h2>Sign In</h2>
     <input type="email" id="loginEmail" placeholder="Email Address">
     <input type="password" id="loginPass" placeholder="Password">
     <button class="mkt-btn mkt-btn-blue" style="width:100%; margin-top:.5rem;" onclick="login()">Login</button>
-    <p style="margin-top:1rem; font-size:.9rem;">Don’t have an account? <a href="#" onclick="showSignup(); return false;" style="color:#0EA5E9; text-decoration:none;">Sign up here</a></p>
+    <p style="margin-top:1rem; font-size:.9rem;">Don't have an account? <a href="#" onclick="showSignup(); return false;">Sign up here</a></p>
   </div>
 </section>
 
 <section id="signupForm" class="section hidden">
   <div class="auth-box">
-    <h2 style="color:#0EA5E9; margin-bottom:1rem;">Create Your Account</h2>
+    <h2>Create Your Account</h2>
     <input type="email" id="signupEmail" placeholder="Email Address">
     <input type="password" id="signupPass" placeholder="Create Password">
-    <p style="margin:.8rem 0; font-size:.9rem;">Start your <strong>14 day free trial</strong>. After that, £32 per month.</p>
+    <p style="margin:.8rem 0; font-size:.9rem;">Start your <strong style="color:var(--text)">14 day free trial</strong>. After that, £32 per month <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span>.</p>
     <button class="mkt-btn mkt-btn-blue" style="width:100%;" onclick="signup()">Create Account</button>
   </div>
 </section>
 
 <section id="dashboard" class="section hidden">
-  <h2 style="text-align:center; color:#0EA5E9;">Your Dashboard</h2>
+  <h2 style="text-align:center; font-family:'Space Grotesk',sans-serif; font-weight:700;">Your Dashboard</h2>
   <div class="dashboard-grid">
     <div class="dashboard-card">
-      <h3>🏗️ Build Tracker</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="8" width="13" height="7" rx="1"/><path d="M15 10h3l3 3v2h-6z"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/></svg></div>
+      <h3>Build Tracker</h3>
       <p>Project & build management</p>
       <a href="build-tracker/index.html" class="mkt-btn mkt-btn-blue">Open</a>
       <button type="button" id="ms-btn-build-tracker" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('build-tracker')">Manage Subscription</button>
     </div>
     <div class="dashboard-card">
-      <h3>🚗 Body Shop Pro</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12l1.5-4.5A2 2 0 0 1 6.4 6h11.2a2 2 0 0 1 1.9 1.5L21 12"/><rect x="2" y="12" width="20" height="5" rx="1.5"/><circle cx="7" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg></div>
+      <h3>Body Shop Pro</h3>
       <p>Repair & estimate tools</p>
       <a href="body-shop-pro/index.html" class="mkt-btn mkt-btn-blue">Open</a>
       <button type="button" id="ms-btn-body-shop-pro" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('body-shop-pro')">Manage Subscription</button>
     </div>
-    <!-- ✅ NEW: Workshop Scheduler card in dashboard -->
     <div class="dashboard-card">
-      <h3>🗓️ Workshop Scheduler & Diary</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="7" y1="13.5" x2="9" y2="13.5"/><line x1="11" y1="13.5" x2="13" y2="13.5"/><line x1="15" y1="13.5" x2="17" y2="13.5"/></svg></div>
+      <h3>Workshop Scheduler & Diary</h3>
       <p>Calendar, job planning & bay management</p>
       <a href="workshop-scheduler-diary/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
     <div class="dashboard-card">
-      <h3>🔧 Electronics Repair</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.3"/><circle cx="15" cy="15" r="1.3"/><path d="M9 10.3V13a2 2 0 0 0 2 2h1.7"/><path d="M15 13.7V11a2 2 0 0 0-2-2h-1.7"/></svg></div>
+      <h3>Electronics Repair</h3>
       <p>Repair logging & records</p>
       <a href="electronics-repair/index.html" class="mkt-btn mkt-btn-blue">Open</a>
       <button type="button" id="ms-btn-electronics-repair" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('electronics-repair')">Manage Subscription</button>
     </div>
     <div class="dashboard-card">
-      <h3>📦 Stock Control</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+      <h3>Stock Control</h3>
       <p>Inventory & parts management</p>
       <a href="stock-control/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
     <div class="dashboard-card">
-      <h3>📋 Purchase Order System</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
+      <h3>Purchase Order System</h3>
       <p>Supplier management & orders</p>
       <a href="supplier-purchase-order-system/index.html" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
     <div class="dashboard-card">
-      <h3>🛠️ Job Card & Workshop Log</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><polyline points="9 13 11 15 15 10"/></svg></div>
+      <h3>Job Card & Workshop Log</h3>
       <p>Job cards, time & cost tracking</p>
       <a href="job-card-workshop-log-system/index.html" class="mkt-btn mkt-btn-blue">Open</a>
       <button type="button" id="ms-btn-job-card-workshop-log-system" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('job-card-workshop-log-system')">Manage Subscription</button>
     </div>
     <div class="dashboard-card">
-      <h3>📄 Quote Builder</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>
+      <h3>Quote Builder</h3>
       <p>Quoting, estimates & approvals</p>
       <a href="quoting-tool/quotebuilder.html" class="mkt-btn mkt-btn-blue">Open</a>
       <button type="button" id="ms-btn-quoting-tool" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('quoting-tool')">Manage Subscription</button>
     </div>
-    <!-- ✅ NEW: Workshop Tracker card in dashboard -->
     <div class="dashboard-card">
-      <h3>🧰 Workshop Tracker</h3>
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+      <h3>Workshop Tracker</h3>
       <p>All-in-one workshop management</p>
       <a href="https://bms-system.onrender.com" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
@@ -503,6 +639,7 @@
   <div style="text-align:center; margin-top:2rem;">
     <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Subscribe / Pay £32/month</button>
     <button class="mkt-btn mkt-btn-manage" onclick="openCancelModal()">Cancel Subscription</button>
+    <p class="payment-note">(approx. $43 USD/month — billed in GBP)</p>
   </div>
 </section>
 
@@ -511,43 +648,41 @@
   <div class="popup-content">
     <span class="close-btn" onclick="closeModal('selectionModal')">×</span>
     <h4>Choose the software you want to use</h4>
-    <div class="option-item" onclick="selectSoftware('Build Tracker')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>🏗️ Build Tracker</strong><br>
-      <small>Car build & restoration tracking — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Build Tracker')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="8" width="13" height="7" rx="1"/><path d="M15 10h3l3 3v2h-6z"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/></svg></div>
+      <div><strong>Build Tracker</strong><small>Car build & restoration tracking — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
-    <div class="option-item" onclick="selectSoftware('Body Shop Pro')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>🚗 Body Shop Pro</strong><br>
-      <small>Garage management & repairs — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Body Shop Pro')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12l1.5-4.5A2 2 0 0 1 6.4 6h11.2a2 2 0 0 1 1.9 1.5L21 12"/><rect x="2" y="12" width="20" height="5" rx="1.5"/><circle cx="7" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg></div>
+      <div><strong>Body Shop Pro</strong><small>Garage management & repairs — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
-    <!-- ✅ NEW: Added to selection popup -->
-    <div class="option-item" onclick="selectSoftware('Workshop Scheduler & Diary')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>🗓️ Workshop Scheduler & Diary</strong><br>
-      <small>Calendar, job planning & bay management — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Workshop Scheduler & Diary')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></div>
+      <div><strong>Workshop Scheduler & Diary</strong><small>Calendar, job planning & bay management — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
-    <div class="option-item" onclick="selectSoftware('Electronics Repair')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>🔧 Electronics Repair</strong><br>
-      <small>Repair logs & history — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Electronics Repair')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.3"/><circle cx="15" cy="15" r="1.3"/></svg></div>
+      <div><strong>Electronics Repair</strong><small>Repair logs & history — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
-    <div class="option-item" onclick="selectSoftware('Stock Control')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>📦 Stock Control</strong><br>
-      <small>Inventory & suppliers — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Stock Control')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg></div>
+      <div><strong>Stock Control</strong><small>Inventory & suppliers — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
-    <div class="option-item" onclick="selectSoftware('Purchase Order System')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>📋 Purchase Order System</strong><br>
-      <small>Supplier & order management — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Purchase Order System')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/></svg></div>
+      <div><strong>Purchase Order System</strong><small>Supplier & order management — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
-    <div class="option-item" onclick="selectSoftware('Job Card & Workshop Log')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>🛠️ Job Card & Workshop Log</strong><br>
-      <small>Workshop job log system — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Job Card & Workshop Log')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><polyline points="9 13 11 15 15 10"/></svg></div>
+      <div><strong>Job Card & Workshop Log</strong><small>Workshop job log system — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
-    <div class="option-item" onclick="selectSoftware('Quote Builder')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>📄 Quote Builder</strong><br>
-      <small>Quotes & estimates — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Quote Builder')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div><strong>Quote Builder</strong><small>Quotes & estimates — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
-    <!-- ✅ NEW: Added to selection popup -->
-    <div class="option-item" onclick="selectSoftware('Workshop Tracker')" style="padding:1rem;margin-bottom:1rem;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
-      <strong>🧰 Workshop Tracker</strong><br>
-      <small>All-in-one workshop management — £32/month</small>
+    <div class="option-item" onclick="selectSoftware('Workshop Tracker')">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+      <div><strong>Workshop Tracker</strong><small>All-in-one workshop management — £32/month <span class="usd">(approx. $43)</span></small></div>
     </div>
   </div>
 </div>
