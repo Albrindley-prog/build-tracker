@@ -759,27 +759,11 @@ async function login() {
 async function signup() {
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPass').value;
-  const { data, error } = await supabaseClient.auth.signUp({
+  const { error } = await supabaseClient.auth.signUp({
     email, password,
     options: { emailRedirectTo: "https://build-tracker.co.uk/" }
   });
   if (error) return alert("❌ Signup failed: " + error.message);
-  if (data.user) {
-    // Set trial end date = 30 days from now
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 30);
-
-    // Insert into subscriptions table — now matches your column names
-    const { error: insertErr } = await supabaseClient
-      .from('subscriptions')
-      .insert({
-        user_id: data.user.id,
-        status: 'trial',
-        expires_at: trialEnd.toISOString()
-      });
-
-    if (insertErr) console.error("❌ Failed to save trial:", insertErr);
-  }
   alert("✅ Account created! Check your email — links are full‑length and will work perfectly.");
   showLogin();
 }
@@ -789,15 +773,15 @@ async function checkSubscription() {
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) { showHome(); return; }
   try {
-    const { data: sub } = await supabaseClient.from('subscriptions').select('status, expires_at').eq('user_id', user.id).maybeSingle();
-    const now = new Date();
-    const trialExpired = sub && sub.status !== 'active' && now > new Date(sub.expires_at);
-    // A trial-expired row here doesn't necessarily mean the user isn't paying:
-    // this table's status is only ever set to 'trial' at signup and nothing
-    // in this codebase ever flips it to 'active'. bt_subscriptions is the
-    // live record of real payments (written by the Stripe webhook), so check
-    // it before hard-locking — otherwise a genuinely paying customer whose
-    // stale trial row looks expired would be locked out of their own dashboard.
+    // 30-day grace period since this account's signup (auth.users.created_at,
+    // not a separate table), before the dashboard requires a real paid
+    // bt_subscriptions row. bt_subscriptions is the live record of actual
+    // payments (written by the Stripe webhook), so check it before
+    // hard-locking — otherwise a genuinely paying customer past their grace
+    // period would be locked out of their own dashboard.
+    const trialEnd = new Date(user.created_at);
+    trialEnd.setDate(trialEnd.getDate() + 30);
+    const trialExpired = new Date() > trialEnd;
     if (trialExpired && !(await hasAnyManagedSubscription(user.id))) {
       showDashboardLock();
       return;
