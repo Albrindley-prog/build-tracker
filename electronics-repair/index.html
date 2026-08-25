@@ -359,23 +359,33 @@ const STAGES = [
 const TAG_LABELS = {checkin:'Check-In',diagnosis:'Diagnosis',parts:'Parts',repair:'Repair',testing:'Testing'};
 
 // ── TRIAL & SUBSCRIPTION GATE ───────────────────────────────────
-// trial_start is stamped into auth user_metadata at signup (not a DB
-// column, so no migration needed) and checked on every login AND every
-// page reload, with a real Stripe Checkout redirect for payment.
-const TRIAL_DAYS = 14;
+// Checked on every login AND every page reload, with a real Stripe
+// Checkout redirect for payment.
+const TRIAL_DAYS = 30;
 
-function isTrialActive(user){
-  const start = user?.user_metadata?.trial_start;
-  if(!start) return false; // no trial_start recorded → treat as expired, not active
-  const trialEnd = new Date(start);
+// trial_start now lives in bt_trials (user_id, product), not
+// user_metadata — see start_trial_if_missing() in the DB. That RPC is
+// the only thing that ever writes trial_start, so a signed-in user
+// can no longer reset their own trial via auth.updateUser() devtools
+// calls. trialStartCache holds this session's value once fetched.
+let trialStartCache = null;
+async function ensureTrialStarted(){
+  const { data, error } = await sb.rpc('start_trial_if_missing', { p_product: PRODUCT_ID });
+  if (error) { console.error('start_trial_if_missing failed:', error.message); return null; }
+  trialStartCache = data?.[0]?.trial_start ?? null;
+  return trialStartCache;
+}
+
+function isTrialActive(){
+  if(!trialStartCache) return false;
+  const trialEnd = new Date(trialStartCache);
   trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
   return new Date() < trialEnd;
 }
 
-function getTrialDaysLeft(user){
-  const start = user?.user_metadata?.trial_start;
-  if(!start) return 0;
-  const trialEnd = new Date(start);
+function getTrialDaysLeft(){
+  if(!trialStartCache) return 0;
+  const trialEnd = new Date(trialStartCache);
   trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
   const msLeft = trialEnd - new Date();
   return Math.max(0, Math.ceil(msLeft / (1000*60*60*24)));
@@ -404,7 +414,8 @@ async function checkAccess(){
     return true;
   }
 
-  if(isTrialActive(currentUser)){
+  await ensureTrialStarted();
+  if(isTrialActive()){
     updateSubscriptionBanner();
     hidePaymentLock();
     return true;
@@ -425,8 +436,8 @@ function updateSubscriptionBanner(){
   const el = document.getElementById('subscription-status');
   if(!el) return;
   if(userProfile && userProfile.role !== 'owner'){ el.innerText=''; return; }
-  if(isTrialActive(currentUser)){
-    const daysLeft = getTrialDaysLeft(currentUser);
+  if(isTrialActive()){
+    const daysLeft = getTrialDaysLeft();
     el.className = 'trial-active';
     el.innerText = `✅ Free trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
   } else {
@@ -530,7 +541,8 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 <div id="payment-lock" class="modal-overlay">
   <div class="modal">
     <h2 class="modal-title" style="color: var(--orange); text-align: center;">⚠️ Trial Ended</h2>
-    <p style="margin-bottom: 20px; line-height: 1.5;">Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Tech Repair Pro.</p>
+    <p style="margin-bottom: 4px; line-height: 1.5;">Your 30‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Tech Repair Pro.</p>
+    <p style="margin-bottom: 20px; font-size: 12px; color: var(--muted);">(approx. $43 USD)</p>
     <button class="btn btn-primary" style="width: 100%;" onclick="startSubscription()">💳 Subscribe Now — £32.00/month</button>
     <p id="payment-msg" style="margin-top: 12px;"></p>
     <button class="btn" style="width: 100%; margin-top: 8px;" onclick="sb.auth.signOut().then(()=>location.reload())">Sign out</button>
@@ -814,7 +826,7 @@ async function register(){
   msg.innerText=''; msg.className='err';
   if(pw.length<6) return msg.innerText='Password must be at least 6 characters';
   try{
-    const {data,error} = await sb.auth.signUp({email,password:pw,options:{data:{name,shop_name:shop,trial_start:new Date().toISOString()}}});
+    const {data,error} = await sb.auth.signUp({email,password:pw,options:{data:{name,shop_name:shop}}});
     if(error) throw error;
     msg.className='suc';
     msg.innerText='Account created! You can now sign in.';

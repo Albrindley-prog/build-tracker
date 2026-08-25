@@ -184,7 +184,7 @@ input,select,textarea{font-family:inherit}
         <div class="field"><label>Password *</label><input type="password" id="signup-pw" placeholder="Min 6 characters"></div>
         <div class="field"><label>Confirm password *</label><input type="password" id="signup-pw2" placeholder="Confirm password"></div>
         <p id="signup-err" style="font-size:13px;color:#f87171;margin-bottom:10px;display:none"></p>
-        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doSignUp()">Create account — 14 day free trial</button>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doSignUp()">Create account — 30 day free trial</button>
         <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px">No payment required to start. Cancel anytime.</p>
       </div>
       <div id="auth-forgot" style="display:none">
@@ -418,11 +418,11 @@ async function ensureTrialStarted() {
 }
 function isTrialActive() {
   if (!trialStartCache) return false;
-  return Math.floor((new Date()-new Date(trialStartCache))/(864e5)) < 14;
+  return Math.floor((new Date()-new Date(trialStartCache))/(864e5)) < 30;
 }
 function getTrialDaysLeft() {
   if (!trialStartCache) return 0;
-  return Math.max(0, 14 - Math.floor((new Date()-new Date(trialStartCache))/(864e5)));
+  return Math.max(0, 30 - Math.floor((new Date()-new Date(trialStartCache))/(864e5)));
 }
 async function hasActiveSubscription(user) {
   if (!user) return false;
@@ -789,20 +789,20 @@ async function toggleStage(job,idx,checked) {
   const pv=document.getElementById('prog-val'); if (pv) pv.innerHTML=`${p}% <span style="font-size:12px;font-weight:400;color:var(--text3)">(${comp}/${a.length})</span>`;
   showToast(checked?`✓ ${STAGES[idx].name} complete`:`${STAGES[idx].name} unmarked`);
   renderList();
-  const {error} = await sb.from('bt_vehicles').update({ticked:v.ticked}).eq('job',job);
+  const {error} = await sb.from('bt_vehicles').update({ticked:v.ticked}).eq('job',job).eq('user_id',curUser.id);
   if (error) showToast(`Save failed: ${error.message}`);
 }
 
 async function delVehicle(job) {
   if (!confirm('Delete this vehicle?')) return;
-  const {error} = await sb.from('bt_vehicles').delete().eq('job',job);
+  const {error} = await sb.from('bt_vehicles').delete().eq('job',job).eq('user_id',curUser.id);
   if (error) { showToast(`Error: ${error.message}`); return; }
   vehicles=vehicles.filter(v=>v.job!==job); renderList(); renderCustomerList(); showView('view-home'); showToast('Vehicle deleted');
 }
 
 async function delCustomer(id) {
   if (!confirm('Delete this customer?')) return;
-  const {error} = await sb.from('bt_customers').delete().eq('id',id);
+  const {error} = await sb.from('bt_customers').delete().eq('id',id).eq('owner_id',curUser.id);
   if (error) { showToast(`Error: ${error.message}`); return; }
   customers=customers.filter(c=>c.id!==id);
   vehicles=vehicles.map(v=>v.customer_id===id?{...v,customer_id:null}:v);
@@ -840,11 +840,13 @@ async function renderCustomerPortal(token) {
   const el=document.getElementById('cust-content');
   el.innerHTML=`<div class="header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M1 3h22v5H1zM1 10h22v5H1zM1 17h22v5H1z"/></svg></div>Build Tracker</div></div><div class="loading"><div class="spinner"></div>Loading your builds…</div>`;
   try {
-    // Use anon Supabase client — customers don't need to be logged in
-    const {data:cd,error:ce} = await sb.from('bt_customers').select('*').eq('token',token).maybeSingle();
+    // Use anon Supabase client via SECURITY DEFINER RPCs — customers don't
+    // need to be logged in, and RLS blocks anon from reading these tables
+    // directly, so the token check happens inside the RPC (see migration.sql).
+    const {data:cd,error:ce} = await sb.rpc('get_customer_by_token',{p_token:token}).maybeSingle();
     if (ce||!cd) throw new Error('Portal not found. Check your link or contact your body builder.');
     const c=mapC(cd);
-    const {data:vd,error:ve} = await sb.from('bt_vehicles').select('*').eq('customer_id',c.id).order('created_at',{ascending:false});
+    const {data:vd,error:ve} = await sb.rpc('get_vehicles_by_customer_token',{p_token:token}).order('created_at',{ascending:false});
     if (ve) throw ve;
     const cvs=vd.map(mapV);
     const activeCount=cvs.filter(v=>!done(v)).length;

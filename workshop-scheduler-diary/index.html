@@ -119,7 +119,7 @@
                 <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
             </svg>
             <h2 class="text-xl font-semibold mb-4 text-center">Sign In</h2>
-            <div class="trial-info">✨ 14 Days FREE Trial<br>Then only £32 per month</div>
+            <div class="trial-info">✨ 30 Days FREE Trial<br>Then only £32 per month<br><span style="font-size:.8em;opacity:.65;font-weight:400;">(approx. $43 USD)</span></div>
             <input type="email" id="login-email" placeholder="Email" class="w-full border p-3 rounded mb-3 dark:bg-gray-700 dark:border-gray-600">
             <input type="password" id="login-pass" placeholder="Password" class="w-full border p-3 rounded mb-4 dark:bg-gray-700 dark:border-gray-600">
             <button onclick="handleLogin()" class="w-full bg-primary text-white p-3 rounded hover:bg-primary/90 font-medium">Sign In</button>
@@ -138,7 +138,7 @@
                 <text x="294" y="30" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" fill="#6B7280">™</text>
             </svg>
             <h2 class="text-xl font-semibold mb-4 text-center">Create Your Account</h2>
-            <div class="trial-info">✨ 14 Days FREE<br>After that £32/month — cancel anytime</div>
+            <div class="trial-info">✨ 30 Days FREE<br>After that £32/month — cancel anytime<br><span style="font-size:.8em;opacity:.65;font-weight:400;">(approx. $43 USD)</span></div>
             <input type="text" id="signup-name" placeholder="Full Name" class="w-full border p-3 rounded mb-3 dark:bg-gray-700 dark:border-gray-600">
             <input type="email" id="signup-email" placeholder="Email" class="w-full border p-3 rounded mb-3 dark:bg-gray-700 dark:border-gray-600">
             <input type="password" id="signup-pass" placeholder="Password" class="w-full border p-3 rounded mb-3 dark:bg-gray-700 dark:border-gray-600">
@@ -223,6 +223,20 @@
     <div id="customer-portal" class="hidden max-w-xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-8"></div>
 </div>
 
+<!-- ——— PAYMENT LOCK SCREEN ——— -->
+<!-- Visibility controlled purely by the 'hidden' class, same as every
+     other view in this app — no inline display styles mixed in. -->
+<div id="payment-lock" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,.75);backdrop-filter:blur(4px);">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 max-w-sm w-full text-center">
+        <h2 class="text-xl font-semibold mb-4 text-red-500">⚠️ Trial Ended</h2>
+        <p class="mb-1">Your 30‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Workshop Scheduler & Diary.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">(approx. $43 USD)</p>
+        <button onclick="startSubscription()" class="w-full bg-primary text-white p-3 rounded hover:bg-primary/90 font-medium mb-2">💳 Subscribe Now — £32.00/month</button>
+        <p id="payment-msg" class="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-2"></p>
+        <button onclick="handleLogout()" class="w-full bg-gray-200 dark:bg-gray-700 p-3 rounded font-medium">Sign out</button>
+    </div>
+</div>
+
 <script>
 // --------------------------
 // ✅ SUPABASE CONFIG — FIXED NAMING
@@ -234,6 +248,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
+
+// ── STRIPE / SUBSCRIPTION CONFIG ────────────────────────────────
+// Same Supabase project as Body Shop Pro, so reusing its bt_trials/
+// bt_subscriptions tables and create-checkout-session function.
+// Each app bills separately — rows are scoped by (user_id, product).
+const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
+const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
+const PRODUCT_ID = 'workshop-scheduler-diary';
 
 let currentUser = null;
 let jobs = [];
@@ -271,15 +293,12 @@ async function handleSignUp() {
     if (pass !== pass2) return alert('Passwords do not match');
     if (pass.length < 6) return alert('Password must be at least 6 characters');
 
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 14);
-
     try {
         const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: pass,
             options: {
-                data: { full_name: name, trial_end: trialEnd.toISOString() }
+                data: { full_name: name }
             }
         });
 
@@ -302,33 +321,148 @@ async function handleLogin() {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
         if (error) throw error;
 
-        const trialEnd = new Date(data.user.user_metadata?.trial_end || new Date());
-        if (new Date() > trialEnd) {
-            alert('⚠️ Your trial has ended. Please subscribe for £32/month.');
-            await supabaseClient.auth.signOut();
-            return;
-        }
-
         currentUser = data.user;
-        updateTrialDisplay(trialEnd);
-        startApp();
+        const allowed = await checkAccess();
+        if (allowed) startApp();
     } catch (err) {
         alert('❌ Login failed: ' + err.message);
         console.error(err);
     }
 }
 
-function updateTrialDisplay(trialEnd) {
-    const days = Math.ceil((trialEnd - new Date()) / (1000 * 60 * 60 * 24));
-    document.getElementById('trial-days').textContent = days > 0 ? `${days} days remaining` : 'Trial ended';
+// ── TRIAL & SUBSCRIPTION GATE ──────────────────────────────────
+// Checked on every load (login + session restore); access is hard
+// blocked via the #payment-lock overlay until 30 days pass AND
+// there's no active row in SUBSCRIPTIONS_TABLE for this user.
+//
+// trial_start lives in bt_trials (user_id, product), not
+// user_metadata — see start_trial_if_missing() in the DB. That RPC is
+// the only thing that ever writes trial_start, so a signed-in user
+// can't reset their own trial via auth.updateUser() devtools calls.
+// trialStartCache holds this session's value once fetched.
+let trialStartCache = null;
+async function ensureTrialStarted() {
+    if (!currentUser) return null;
+    const { data, error } = await supabaseClient.rpc('start_trial_if_missing', { p_product: PRODUCT_ID });
+    if (error) { console.error('start_trial_if_missing failed:', error.message); return null; }
+    trialStartCache = data?.[0]?.trial_start ?? null;
+    return trialStartCache;
+}
+function isTrialActive() {
+    if (!trialStartCache) return false;
+    const trialEnd = new Date(trialStartCache);
+    trialEnd.setDate(trialEnd.getDate() + 30);
+    return new Date() < trialEnd;
+}
+function getTrialDaysLeft() {
+    if (!trialStartCache) return 0;
+    const trialEnd = new Date(trialStartCache);
+    trialEnd.setDate(trialEnd.getDate() + 30);
+    return Math.max(0, Math.ceil((trialEnd - new Date()) / (1000 * 60 * 60 * 24)));
+}
+async function hasActiveSubscription(user) {
+    if (!user) return false;
+    const { data, error } = await supabaseClient.from(SUBSCRIPTIONS_TABLE)
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('product', PRODUCT_ID)
+        .eq('status', 'active')
+        .maybeSingle();
+    if (error) { console.error('Subscription check failed:', error.message); return false; }
+    return !!data;
+}
+// Called after login and on every session restore, before the app UI is shown.
+// Returns true if the user may proceed, false if the lock screen is now showing.
+async function checkAccess() {
+    if (!currentUser) return false;
+
+    await ensureTrialStarted();
+    if (isTrialActive()) {
+        updateTrialDisplay();
+        hidePaymentLock();
+        return true;
+    }
+
+    const active = await hasActiveSubscription(currentUser);
+    if (active) {
+        updateTrialDisplay();
+        hidePaymentLock();
+        return true;
+    }
+
+    showPaymentLock();
+    return false;
+}
+function updateTrialDisplay() {
+    const el = document.getElementById('trial-days');
+    if (!el) return;
+    el.textContent = isTrialActive() ? `${getTrialDaysLeft()} days remaining` : 'Subscription active';
+}
+function showPaymentLock() {
+    document.getElementById('auth-container').classList.add('hidden');
+    document.getElementById('app-view').classList.add('hidden');
+    document.getElementById('main-nav').classList.add('hidden');
+    document.getElementById('header-user').classList.add('hidden');
+    document.getElementById('payment-lock').classList.remove('hidden');
+}
+function hidePaymentLock() {
+    document.getElementById('payment-lock').classList.add('hidden');
+}
+
+// Redirects to a real Stripe Checkout session (created server-side by the
+// existing 'create-checkout-session' Edge Function), instead of taking card
+// details directly in the browser.
+async function startSubscription() {
+    const msgEl = document.getElementById('payment-msg');
+    if (msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+                price_id: STRIPE_PRICE_ID,
+                product: PRODUCT_ID,
+                user_id: currentUser.id,
+                email: currentUser.email,
+                success_url: window.location.origin + window.location.pathname + '?payment=success',
+                cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
+            })
+        });
+        const { url, error } = await res.json();
+        if (error || !url) throw new Error(error || 'No checkout URL returned');
+        window.location.href = url;
+    } catch (err) {
+        if (msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
+    }
+}
+
+// Checks for ?payment=success/cancel on the URL after redirect back from Stripe.
+async function handlePaymentResult() {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('payment');
+    if (!result) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    if (result === 'success') {
+        // Webhook may take a moment to write the active row; brief delay then re-check.
+        setTimeout(async () => {
+            const allowed = await checkAccess();
+            if (allowed) startApp();
+        }, 1500);
+    }
 }
 
 async function handleLogout() {
     await supabaseClient.auth.signOut();
     currentUser = null;
+    trialStartCache = null;
     document.getElementById('app-view').classList.add('hidden');
     document.getElementById('main-nav').classList.add('hidden');
     document.getElementById('header-user').classList.add('hidden');
+    document.getElementById('payment-lock').classList.add('hidden');
     document.getElementById('auth-container').classList.remove('hidden');
     showLogin();
 }
@@ -589,8 +723,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             currentUser = session.user;
-            updateTrialDisplay(new Date(session.user.user_metadata?.trial_end || new Date()));
-            startApp();
+            const allowed = await checkAccess();
+            if (allowed) startApp();
+            await handlePaymentResult();
         } else {
             showLogin();
         }

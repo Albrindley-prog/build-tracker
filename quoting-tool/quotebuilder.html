@@ -428,8 +428,8 @@
       <p>Sign in to your account</p>
     </div>
 
-    <!-- ✅ 14‑DAY TRIAL NOTICE HERE -->
-    <div class="trial-notice">🎉 14‑day free trial, then £32/month — all features unlocked</div>
+    <!-- ✅ 30‑DAY TRIAL NOTICE HERE -->
+    <div class="trial-notice">🎉 30‑day free trial, then £32/month — all features unlocked</div>
 
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
@@ -489,7 +489,8 @@
 <div id="payment-lock">
   <div class="auth-box">
     <h2>⚠️ Trial ended</h2>
-    <p>Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Quoting & Estimating.</p>
+    <p>Your 30‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Quoting & Estimating.</p>
+    <p style="font-size:12px;color:#888780;margin-top:-8px;">(approx. $43 USD)</p>
     <button class="btn btn-primary btn-full" onclick="startSubscription()">💳 Subscribe now — £32.00/month</button>
     <p id="payment-msg" style="margin-top:10px;font-size:12px;color:#888780"></p>
     <button class="btn btn-full" style="margin-top:6px" onclick="doLogout()">Sign out</button>
@@ -524,8 +525,8 @@
         <button class="nav-link"        id="nav-new"       onclick="newQuote()">+ &nbsp;New Quote</button>
       </nav>
       <div class="sidebar-footer">
-        <!-- ✅ 14‑DAY TRIAL BANNER IN SIDEBAR -->
-        <div class="trial-banner" id="trial-banner">📅 14‑day trial</div>
+        <!-- ✅ 30‑DAY TRIAL BANNER IN SIDEBAR -->
+        <div class="trial-banner" id="trial-banner">📅 30‑day trial</div>
 
         <div class="user-chip">
           <div class="user-avatar" id="user-avatar">?</div>
@@ -765,7 +766,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // ════════════════════════════════════════════════════════════════
 // ⚙️  TRIAL / SUBSCRIPTION SETTINGS
 // ════════════════════════════════════════════════════════════════
-const TRIAL_DAYS = 14;
+const TRIAL_DAYS = 30;
 const SUBSCRIPTION_PRICE = 32.00;
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 // Same Supabase project as your other apps, reusing its subscriptions table/webhook.
@@ -835,7 +836,7 @@ async function doSignup() {
   const { data, error } = await supabaseClient.auth.signUp({
     email, password,
     options: {
-      data: { first_name: firstName, last_name: lastName, trial_start: new Date().toISOString() }
+      data: { first_name: firstName, last_name: lastName }
     }
   });
 
@@ -852,6 +853,7 @@ async function doSignup() {
 async function doLogout() {
   await supabaseClient.auth.signOut();
   currentUser = null;
+  trialStartCache = null;
   quotes = [];
   hidePaymentLock();
   document.getElementById('screen-app').classList.add('hidden');
@@ -864,22 +866,32 @@ async function doLogout() {
 
 // ════════════════════════════════════════════════════════════════
 // TRIAL & SUBSCRIPTION GATE
-// trial_start is stamped into auth user_metadata at signup and checked
-// on every login AND every page reload, with a real Stripe Checkout
-// redirect for payment — same pattern as your other apps.
+// Checked on every login AND every page reload, with a real Stripe
+// Checkout redirect for payment — same pattern as your other apps.
 // ════════════════════════════════════════════════════════════════
-function isTrialActive(user) {
-  const start = user?.user_metadata?.trial_start;
-  if (!start) return false; // no trial_start recorded → treat as expired, not active
-  const trialEnd = new Date(start);
+// trial_start now lives in bt_trials (user_id, product), not
+// user_metadata — see start_trial_if_missing() in the DB. That RPC is
+// the only thing that ever writes trial_start, so a signed-in user
+// can no longer reset their own trial via auth.updateUser() devtools
+// calls. trialStartCache holds this session's value once fetched.
+let trialStartCache = null;
+async function ensureTrialStarted() {
+  const { data, error } = await supabaseClient.rpc('start_trial_if_missing', { p_product: PRODUCT_ID });
+  if (error) { console.error('start_trial_if_missing failed:', error.message); return null; }
+  trialStartCache = data?.[0]?.trial_start ?? null;
+  return trialStartCache;
+}
+
+function isTrialActive() {
+  if (!trialStartCache) return false;
+  const trialEnd = new Date(trialStartCache);
   trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
   return new Date() < trialEnd;
 }
 
-function getTrialDaysLeft(user) {
-  const start = user?.user_metadata?.trial_start;
-  if (!start) return 0;
-  const trialEnd = new Date(start);
+function getTrialDaysLeft() {
+  if (!trialStartCache) return 0;
+  const trialEnd = new Date(trialStartCache);
   trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
   const msLeft = trialEnd - new Date();
   return Math.max(0, Math.ceil(msLeft / (1000*60*60*24)));
@@ -902,7 +914,8 @@ async function hasActiveSubscription(user) {
 async function checkAccess(user) {
   if (!user) return false;
 
-  if (isTrialActive(user)) {
+  await ensureTrialStarted();
+  if (isTrialActive()) {
     hidePaymentLock();
     updateTrialBanner(user);
     return true;
@@ -922,9 +935,9 @@ async function checkAccess(user) {
 function updateTrialBanner(user) {
   const banner = document.getElementById('trial-banner');
   if (!banner) return;
-  if (isTrialActive(user)) {
-    const daysLeft = getTrialDaysLeft(user);
-    banner.textContent = `📅 14‑day trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
+  if (isTrialActive()) {
+    const daysLeft = getTrialDaysLeft();
+    banner.textContent = `📅 30‑day trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
     banner.style.background = '#EAF3DE';
     banner.style.color = '#3B6D11';
   } else {

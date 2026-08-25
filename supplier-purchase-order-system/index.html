@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Supplier & Purchase Orders</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'DM Sans', sans-serif; }
     :root {
@@ -154,7 +154,7 @@
     <input type="email"    id="signup-email" placeholder="Email address" />
     <input type="password" id="signup-pass"  placeholder="Password (min 6 characters)" />
     <input type="password" id="signup-conf"  placeholder="Confirm password" onkeydown="if(event.key==='Enter')doSignup()" />
-    <div class="trial-info">✅ 14 Days Free Trial — then £32.00 per month</div>
+    <div class="trial-info">✅ 30 Days Free Trial — then £32.00 per month</div>
     <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doSignup()">Create account</button>
   </div>
 </div>
@@ -164,8 +164,9 @@
   <h2>Subscription Required</h2>
   <div id="billing-trial" class="trial-info hidden"></div>
   <p>Your free trial has ended. Subscribe now for <strong>£32.00 / month</strong> to continue.</p>
-  <div id="stripe-card-element" style="background:var(--bg3);padding:12px;border-radius:6px;margin:15px 0;"></div>
+  <p style="font-size:12px;color:var(--text2);margin-top:-8px;">(approx. $43 USD)</p>
   <button class="btn btn-primary" id="subscribe-btn" style="width:100%">Subscribe £32.00/month</button>
+  <p id="billing-msg" style="font-size:12px;color:var(--text2);margin-top:8px;"></p>
   <p style="margin-top:12px"><a href="#" onclick="doLogout()" style="color:var(--mint)">Logout</a></p>
 </div>
 
@@ -353,14 +354,25 @@
 // ════════════════════════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════════════════════════
-const STRIPE_KEY = 'pk_live_51TZl6YICF2fQjVNyfM7zLkgw24kRiDtf39YPpbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSDf17p00bGe517yQ';
-const TRIAL_DAYS = 14;
+const SUPABASE_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+});
+
+const TRIAL_DAYS = 30;
+// Same Supabase project as Body Shop Pro / Workshop Scheduler & Diary / Stock
+// Control, so reusing its bt_trials/bt_subscriptions tables and
+// create-checkout-session function. Each app bills separately — rows are
+// scoped by (user_id, product).
+const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
+const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
+const PRODUCT_ID = 'purchase-order-system';
 
 // ════════════════════════════════════════════════════════════════
 // AUTH
 // ════════════════════════════════════════════════════════════════
 let currentUser = null;
-let stripeObj, stripeElements, stripeCard;
 
 function switchAuthTab(tab) {
   document.getElementById('tab-login').classList.toggle('active',  tab==='login');
@@ -374,20 +386,18 @@ function showAuthError(msg)   { const e=document.getElementById('auth-error');  
 function showAuthSuccess(msg) { const e=document.getElementById('auth-success'); e.textContent=msg; e.style.display='block'; document.getElementById('auth-error').style.display='none'; }
 function clearAuthMsg()       { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
 
-function doLogin() {
+async function doLogin() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass  = document.getElementById('login-pass').value;
   if (!email||!pass) { showAuthError('Please enter your email and password.'); return; }
-  const stored = localStorage.getItem('spo_user_'+email);
-  if (!stored) { showAuthError('No account found with this email. Please sign up.'); return; }
-  const user = JSON.parse(stored);
-  if (user.password !== btoa(pass)) { showAuthError('Incorrect password. Please try again.'); return; }
-  currentUser = user;
-  localStorage.setItem('spo_session', email);
-  launchApp();
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+  if (error) { showAuthError(error.message); return; }
+  currentUser = data.user;
+  const allowed = await checkAccess();
+  if (allowed) launchApp();
 }
 
-function doSignup() {
+async function doSignup() {
   const first = document.getElementById('signup-first').value.trim();
   const last  = document.getElementById('signup-last').value.trim();
   const email = document.getElementById('signup-email').value.trim().toLowerCase();
@@ -397,18 +407,23 @@ function doSignup() {
   if (!email||!email.includes('@')) { showAuthError('Please enter a valid email address.'); return; }
   if (pass.length < 6)     { showAuthError('Password must be at least 6 characters.'); return; }
   if (pass !== conf)       { showAuthError('Passwords do not match.'); return; }
-  if (localStorage.getItem('spo_user_'+email)) { showAuthError('An account with this email already exists. Please sign in.'); return; }
-  const user = { email, password: btoa(pass), firstName: first, lastName: last, signupDate: new Date().toISOString(), subscribed: false };
-  localStorage.setItem('spo_user_'+email, JSON.stringify(user));
-  currentUser = user;
-  localStorage.setItem('spo_session', email);
+  const { data, error } = await supabaseClient.auth.signUp({
+    email, password: pass,
+    options: { data: { first_name: first, last_name: last } }
+  });
+  if (error) { showAuthError(error.message); return; }
+  // "Confirm email" is off for this project, so signUp() returns an active
+  // session immediately — go straight into the app, same as before.
   showAuthSuccess('Account created! Signing you in…');
-  setTimeout(launchApp, 800);
+  currentUser = data.user;
+  const allowed = await checkAccess();
+  if (allowed) launchApp();
 }
 
-function doLogout() {
+async function doLogout() {
+  await supabaseClient.auth.signOut();
   currentUser = null;
-  localStorage.removeItem('spo_session');
+  trialStartCache = null;
   document.getElementById('auth-screen').classList.remove('hidden');
   document.getElementById('app-screen').classList.add('hidden');
   document.getElementById('billing-screen').classList.add('hidden');
@@ -417,44 +432,121 @@ function doLogout() {
   clearAuthMsg(); switchAuthTab('login');
 }
 
-function daysLeft() {
-  if (!currentUser) return 0;
-  const diff = TRIAL_DAYS - Math.floor((new Date() - new Date(currentUser.signupDate)) / 86400000);
-  return diff > 0 ? diff : 0;
+// ── TRIAL & SUBSCRIPTION GATE ──────────────────────────────────
+// Checked on every load (login + session restore); access is hard
+// blocked via the billing screen until 30 days pass AND there's no
+// active row in SUBSCRIPTIONS_TABLE for this user.
+//
+// trial_start lives in bt_trials (user_id, product) — the shared table
+// used across the whole suite — not anything client-writable. The RPC
+// only ever sets it once, so it can't be reset by later logins.
+let trialStartCache = null;
+async function ensureTrialStarted() {
+  if (!currentUser) return null;
+  const { data, error } = await supabaseClient.rpc('start_trial_if_missing', { p_product: PRODUCT_ID });
+  if (error) { console.error('start_trial_if_missing failed:', error.message); return null; }
+  trialStartCache = data?.[0]?.trial_start ?? null;
+  return trialStartCache;
+}
+function isTrialActive() {
+  if (!trialStartCache) return false;
+  const trialEnd = new Date(trialStartCache);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  return new Date() < trialEnd;
+}
+function getTrialDaysLeft() {
+  if (!trialStartCache) return 0;
+  const trialEnd = new Date(trialStartCache);
+  trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
+  return Math.max(0, Math.ceil((trialEnd - new Date()) / (1000 * 60 * 60 * 24)));
+}
+async function hasActiveSubscription(user) {
+  if (!user) return false;
+  const { data, error } = await supabaseClient.from(SUBSCRIPTIONS_TABLE)
+    .select('status')
+    .eq('user_id', user.id)
+    .eq('product', PRODUCT_ID)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (error) { console.error('Subscription check failed:', error.message); return false; }
+  return !!data;
+}
+// Called after login and on every session restore, before the app UI is shown.
+// Returns true if the user may proceed, false if the billing screen is now showing.
+async function checkAccess() {
+  if (!currentUser) return false;
+  await ensureTrialStarted();
+  if (isTrialActive()) { document.getElementById('billing-screen').classList.add('hidden'); return true; }
+  const active = await hasActiveSubscription(currentUser);
+  if (active) { document.getElementById('billing-screen').classList.add('hidden'); return true; }
+  showBilling();
+  return false;
 }
 
-function launchApp() {
-  const days = daysLeft();
-  if (!currentUser.subscribed && days <= 0) { showBilling(); return; }
+async function launchApp() {
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('billing-screen').classList.add('hidden');
   document.getElementById('app-screen').classList.remove('hidden');
-  document.getElementById('trial-days').textContent = currentUser.subscribed ? '✓ Subscribed' : `${days} days trial left`;
-  loadData(); populateSupplierDropdown(); renderCurrentView();
+  document.getElementById('trial-days').textContent = isTrialActive() ? `${getTrialDaysLeft()} days trial left` : '✓ Subscribed';
+  await loadData(); populateSupplierDropdown(); renderCurrentView();
 }
 
+// Shown both as a hard lock (trial expired, no subscription — via checkAccess)
+// and voluntarily (the "Billing" button in the header, any time).
 function showBilling() {
-  const days = daysLeft();
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app-screen').classList.add('hidden');
   const tb = document.getElementById('billing-trial');
-  if (days > 0) { tb.classList.remove('hidden'); tb.textContent = `${days} days of free trial remaining`; }
+  if (isTrialActive()) { tb.classList.remove('hidden'); tb.textContent = `${getTrialDaysLeft()} days of free trial remaining`; }
   else { tb.classList.add('hidden'); }
   document.getElementById('billing-screen').classList.remove('hidden');
-  if (!stripeObj) {
-    stripeObj = Stripe(STRIPE_KEY);
-    stripeElements = stripeObj.elements();
-    stripeCard = stripeElements.create('card', { style: { base: { color: '#f0f2f8', fontSize: '14px' } } });
-    stripeCard.mount('#stripe-card-element');
+  document.getElementById('subscribe-btn').onclick = startSubscription;
+}
+
+// Redirects to a real Stripe Checkout session (created server-side by the
+// existing 'create-checkout-session' Edge Function), instead of taking card
+// details directly in the browser.
+async function startSubscription() {
+  const msgEl = document.getElementById('billing-msg');
+  if (msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        price_id: STRIPE_PRICE_ID,
+        product: PRODUCT_ID,
+        user_id: currentUser.id,
+        email: currentUser.email,
+        success_url: window.location.origin + window.location.pathname + '?payment=success',
+        cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
+      })
+    });
+    const { url, error } = await res.json();
+    if (error || !url) throw new Error(error || 'No checkout URL returned');
+    window.location.href = url;
+  } catch (err) {
+    if (msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
   }
-  document.getElementById('subscribe-btn').onclick = async () => {
-    const { error } = await stripeObj.createPaymentMethod({ type: 'card', card: stripeCard });
-    if (error) { showToast(error.message, 'error'); return; }
-    currentUser.subscribed = true;
-    localStorage.setItem('spo_user_'+currentUser.email, JSON.stringify(currentUser));
-    showToast('Subscription successful!');
-    launchApp();
-  };
+}
+
+// Checks for ?payment=success/cancel on the URL after redirect back from Stripe.
+async function handlePaymentResult() {
+  const params = new URLSearchParams(window.location.search);
+  const result = params.get('payment');
+  if (!result) return;
+  window.history.replaceState({}, '', window.location.pathname);
+  if (result === 'success') {
+    // Webhook may take a moment to write the active row; brief delay then re-check.
+    setTimeout(async () => {
+      const allowed = await checkAccess();
+      if (allowed) launchApp();
+    }, 1500);
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -463,20 +555,42 @@ function showBilling() {
 let suppliers = [], purchaseOrders = [], priceHistory = [], nextPONumber = 1;
 let editPOid = null, editSupid = null, currentTab = 'po';
 
-function key(k) { return `spo_${currentUser.email}_${k}`; }
+// Pulls all four tables from Supabase and reassembles them into the exact
+// same in-memory shapes the rest of this file already expects (po.items
+// nested on each order, terms/leadTime as strings, etc.) — so every
+// render*/get* function below is unchanged.
+async function loadData() {
+  const [supRes, poRes, itemsRes, priceRes, counterRes] = await Promise.all([
+    supabaseClient.from('spo_suppliers').select('*').eq('user_id', currentUser.id).order('name'),
+    supabaseClient.from('spo_purchase_orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
+    supabaseClient.from('spo_purchase_order_items').select('*').eq('user_id', currentUser.id),
+    supabaseClient.from('spo_price_history').select('*').eq('user_id', currentUser.id),
+    supabaseClient.from('spo_counters').select('next_po_number').eq('user_id', currentUser.id).maybeSingle()
+  ]);
 
-function loadData() {
-  suppliers      = JSON.parse(localStorage.getItem(key('suppliers'))) || [];
-  purchaseOrders = JSON.parse(localStorage.getItem(key('orders')))    || [];
-  priceHistory   = JSON.parse(localStorage.getItem(key('prices')))    || [];
-  nextPONumber   = JSON.parse(localStorage.getItem(key('nextPO')))    || 1;
-}
+  suppliers = (supRes.data || []).map(s => ({
+    id: s.id, name: s.name, contact: s.contact || '', email: s.email || '', phone: s.phone || '',
+    terms: String(s.payment_terms_days ?? 30), account: s.account || '',
+    leadTime: String(s.lead_time_days ?? 0), address: s.address || ''
+  }));
 
-function saveData() {
-  localStorage.setItem(key('suppliers'), JSON.stringify(suppliers));
-  localStorage.setItem(key('orders'),    JSON.stringify(purchaseOrders));
-  localStorage.setItem(key('prices'),    JSON.stringify(priceHistory));
-  localStorage.setItem(key('nextPO'),    JSON.stringify(nextPONumber));
+  const itemsByPO = {};
+  (itemsRes.data || []).forEach(it => {
+    (itemsByPO[it.purchase_order_id] ||= []).push({ name: it.name, qty: it.qty, price: Number(it.price), notes: it.notes || '' });
+  });
+
+  purchaseOrders = (poRes.data || []).map(p => ({
+    id: p.id, supplierId: p.supplier_id, date: p.order_date || '', ref: p.ref,
+    paymentTerms: String(p.payment_terms_days ?? 30), dueDate: p.due_date || '',
+    status: p.status, goodsIn: p.goods_in, notes: p.notes || '',
+    items: itemsByPO[p.id] || [], total: Number(p.total) || 0
+  }));
+
+  priceHistory = (priceRes.data || []).map(ph => ({
+    supplierId: ph.supplier_id, name: ph.item_name, price: Number(ph.price), date: ph.recorded_date
+  }));
+
+  nextPONumber = counterRes.data?.next_po_number ?? 1;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -546,29 +660,32 @@ function hideSupplierForm() {
   editSupid = null;
 }
 
-function saveSupplier() {
+async function saveSupplier() {
   const data = {
-    id:       editSupid || Date.now().toString(),
-    name:     document.getElementById('sup-name').value.trim(),
-    contact:  document.getElementById('sup-contact').value.trim(),
-    email:    document.getElementById('sup-email').value.trim(),
-    phone:    document.getElementById('sup-phone').value.trim(),
-    terms:    document.getElementById('sup-terms').value,
-    account:  document.getElementById('sup-account').value.trim(),
-    leadTime: document.getElementById('sup-lead').value || '0',
-    address:  document.getElementById('sup-address').value.trim(),
+    user_id:            currentUser.id,
+    name:               document.getElementById('sup-name').value.trim(),
+    contact:            document.getElementById('sup-contact').value.trim(),
+    email:              document.getElementById('sup-email').value.trim(),
+    phone:              document.getElementById('sup-phone').value.trim(),
+    payment_terms_days: parseInt(document.getElementById('sup-terms').value) || 0,
+    account:            document.getElementById('sup-account').value.trim(),
+    lead_time_days:     parseInt(document.getElementById('sup-lead').value) || 0,
+    address:            document.getElementById('sup-address').value.trim(),
   };
   if (!data.name) { showToast('Company name is required','error'); return; }
-  if (editSupid) { const i=suppliers.findIndex(s=>s.id===editSupid); if(i!==-1) suppliers[i]=data; }
-  else suppliers.push(data);
-  saveData(); populateSupplierDropdown(); hideSupplierForm(); renderSupplierList();
+  const { error } = editSupid
+    ? await supabaseClient.from('spo_suppliers').update(data).eq('id', editSupid)
+    : await supabaseClient.from('spo_suppliers').insert(data);
+  if (error) { showToast(error.message, 'error'); return; }
+  await loadData(); populateSupplierDropdown(); hideSupplierForm(); renderSupplierList();
   showToast('Supplier saved successfully');
 }
 
-function deleteSupplier(id) {
+async function deleteSupplier(id) {
   if (!confirm('Delete this supplier?')) return;
-  suppliers = suppliers.filter(s=>s.id!==id);
-  saveData(); renderSupplierList(); populateSupplierDropdown();
+  const { error } = await supabaseClient.from('spo_suppliers').delete().eq('id', id);
+  if (error) { showToast(error.message, 'error'); return; }
+  await loadData(); renderSupplierList(); populateSupplierDropdown();
   showToast('Supplier deleted');
 }
 
@@ -682,42 +799,58 @@ function getLastPrice(supplierId, itemName) {
   return matches.length ? matches.sort((a,b)=>new Date(b.date)-new Date(a.date))[0].price : null;
 }
 
-function savePO() {
+async function savePO() {
   const items = [];
   document.querySelectorAll('.item-row').forEach(row => {
     const name = row.querySelector('.item-name').value.trim();
     if (name) items.push({ name, qty: parseFloat(row.querySelector('.item-qty').value)||0, price: parseFloat(row.querySelector('.item-price').value)||0, notes: row.querySelector('.item-notes').value.trim() });
   });
   if (!items.length) { showToast('Please add at least one item','error'); return; }
-  if (!document.getElementById('po-supplier').value) { showToast('Please select a supplier','error'); return; }
+  const supplierId = document.getElementById('po-supplier').value;
+  if (!supplierId) { showToast('Please select a supplier','error'); return; }
 
-  const data = {
-    id:           editPOid || Date.now().toString(),
-    supplierId:   document.getElementById('po-supplier').value,
-    date:         document.getElementById('po-date').value,
-    ref:          document.getElementById('po-ref').value,
-    paymentTerms: document.getElementById('po-payment-terms').value,
-    dueDate:      document.getElementById('po-due-date').value,
-    status:       document.getElementById('po-status').value,
-    goodsIn:      document.getElementById('po-goods-in').value,
-    notes:        document.getElementById('po-notes').value,
-    items,
-    total: parseFloat(document.getElementById('po-total').textContent.replace('£',''))||0,
+  const orderDate = document.getElementById('po-date').value;
+  const poRow = {
+    user_id:             currentUser.id,
+    supplier_id:         supplierId,
+    ref:                 document.getElementById('po-ref').value,
+    order_date:          orderDate || null,
+    payment_terms_days:  parseInt(document.getElementById('po-payment-terms').value) || 0,
+    due_date:            document.getElementById('po-due-date').value || null,
+    status:               document.getElementById('po-status').value,
+    goods_in:            document.getElementById('po-goods-in').value,
+    notes:               document.getElementById('po-notes').value,
+    total:               parseFloat(document.getElementById('po-total').textContent.replace('£',''))||0,
   };
 
-  items.forEach(i => priceHistory.push({ supplierId: data.supplierId, name: i.name, price: i.price, date: data.date }));
+  let poId = editPOid;
+  if (editPOid) {
+    const { error } = await supabaseClient.from('spo_purchase_orders').update(poRow).eq('id', editPOid);
+    if (error) { showToast(error.message, 'error'); return; }
+    await supabaseClient.from('spo_purchase_order_items').delete().eq('purchase_order_id', editPOid);
+  } else {
+    const { data, error } = await supabaseClient.from('spo_purchase_orders').insert(poRow).select().single();
+    if (error) { showToast(error.message, 'error'); return; }
+    poId = data.id;
+    nextPONumber++;
+    await supabaseClient.from('spo_counters').upsert({ user_id: currentUser.id, next_po_number: nextPONumber });
+  }
 
-  if (editPOid) { const idx=purchaseOrders.findIndex(p=>p.id===editPOid); if(idx!==-1) purchaseOrders[idx]=data; }
-  else { purchaseOrders.push(data); nextPONumber++; }
+  const itemRows = items.map(i => ({ purchase_order_id: poId, user_id: currentUser.id, name: i.name, qty: i.qty, price: i.price, notes: i.notes }));
+  await supabaseClient.from('spo_purchase_order_items').insert(itemRows);
 
-  saveData(); hidePOForm(); renderPOList();
+  const priceRows = items.map(i => ({ user_id: currentUser.id, supplier_id: supplierId, item_name: i.name, price: i.price, recorded_date: orderDate || new Date().toISOString().split('T')[0] }));
+  await supabaseClient.from('spo_price_history').insert(priceRows);
+
+  await loadData(); hidePOForm(); renderPOList();
   showToast('Purchase order saved successfully');
 }
 
-function deletePO(id) {
+async function deletePO(id) {
   if (!confirm('Delete this purchase order?')) return;
-  purchaseOrders = purchaseOrders.filter(p=>p.id!==id);
-  saveData(); renderPOList();
+  const { error } = await supabaseClient.from('spo_purchase_orders').delete().eq('id', id);
+  if (error) { showToast(error.message, 'error'); return; }
+  await loadData(); renderPOList();
   showToast('Order deleted');
 }
 
@@ -775,9 +908,14 @@ function renderGoodsInList(search='') {
     </tr>`).join('');
 }
 
-function updateGoodsIn(id, val) {
+async function updateGoodsIn(id, val) {
   const po = purchaseOrders.find(p=>p.id===id);
-  if (po) { po.goodsIn=val; if(val==='yes') po.status='delivered'; saveData(); renderCurrentView(); showToast('Delivery status updated'); }
+  if (!po) return;
+  const newStatus = val==='yes' ? 'delivered' : po.status;
+  const { error } = await supabaseClient.from('spo_purchase_orders').update({ goods_in: val, status: newStatus }).eq('id', id);
+  if (error) { showToast(error.message, 'error'); return; }
+  po.goodsIn = val; po.status = newStatus;
+  renderCurrentView(); showToast('Delivery status updated');
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -869,12 +1007,14 @@ function emailPO() {
 // ════════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════════
-(function init() {
-  const session = localStorage.getItem('spo_session');
+(async function init() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
-    const stored = localStorage.getItem('spo_user_'+session);
-    if (stored) { currentUser = JSON.parse(stored); launchApp(); return; }
+    currentUser = session.user;
+    const allowed = await checkAccess();
+    if (allowed) launchApp();
   }
+  await handlePaymentResult();
 })();
 </script>
 </body>

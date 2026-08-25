@@ -6,7 +6,6 @@
 <title>Stock Control V2</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://js.stripe.com/v3/"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
 <script>
@@ -18,12 +17,15 @@ const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
 // --------------------------
 // PAYMENT & TRIAL CONFIG
 // --------------------------
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_51TZl6YICF2fQjVNyfM7zLkgw24kRiDtf39YPpbvsLsDn8YM6RJ1VncJedSUgJPIoPfjra1T3vCgPTQbivFSDf17p00bGe517yQ';
-const TRIAL_DAYS = 14;
+const TRIAL_DAYS = 30;
 const MONTHLY_PRICE = 32.00;
 const CURRENCY = 'gbp';
-let stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-let elements, card;
+// Same Supabase project as Body Shop Pro / Workshop Scheduler & Diary, so
+// reusing its bt_trials/bt_subscriptions tables and create-checkout-session
+// function. Each app bills separately — rows are scoped by (user_id, product).
+const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
+const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
+const PRODUCT_ID = 'stock-control';
 </script>
 
 <style>
@@ -234,14 +236,6 @@ body {
     font-size: 28px;
     font-weight: 600;
     color: var(--text);
-    margin: 16px 0;
-}
-
-#stripe-card-element {
-    background: var(--input-bg);
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
     margin: 16px 0;
 }
 
@@ -535,7 +529,7 @@ tbody td {
         <div class="auth-title">Welcome back</div>
         <div class="auth-sub">Sign in to manage your stock</div>
 
-        <div class="trial-note">✅ 14 Days Free Trial — then £32.00 per month</div>
+        <div class="trial-note">✅ 30 Days Free Trial — then £32.00 per month</div>
 
         <div class="auth-tabs">
             <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
@@ -581,8 +575,9 @@ tbody td {
     <div class="billing-box">
         <h2>Subscription Required</h2>
         <div id="billingMessage"></div>
-        <div id="stripe-card-element"></div>
         <button class="auth-btn" id="subscribeBtn">Subscribe £32.00/month</button>
+        <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;">(approx. $43 USD)</p>
+        <p id="paymentMsg" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;"></p>
         <button class="btn btn-ghost" onclick="doLogout()" style="margin-top:12px;width:100%;">Sign Out</button>
     </div>
 </div>
@@ -734,7 +729,8 @@ function daysRemaining() {
 
 async function checkAccess() {
     const days = daysRemaining();
-    if(days > 0 || userData.subscribed) {
+    const active = days > 0 ? true : await hasActiveSubscription(currentUser);
+    if(active) {
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('billingScreen').style.display = 'none';
         document.getElementById('appScreen').style.display = 'block';
@@ -743,6 +739,22 @@ async function checkAccess() {
     } else {
         showBilling();
     }
+}
+
+// Real subscription check — a row in the shared bt_subscriptions table for
+// this user, scoped to this product, with status='active'. Replaces the old
+// client-set userData.subscribed flag, which any signed-in user could flip
+// themselves with no payment ever taking place.
+async function hasActiveSubscription(user) {
+    if(!user) return false;
+    const { data, error } = await sbClient.from(SUBSCRIPTIONS_TABLE)
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('product', PRODUCT_ID)
+        .eq('status', 'active')
+        .maybeSingle();
+    if(error) { console.error('Subscription check failed:', error.message); return false; }
+    return !!data;
 }
 
 function showBilling() {
@@ -758,30 +770,50 @@ function showBilling() {
         msgEl.innerHTML = `<p style="color:var(--danger);margin-bottom:16px;">❌ Your free trial has ended. Subscribe now to continue.</p>`;
     }
 
-    if(!elements) {
-        elements = stripe.elements();
-        card = elements.create('card', {
-            style: { base: { color: '#e8eaf2', fontSize: '14px' } }
+    document.getElementById('subscribeBtn').onclick = startSubscription;
+}
+
+// Redirects to a real Stripe Checkout session (created server-side by the
+// existing 'create-checkout-session' Edge Function), instead of taking card
+// details directly in the browser.
+async function startSubscription() {
+    const msgEl = document.getElementById('paymentMsg');
+    if(msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
+    try {
+        const { data: { session } } = await sbClient.auth.getSession();
+        const res = await fetch(`${SB_URL}/functions/v1/create-checkout-session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+                price_id: STRIPE_PRICE_ID,
+                product: PRODUCT_ID,
+                user_id: currentUser.id,
+                email: currentUser.email,
+                success_url: window.location.origin + window.location.pathname + '?payment=success',
+                cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
+            })
         });
-        card.mount('#stripe-card-element');
+        const { url, error } = await res.json();
+        if(error || !url) throw new Error(error || 'No checkout URL returned');
+        window.location.href = url;
+    } catch(err) {
+        if(msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
     }
+}
 
-    document.getElementById('subscribeBtn').onclick = async () => {
-        const {error} = await stripe.createPaymentMethod({ type: 'card', card });
-        if(error) return alert(error.message);
-
-        // In production: send to server to create subscription
-        const { error: updateError } = await sbClient.from('users').update({
-            subscribed: true,
-            last_payment: new Date().toISOString()
-        }).eq('id', currentUser.id);
-
-        if(updateError) return alert(updateError.message);
-
-        userData.subscribed = true;
-        alert('Subscription successful! Thank you.');
-        checkAccess();
-    };
+// Checks for ?payment=success/cancel on the URL after redirect back from Stripe.
+async function handlePaymentResult() {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('payment');
+    if(!result) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    if(result === 'success') {
+        // Webhook may take a moment to write the active row; brief delay then re-check.
+        setTimeout(() => { checkAccess(); }, 1500);
+    }
 }
 
 async function getUserData() {
@@ -791,8 +823,7 @@ async function getUserData() {
         const newUser = {
             id: currentUser.id,
             email: currentUser.email,
-            signup_date: new Date().toISOString(),
-            subscribed: false
+            signup_date: new Date().toISOString()
         };
         await sbClient.from('users').insert(newUser);
         userData = newUser;
@@ -841,7 +872,7 @@ async function doRegister() {
     if (data.user) {
         currentUser = data.user;
         await getUserData();
-        showMsg('Account created! Your 14-day free trial starts now.', 'success');
+        showMsg('Account created! Your 30-day free trial starts now.', 'success');
         switchTab('login');
     }
 }
@@ -980,6 +1011,7 @@ function importBackup(event) {
         await getUserData();
         checkAccess();
     }
+    await handlePaymentResult();
 })();
 </script>
 

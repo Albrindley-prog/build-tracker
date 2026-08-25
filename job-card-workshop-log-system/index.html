@@ -118,7 +118,8 @@
 <div id="paymentLock">
   <div class="lock-modal">
     <h2>⚠️ Trial Ended</h2>
-    <p>Your 14‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Workshop Job Cards & Logs.</p>
+    <p>Your 30‑day free trial has finished.<br>Pay <strong>£32.00 / month</strong> now to keep using Workshop Job Cards & Logs.</p>
+    <p style="font-size:12px;color:#6b7280;margin-top:-8px;">(approx. $43 USD)</p>
     <button class="btn btn-primary" onclick="startSubscription()">💳 Subscribe Now — £32.00/month</button>
     <p id="paymentMsg" style="margin-top:12px; font-size:0.85rem;"></p>
     <button class="btn" style="width:100%; margin-top:8px; background:#e5e7eb; color:#374151;" onclick="supabaseClient.auth.signOut().then(()=>location.reload())">Sign out</button>
@@ -130,7 +131,7 @@
   <!-- ✅ LOGIN / CREATE ACCOUNT — ALWAYS VISIBLE, NEVER HIDDEN -->
   <div id="authSection" class="auth-box">
     <h2>Workshop Job Cards</h2>
-    <p>Sign in or create an account to get started — <strong>14‑day free trial, then £32/month</strong></p>
+    <p>Sign in or create an account to get started — <strong>30‑day free trial, then £32/month</strong></p>
 
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign in</button>
@@ -221,7 +222,7 @@
 // Same Supabase project as your other rented apps, so reusing its
 // subscriptions table/checkout function. Each app bills separately, so
 // rows are scoped by (user_id, product) — PRODUCT_ID identifies this app.
-const TRIAL_DAYS = 14;
+const TRIAL_DAYS = 30;
 const SUBSCRIPTION_PRICE = 32.00;
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
@@ -267,7 +268,7 @@ async function doSignup() {
   const { data, error } = await supabaseClient.auth.signUp({
     email, password: pass,
     options: {
-      data: { first_name: firstName, last_name: lastName, trial_start: new Date().toISOString() },
+      data: { first_name: firstName, last_name: lastName },
       emailRedirectTo: 'https://build-tracker.co.uk/'
     }
   });
@@ -283,18 +284,29 @@ async function doSignup() {
 }
 
 // ── TRIAL & SUBSCRIPTION GATE ───────────────────────────────────
-function isTrialActive(user) {
-  const start = user?.user_metadata?.trial_start;
-  if(!start) return false; // no trial_start recorded → treat as expired, not active
-  const trialEnd = new Date(start);
+// trial_start now lives in bt_trials (user_id, product), not
+// user_metadata — see start_trial_if_missing() in the DB. That RPC is
+// the only thing that ever writes trial_start, so a signed-in user
+// can no longer reset their own trial via auth.updateUser() devtools
+// calls. trialStartCache holds this session's value once fetched.
+let trialStartCache = null;
+async function ensureTrialStarted() {
+  const { data, error } = await supabaseClient.rpc('start_trial_if_missing', { p_product: PRODUCT_ID });
+  if (error) { console.error('start_trial_if_missing failed:', error.message); return null; }
+  trialStartCache = data?.[0]?.trial_start ?? null;
+  return trialStartCache;
+}
+
+function isTrialActive() {
+  if(!trialStartCache) return false;
+  const trialEnd = new Date(trialStartCache);
   trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
   return new Date() < trialEnd;
 }
 
-function getTrialDaysLeft(user) {
-  const start = user?.user_metadata?.trial_start;
-  if(!start) return 0;
-  const trialEnd = new Date(start);
+function getTrialDaysLeft() {
+  if(!trialStartCache) return 0;
+  const trialEnd = new Date(trialStartCache);
   trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS);
   const msLeft = trialEnd - new Date();
   return Math.max(0, Math.ceil(msLeft / (1000*60*60*24)));
@@ -316,8 +328,8 @@ function updateTrialBanner(user) {
   const el = document.getElementById('trialBanner');
   if(!el) return;
   el.classList.remove('hidden');
-  if(isTrialActive(user)) {
-    const daysLeft = getTrialDaysLeft(user);
+  if(isTrialActive()) {
+    const daysLeft = getTrialDaysLeft();
     el.className = 'trial-active';
     el.textContent = `🎁 Free trial — ${daysLeft} day${daysLeft!==1?'s':''} remaining`;
   } else {
@@ -389,7 +401,8 @@ async function checkAuth() {
     document.getElementById('authSection').classList.add('hidden');
 
     // Trial / subscription gate — runs on every login AND every page reload
-    if (isTrialActive(user)) {
+    await ensureTrialStarted();
+    if (isTrialActive()) {
       hidePaymentLock();
       updateTrialBanner(user);
       document.getElementById('mainContent').classList.remove('hidden');
