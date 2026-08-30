@@ -895,7 +895,9 @@ function enterApp(user) {
 
 async function loadData() {
     const { data: stockData } = await sbClient.from('stock').select('*').eq('user_id', currentUser.id);
-    const { data: logData }   = await sbClient.from('logs').select('*').eq('user_id', currentUser.id);
+    // Real live table is `stock_logs` — this used to point at a `logs`
+    // table that doesn't exist, so every log write/read failed outright.
+    const { data: logData }   = await sbClient.from('stock_logs').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
     stock = stockData || [];
     logs  = logData  || [];
     render();
@@ -904,13 +906,20 @@ async function loadData() {
 async function saveData() {
     await sbClient.from('stock').delete().eq('user_id', currentUser.id);
     await sbClient.from('stock').insert(stock.map(i => ({ ...i, user_id: currentUser.id })));
-    await sbClient.from('logs').delete().eq('user_id', currentUser.id);
-    await sbClient.from('logs').insert(logs.map(l => ({ ...l, user_id: currentUser.id })));
+    await sbClient.from('stock_logs').delete().eq('user_id', currentUser.id);
+    await sbClient.from('stock_logs').insert(logs.map(l => ({ ...l, user_id: currentUser.id })));
 }
 
 function addItem() {
     const item = {
-        id:   Date.now(),
+        // stock.id and stock_logs.id are both live `uuid` columns — a
+        // plain Date.now() timestamp isn't a valid uuid and every save
+        // was failing with a "22P02 invalid input syntax for type uuid"
+        // error. crypto.randomUUID() is a real uuid, so it's safe to send
+        // straight to the DB (no server-generated id needed) *and* it
+        // keeps comparing correctly with === against ids loaded back from
+        // Supabase after a reload, which are also uuid strings.
+        id:   crypto.randomUUID(),
         name: document.getElementById('name').value.trim(),
         sku:  document.getElementById('sku').value.trim(),
         qty:  Number(document.getElementById('qty').value),
@@ -919,7 +928,10 @@ function addItem() {
     if (!item.name || !item.sku) { alert('Please enter Item Name and SKU'); return; }
 
     stock.push(item);
-    logs.unshift({ id: Date.now(), date: new Date().toLocaleString(), item: item.name, action: 'ADD', qty: item.qty });
+    // stock_logs.date is a live `timestamptz` column — store real ISO,
+    // not a locale-formatted string (which isn't a valid timestamp and
+    // would also vary by browser/locale). render() formats it for display.
+    logs.unshift({ id: crypto.randomUUID(), date: new Date().toISOString(), item: item.name, action: 'ADD', qty: item.qty });
 
     saveData();
     render();
@@ -934,7 +946,7 @@ function adjust(id, change) {
     const item = stock.find(i => i.id === id);
     if (!item) return;
     item.qty = Math.max(0, item.qty + change);
-    logs.unshift({ id: Date.now(), date: new Date().toLocaleString(), item: item.name, action: change > 0 ? 'IN' : 'OUT', qty: Math.abs(change) });
+    logs.unshift({ id: crypto.randomUUID(), date: new Date().toISOString(), item: item.name, action: change > 0 ? 'IN' : 'OUT', qty: Math.abs(change) });
     saveData();
     render();
 }
@@ -957,9 +969,9 @@ function render() {
             <td class="mono">£${(item.qty * item.cost).toFixed(2)}</td>
             <td>
                 <div class="action-btns">
-                    <button class="btn-icon plus"  onclick="adjust(${item.id}, 1)"  title="Stock In">+</button>
-                    <button class="btn-icon minus" onclick="adjust(${item.id},-1)"  title="Stock Out">−</button>
-                    <button class="btn-icon del"   onclick="deleteItem(${item.id})" title="Delete">✕</button>
+                    <button class="btn-icon plus"  onclick="adjust('${item.id}', 1)"  title="Stock In">+</button>
+                    <button class="btn-icon minus" onclick="adjust('${item.id}',-1)"  title="Stock Out">−</button>
+                    <button class="btn-icon del"   onclick="deleteItem('${item.id}')" title="Delete">✕</button>
                 </div>
             </td>
         </tr>`) .join('')
@@ -968,7 +980,7 @@ function render() {
     const lb = document.getElementById('logBody');
     lb.innerHTML = logs.length ? logs.slice(0, 50).map(log => `
         <tr>
-            <td class="mono" style="font-size:12px;color:var(--muted)">${log.date}</td>
+            <td class="mono" style="font-size:12px;color:var(--muted)">${new Date(log.date).toLocaleString()}</td>
             <td>${log.item}</td>
             <td><span style="font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:4px;background:var(--input-bg)">${log.action}</span></td>
             <td class="mono">${log.qty}</td>

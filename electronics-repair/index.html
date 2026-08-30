@@ -509,7 +509,6 @@ async function handlePaymentResult(){
 let userProfile = null;
 let shopId = null;
 let jobs = [];
-let customers = [];
 let staffList = [];
 let filterMode = 'all';
 let mainTab = 'jobs';
@@ -560,7 +559,6 @@ function openModal(id){document.getElementById(id).classList.add('open');}
   </div>
   <div class="nav-tabs no-print">
     <button class="nav-tab active" id="ntab-jobs" onclick="switchMainTab('jobs')">🔧 Repairs</button>
-    <button class="nav-tab" id="ntab-customers" onclick="switchMainTab('customers')">👥 Customers</button>
     <button class="nav-tab" id="ntab-staff" onclick="switchMainTab('staff')">👤 Staff</button>
   </div>
 
@@ -592,17 +590,9 @@ function openModal(id){document.getElementById(id).classList.add('open');}
               <option value="Other">Other</option>
             </select></div>
           </div>
-          <div class="grid-3">
-            <div class="field-group"><label>Customer</label>
-              <select id="f-cust-sel" onchange="fillCustFromSel()"><option value="">— Select existing —</option></select>
-            </div>
-            <div class="field-group"><label>Or New Customer Name</label><input id="f-customer" placeholder="John Smith"></div>
-            <div class="field-group"><label>Phone</label><input id="f-phone" placeholder="07700 900000"></div>
-          </div>
-          <div class="grid-3">
+          <div class="grid-2">
+            <div class="field-group"><label>Customer Name *</label><input id="f-customer" placeholder="John Smith"></div>
             <div class="field-group"><label>Make / Model</label><input id="f-model" placeholder="iPhone 15 / Samsung TV"></div>
-            <div class="field-group"><label>Date Received</label><input type="date" id="f-datein"></div>
-            <div class="field-group"><label>Due Date</label><input type="date" id="f-dateout"></div>
           </div>
           <div class="grid-2">
             <div class="field-group"><label>Quote / Estimate (£)</label><input type="number" id="f-estimate" placeholder="0.00" step="0.01" min="0"></div>
@@ -635,38 +625,6 @@ function openModal(id){document.getElementById(id).classList.add('open');}
         </select>
       </div>
       <div id="jobs-list"></div>
-    </div>
-
-    <!-- CUSTOMERS TAB -->
-    <div id="tab-customers" class="hidden">
-      <div class="card">
-        <div class="card-title create-toggle" onclick="toggleCreate('create-cust-body','create-cust-arrow')">
-          <div style="display:flex;align-items:center;gap:10px"><div class="card-title-icon">＋</div>Add Customer</div>
-          <span class="toggle-arrow" id="create-cust-arrow">▼</span>
-        </div>
-        <div class="create-body hidden" id="create-cust-body">
-          <div class="grid-2">
-            <div class="field-group"><label>Full Name *</label><input id="c-name" placeholder="John Smith"></div>
-            <div class="field-group"><label>Company (optional)</label><input id="c-company" placeholder="ABC Electronics Ltd"></div>
-          </div>
-          <div class="grid-3">
-            <div class="field-group"><label>Phone</label><input id="c-phone" placeholder="07700 900000"></div>
-            <div class="field-group"><label>Email</label><input type="email" id="c-email" placeholder="john@example.com"></div>
-            <div class="field-group"><label>Address</label><input id="c-address" placeholder="123 Main St"></div>
-          </div>
-          <div class="field-group"><label>Notes</label><textarea id="c-notes" rows="2" placeholder="Any notes…"></textarea></div>
-          <button class="btn btn-primary" style="max-width:200px" onclick="createCustomer()">Save Customer</button>
-          <p id="create-cust-msg" style="margin-top:10px;font-size:13px"></p>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700">Customers</div>
-        <div style="font-size:13px;color:var(--muted)" id="customers-count"></div>
-      </div>
-      <div class="filter-row">
-        <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" id="cust-search" placeholder="Search customers…" oninput="renderCustomers()"></div>
-      </div>
-      <div id="customers-list"></div>
     </div>
 
     <!-- STAFF TAB -->
@@ -705,41 +663,12 @@ function openModal(id){document.getElementById(id).classList.add('open');}
     </div>
     <div class="grid-2">
       <div class="field-group"><label>Customer Name</label><input id="edit-customer"></div>
-      <div class="field-group"><label>Phone</label><input id="edit-phone"></div>
-    </div>
-    <div class="grid-2">
-      <div class="field-group"><label>Email</label><input id="edit-email"></div>
       <div class="field-group"><label>Make / Model</label><input id="edit-model"></div>
-    </div>
-    <div class="grid-2">
-      <div class="field-group"><label>Date Received</label><input type="date" id="edit-datein"></div>
-      <div class="field-group"><label>Due Date</label><input type="date" id="edit-dateout"></div>
     </div>
     <div class="field-group"><label>Fault Description</label><textarea id="edit-fault" rows="3"></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Save Changes</button>
       <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="edit-cust-modal">
-  <div class="modal">
-    <div class="modal-title">✏️ Edit Customer</div>
-    <input type="hidden" id="editc-id">
-    <div class="grid-2">
-      <div class="field-group"><label>Full Name</label><input id="editc-name"></div>
-      <div class="field-group"><label>Company</label><input id="editc-company"></div>
-    </div>
-    <div class="grid-2">
-      <div class="field-group"><label>Phone</label><input id="editc-phone"></div>
-      <div class="field-group"><label>Email</label><input id="editc-email"></div>
-    </div>
-    <div class="field-group"><label>Address</label><input id="editc-address"></div>
-    <div class="field-group"><label>Notes</label><textarea id="editc-notes" rows="2"></textarea></div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" style="flex:1" onclick="saveEditCustomer()">Save</button>
-      <button class="btn btn-ghost" onclick="closeModal('edit-cust-modal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -795,8 +724,6 @@ function switchMainTab(tab){
   document.getElementById('ntab-'+tab).classList.add('active');
   document.querySelectorAll('[id^="tab-"]').forEach(el=>el.classList.add('hidden'));
   document.getElementById('tab-'+tab).classList.remove('hidden');
-
-  if(tab==='customers') renderCustomers();
   if(tab==='staff') renderStaff();
 }
 
@@ -834,7 +761,28 @@ async function register(){
 }
 
 async function loadUserProfile(){
-  const {data:prof} = await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  let {data:prof} = await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  if(!prof){
+    // Neither register() nor inviteStaff() ever creates the profiles row
+    // itself (both only call auth.signUp()), so every account — owner or
+    // invited staff, including ones already registered before this fix —
+    // hits this on first login. inviteStaff() does put shop_id/role:
+    // 'staff' into the new account's own user_metadata, so honour that
+    // when present; a plain owner signup (register()) has neither, so
+    // falls back to the self-shop-id pattern the other rented apps on
+    // this project use (a shop's own owner IS its shop_id).
+    const meta = currentUser.user_metadata || {};
+    const newProfile = {
+      id: currentUser.id,
+      name: meta.name || currentUser.email,
+      email: currentUser.email,
+      shop_id: meta.shop_id || currentUser.id,
+      role: meta.role || 'owner',
+    };
+    const {data:created,error:createErr} = await sb.from('profiles').insert(newProfile).select().single();
+    if(createErr){ console.error('Failed to create profile:', createErr.message); throw createErr; }
+    prof = created;
+  }
   userProfile = prof;
   shopId = prof.shop_id;
   document.getElementById('user-label').innerText = prof.name;
@@ -858,46 +806,26 @@ function logout(){
 
 // ── DATA LOAD ───────────────────────────────────────────────────
 async function loadAllData(){
-  await Promise.all([loadJobs(),loadCustomers(),loadStaff()]);
+  await Promise.all([loadJobs(),loadStaff()]);
   updateStats();
-  populateCustomerSelect();
 }
 
+// repairs_electronics (see migration.sql) — not the shared `jobs` table
+// this app used to read/write, which has none of the columns a repair
+// ticket needs. Column names differ slightly (ticket_ref/cost vs. this
+// app's job_ref/estimate) and user_id here holds the *shop's* id, not
+// necessarily the signed-in user's own id (same shop-sharing trick as
+// elsewhere in this app) — aliased back here so the rest of the app
+// (which reads j.job_ref/j.estimate everywhere) needs no further changes.
 async function loadJobs(){
-  const {data} = await sb.from('jobs').select('*').eq('shop_id',shopId).order('created_at',{ascending:false});
-  jobs = data || [];
+  const {data} = await sb.from('repairs_electronics').select('*').eq('user_id',shopId).order('created_at',{ascending:false});
+  jobs = (data||[]).map(j => ({...j, job_ref: j.ticket_ref, estimate: j.cost}));
   renderJobs();
-}
-
-async function loadCustomers(){
-  const {data} = await sb.from('customers').select('*').eq('shop_id',shopId).order('name',{ascending:true});
-  customers = data || [];
 }
 
 async function loadStaff(){
   const {data} = await sb.from('profiles').select('*').eq('shop_id',shopId);
   staffList = data || [];
-}
-
-function populateCustomerSelect(){
-  const sel = document.getElementById('f-cust-sel');
-  sel.innerHTML = '<option value="">— Select existing —</option>';
-  customers.forEach(c=>{
-    const opt = document.createElement('option');
-    opt.value = c.id;
-    opt.textContent = c.name;
-    sel.appendChild(opt);
-  });
-}
-
-function fillCustFromSel(){
-  const id = document.getElementById('f-cust-sel').value;
-  if(!id) return;
-  const c = customers.find(x=>x.id===id);
-  if(c){
-    document.getElementById('f-customer').value = c.name;
-    document.getElementById('f-phone').value = c.phone || '';
-  }
 }
 
 function setFilter(mode){
@@ -924,31 +852,28 @@ function updateStats(){
 // ── JOB CRUD ────────────────────────────────────────────────────
 async function createJob(){
   const job = {
-    shop_id: shopId,
-    job_ref: document.getElementById('f-num').value.trim(),
+    user_id: shopId,
+    ticket_ref: document.getElementById('f-num').value.trim(),
     device_type: document.getElementById('f-type').value,
     customer_name: document.getElementById('f-customer').value.trim(),
-    phone: document.getElementById('f-phone').value.trim(),
     model: document.getElementById('f-model').value.trim(),
-    date_in: document.getElementById('f-datein').value,
-    date_out: document.getElementById('f-dateout').value,
-    estimate: document.getElementById('f-estimate').value || 0,
+    cost: document.getElementById('f-estimate').value || 0,
     status: document.getElementById('f-status').value,
     fault: document.getElementById('f-fault').value.trim(),
     stages: STAGES.map(s=>({...s,done:false})),
     parts: [],
     notes: ''
   };
-  if(!job.job_ref || !job.customer_name) return showToast('Reference and Customer Name required',true);
+  if(!job.ticket_ref || !job.customer_name) return showToast('Reference and Customer Name required',true);
 
   try{
-    const {error} = await sb.from('jobs').insert([job]);
+    const {error} = await sb.from('repairs_electronics').insert([job]);
     if(error) throw error;
     showToast('Job created!');
     document.getElementById('create-body').classList.add('hidden');
     document.getElementById('create-arrow').classList.remove('open');
     // reset form
-    ['f-num','f-customer','f-phone','f-model','f-fault','f-estimate'].forEach(id=>document.getElementById(id).value='');
+    ['f-num','f-customer','f-model','f-fault','f-estimate'].forEach(id=>document.getElementById(id).value='');
     await loadJobs();
   }catch(e){showToast(e.message,true);}
 }
@@ -986,13 +911,11 @@ function renderJobs(){
         </div>
         <div class="job-top-right">
           <span class="badge badge-${j.status}">${j.status==='active'?'In Progress':j.status==='waiting'?'Waiting Parts':'Completed'}</span>
-          <div class="days-open">${daysSince(j.date_in)} days open</div>
+          <div class="days-open">${daysSince(j.created_at)} days open</div>
         </div>
       </div>
       <div class="job-info-grid">
         <div><div class="job-info-label">Customer</div><div class="job-info-val">${esc(j.customer_name)}</div></div>
-        <div><div class="job-info-label">Phone</div><div class="job-info-val mono">${esc(j.phone)}</div></div>
-        <div><div class="job-info-label">Received</div><div class="job-info-val">${esc(j.date_in)}</div></div>
         <div><div class="job-info-label">Quote</div><div class="job-info-val" style="color:var(--green)">£${Number(j.estimate||0).toFixed(2)}</div></div>
       </div>
       <div class="fault-text"><strong>Fault:</strong> ${esc(j.fault)}</div>
@@ -1032,8 +955,11 @@ function getProgressPct(job){
 let activeJob = null;
 
 async function openJob(jobId){
-  const {data,error} = await sb.from('jobs').select('*').eq('id',jobId).single();
-  if(error) return showToast('Job not found',true);
+  // Reuse the already-loaded (and already job_ref/estimate-aliased) row
+  // rather than a fresh query — loadJobs() keeps `jobs` in sync after
+  // every mutation, so this is always current.
+  const data = jobs.find(j=>j.id===jobId);
+  if(!data) return showToast('Job not found',true);
   activeJob = data;
 
   const el = document.getElementById('job-detail-view');
@@ -1174,9 +1100,9 @@ function saveJobMeta(){
 }
 
 async function saveJobChanges(){
-  await sb.from('jobs').update({
+  await sb.from('repairs_electronics').update({
     status:activeJob.status,
-    estimate:activeJob.estimate,
+    cost:activeJob.estimate,
     stages:activeJob.stages,
     parts:activeJob.parts,
     notes:activeJob.notes
@@ -1190,29 +1116,21 @@ function openEditModal(){
   document.getElementById('edit-num').value = activeJob.job_ref;
   document.getElementById('edit-type').value = activeJob.device_type;
   document.getElementById('edit-customer').value = activeJob.customer_name;
-  document.getElementById('edit-phone').value = activeJob.phone;
-  document.getElementById('edit-email').value = activeJob.email || '';
   document.getElementById('edit-model').value = activeJob.model;
-  document.getElementById('edit-datein').value = activeJob.date_in;
-  document.getElementById('edit-dateout').value = activeJob.date_out;
   document.getElementById('edit-fault').value = activeJob.fault;
   openModal('edit-modal');
 }
 
 async function saveEdit(){
   const updates = {
-    job_ref: document.getElementById('edit-num').value.trim(),
+    ticket_ref: document.getElementById('edit-num').value.trim(),
     device_type: document.getElementById('edit-type').value,
     customer_name: document.getElementById('edit-customer').value.trim(),
-    phone: document.getElementById('edit-phone').value.trim(),
-    email: document.getElementById('edit-email').value.trim(),
     model: document.getElementById('edit-model').value.trim(),
-    date_in: document.getElementById('edit-datein').value,
-    date_out: document.getElementById('edit-dateout').value,
     fault: document.getElementById('edit-fault').value.trim()
   };
-  if(!updates.job_ref || !updates.customer_name) return showToast('Required fields missing',true);
-  await sb.from('jobs').update(updates).eq('id',document.getElementById('edit-id').value);
+  if(!updates.ticket_ref || !updates.customer_name) return showToast('Required fields missing',true);
+  await sb.from('repairs_electronics').update(updates).eq('id',document.getElementById('edit-id').value);
   closeModal('edit-modal');
   await loadJobs();
   if(activeJob) openJob(activeJob.id);
@@ -1221,7 +1139,7 @@ async function saveEdit(){
 
 async function deleteJob(){
   if(!confirm('Delete this repair job? This cannot be undone.')) return;
-  await sb.from('jobs').delete().eq('id',activeJob.id);
+  await sb.from('repairs_electronics').delete().eq('id',activeJob.id);
   closeJobDetail();
   await loadJobs();
   showToast('Job deleted');
@@ -1234,109 +1152,6 @@ function copyClientLink(jobId){
 }
 </script>
 <script>
-// ── CUSTOMERS MANAGEMENT ─────────────────────────────────────────
-async function createCustomer(){
-  const cust = {
-    shop_id: shopId,
-    name: document.getElementById('c-name').value.trim(),
-    company: document.getElementById('c-company').value.trim(),
-    phone: document.getElementById('c-phone').value.trim(),
-    email: document.getElementById('c-email').value.trim(),
-    address: document.getElementById('c-address').value.trim(),
-    notes: document.getElementById('c-notes').value.trim()
-  };
-  if(!cust.name) return showToast('Customer name is required',true);
-
-  try{
-    const {error} = await sb.from('customers').insert([cust]);
-    if(error) throw error;
-    showToast('Customer saved!');
-    document.getElementById('create-cust-body').classList.add('hidden');
-    document.getElementById('create-cust-arrow').classList.remove('open');
-    // reset form
-    ['c-name','c-company','c-phone','c-email','c-address','c-notes'].forEach(id=>document.getElementById(id).value='');
-    await loadCustomers();
-    populateCustomerSelect();
-  }catch(e){showToast(e.message,true);}
-}
-
-function renderCustomers(){
-  const search = document.getElementById('cust-search').value.toLowerCase();
-  let list = customers.filter(c=>{
-    if(search){
-      return (c.name||'').toLowerCase().includes(search)
-          || (c.company||'').toLowerCase().includes(search)
-          || (c.phone||'').toLowerCase().includes(search);
-    }
-    return true;
-  });
-
-  document.getElementById('customers-count').innerText = list.length+' customers';
-  const cont = document.getElementById('customers-list');
-  if(!list.length) return cont.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><p>No customers found</p></div>`;
-
-  cont.innerHTML = list.map(c=>`
-    <div class="customer-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="customer-name">${esc(c.name)}</div>
-          ${c.company?`<div style="font-size:13px;color:var(--muted);margin-bottom:8px">${esc(c.company)}</div>`:''}
-          <div class="customer-info">
-            ${c.phone?`<div class="customer-info-item">📞 ${esc(c.phone)}</div>`:''}
-            ${c.email?`<div class="customer-info-item">✉️ ${esc(c.email)}</div>`:''}
-          </div>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-sm btn-blue" onclick="openEditCustomer('${c.id}')">✏️ Edit</button>
-        </div>
-      </div>
-      <div style="margin-top:10px">
-        <div style="font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Repair History</div>
-        <div id="cust-jobs-${c.id}"></div>
-      </div>
-    </div>
-  `).join('');
-
-  // Load job history for each customer
-  list.forEach(c=>{
-    const jobList = jobs.filter(j=>j.customer_name.toLowerCase()===c.name.toLowerCase());
-    const el = document.getElementById(`cust-jobs-${c.id}`);
-    if(!jobList.length) return el.innerHTML = '<span style="font-size:12px;color:var(--muted)">No repairs yet</span>';
-    el.innerHTML = jobList.map(j=>`<span class="customer-job-chip" onclick="openJob('${j.id}')">${esc(j.job_ref)}</span>`).join('');
-  });
-}
-
-async function openEditCustomer(custId){
-  const c = customers.find(x=>x.id===custId);
-  if(!c) return;
-  document.getElementById('editc-id').value = c.id;
-  document.getElementById('editc-name').value = c.name;
-  document.getElementById('editc-company').value = c.company || '';
-  document.getElementById('editc-phone').value = c.phone || '';
-  document.getElementById('editc-email').value = c.email || '';
-  document.getElementById('editc-address').value = c.address || '';
-  document.getElementById('editc-notes').value = c.notes || '';
-  openModal('edit-cust-modal');
-}
-
-async function saveEditCustomer(){
-  const updates = {
-    name: document.getElementById('editc-name').value.trim(),
-    company: document.getElementById('editc-company').value.trim(),
-    phone: document.getElementById('editc-phone').value.trim(),
-    email: document.getElementById('editc-email').value.trim(),
-    address: document.getElementById('editc-address').value.trim(),
-    notes: document.getElementById('editc-notes').value.trim()
-  };
-  if(!updates.name) return showToast('Customer name required',true);
-  await sb.from('customers').update(updates).eq('id',document.getElementById('editc-id').value);
-  closeModal('edit-cust-modal');
-  await loadCustomers();
-  renderCustomers();
-  populateCustomerSelect();
-  showToast('Customer updated');
-}
-
 // ── STAFF SYSTEM ─────────────────────────────────────────────────
 async function inviteStaff(){
   const name = document.getElementById('s-name').value.trim();
@@ -1406,7 +1221,7 @@ function openInvoice(jobId){
         <div>
           <strong>Job Ref:</strong> ${esc(job.job_ref)}<br>
           <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
-          <strong>Received:</strong> ${esc(job.date_in)}
+          <strong>Received:</strong> ${job.created_at ? new Date(job.created_at).toLocaleDateString() : ''}
         </div>
         <div style="text-align:right">
           <strong>Status:</strong> ${job.status.toUpperCase()}<br>
@@ -1474,14 +1289,18 @@ function printInvoice(){
 <script>
 // ── CLIENT PUBLIC PROGRESS VIEW ─────────────────────────────────
 async function loadClientView(jobId){
-  const {data,error} = await sb.from('jobs').select('*').eq('id',jobId).single();
-  if(error) return document.body.innerHTML = `<div class="empty"><div class="empty-icon">🔧</div><p>Repair job not found</p></div>`;
+  // No anon SELECT policy on repairs_electronics at all (see
+  // migration.sql) — this RPC checks the id server-side and is the only
+  // anon-reachable path to a single ticket's public progress view.
+  const {data:rows,error} = await sb.rpc('get_repair_by_id',{p_id:jobId});
+  const data = rows && rows[0];
+  if(error || !data) return document.body.innerHTML = `<div class="empty"><div class="empty-icon">🔧</div><p>Repair job not found</p></div>`;
 
   document.getElementById('loading-view').classList.add('hidden');
   document.getElementById('app-view').classList.add('hidden');
   document.getElementById('client-view').classList.remove('hidden');
 
-  document.getElementById('cv-jobref').innerText = data.job_ref;
+  document.getElementById('cv-jobref').innerText = data.ticket_ref;
   document.getElementById('cv-device').innerText = `${data.device_type} • ${data.model}`;
   
   // Set status badge
@@ -1534,138 +1353,33 @@ window.onload = async function(){
 
 
 <!-- ───────────────────────────────────────────────────────────────
-  DATABASE SETUP INSTRUCTIONS (CRITICAL FOR FULL FUNCTIONALITY)
+  DATABASE — see migration.sql (run once in the Supabase SQL editor).
 ─────────────────────────────────────────────────────────────── -->
-<!-- 
-To make this app work fully, you need to set up these tables in your Supabase project:
+<!--
+The `profiles`/`shops`/`jobs`/`customers` schema this comment used to
+describe was never actually created live — this app's `profiles`,
+`jobs` and `customers` table usage was pointed at unrelated pre-existing
+tables on the shared build-tracker2026 Supabase project (a `profiles`
+table that had no signup trigger, and bare `jobs`/`customers` tables
+belonging to a different product's now-abandoned first draft), which is
+why repair tickets and customers never actually saved. Fixed 2026-08-30:
 
-1. Go to https://supabase.com/dashboard and create a new project
-2. Go to "SQL Editor" → "New Query"
-3. Run this SQL to create all required tables:
-
-
--- PROFILES TABLE (for users & staff)
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  shop_id UUID NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('owner', 'staff')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIME ZONE 'utc'::text NOT NULL DEFAULT now()
-);
-
--- SHOPS TABLE (for repair businesses)
-CREATE TABLE shops (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIME ZONE 'utc'::text NOT NULL DEFAULT now()
-);
-
--- JOBS TABLE (repair jobs)
-CREATE TABLE jobs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  shop_id UUID REFERENCES shops(id) NOT NULL,
-  job_ref TEXT NOT NULL,
-  device_type TEXT NOT NULL,
-  customer_name TEXT NOT NULL,
-  phone TEXT,
-  email TEXT,
-  model TEXT,
-  date_in DATE,
-  date_out DATE,
-  estimate NUMERIC DEFAULT 0,
-  status TEXT NOT NULL CHECK (status IN ('active', 'waiting', 'complete')),
-  fault TEXT,
-  stages JSONB NOT NULL,
-  parts JSONB DEFAULT '[]'::jsonb,
-  notes TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIME ZONE 'utc'::text NOT NULL DEFAULT now()
-);
-
--- CUSTOMERS TABLE (customer database)
-CREATE TABLE customers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  shop_id UUID REFERENCES shops(id) NOT NULL,
-  name TEXT NOT NULL,
-  company TEXT,
-  phone TEXT,
-  email TEXT,
-  address TEXT,
-  notes TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIME ZONE 'utc'::text NOT NULL DEFAULT now()
-);
-
--- TRIGGER: Create shop & profile when new user signs up
-CREATE OR REPLACE FUNCTION public.handle_new_user() 
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Create new shop for the owner
-  INSERT INTO public.shops (name)
-  VALUES (NEW.raw_user_meta_data->>'shop_name')
-  RETURNING id INTO NEW.raw_user_meta_data->>'shop_id';
-
-  -- Create profile
-  INSERT INTO public.profiles (id, name, email, shop_id, role)
-  VALUES (
-    NEW.id,
-    NEW.raw_user_meta_data->>'name',
-    NEW.email,
-    (NEW.raw_user_meta_data->>'shop_id')::UUID,
-    'owner' -- New users are shop owners by default
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- POLICIES: Secure data access (only allow access to own shop data)
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-
-ALTER TABLE shops ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Shop owners can view their shop" ON shops FOR SELECT USING (
-  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = shops.id AND profiles.id = auth.uid())
-);
-
-ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view their shop's jobs" ON jobs FOR SELECT USING (
-  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = jobs.shop_id AND profiles.id = auth.uid())
-);
-CREATE POLICY "Users can insert jobs for their shop" ON jobs FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = jobs.shop_id AND profiles.id = auth.uid())
-);
-CREATE POLICY "Users can update their shop's jobs" ON jobs FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = jobs.shop_id AND profiles.id = auth.uid())
-);
-CREATE POLICY "Users can delete their shop's jobs" ON jobs FOR DELETE USING (
-  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = jobs.shop_id AND profiles.id = auth.uid())
-);
-
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view their shop's customers" ON customers FOR SELECT USING (
-  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = customers.shop_id AND profiles.id = auth.uid())
-);
-CREATE POLICY "Users can insert customers for their shop" ON customers FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = customers.shop_id AND profiles.id = auth.uid())
-);
-CREATE POLICY "Users can update their shop's customers" ON customers FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM profiles WHERE profiles.shop_id = customers.shop_id AND profiles.id = auth.uid())
-);
-
-
-4. After running the SQL:
-   - Go to "Authentication" → "Settings" → "Email Provider" and enable email/password login
-   - Replace the Supabase URL and anon key in the GLOBAL SETUP section (Part 1) with your project's credentials
-
-
-IMPORTANT NOTES:
-- The staff invitation feature requires a service role key for creating users (the current code uses the anon key for simplicity — in production, use a backend for this)
-- All data is secured with row-level security (only users from the same shop can access their data)
-- The app is fully responsive and works on mobile, tablet, and desktop
-- The client public view is accessible via links like "yourdomain.com?client=JOB_ID"
+  - profiles: real, already exists, RLS already correct. loadUserProfile()
+    now creates its own row on first login (register()/inviteStaff() never
+    did) — see that function's comment for the shop_id/role logic.
+  - Repair tickets now use repairs_electronics (already existed for this
+    exact purpose, just unused) instead of the bare `jobs` table — see
+    migration.sql for the added stages/parts/notes columns and the RLS
+    policy change enabling shop-wide sharing.
+  - The standalone customer directory (bare `customers` table — wrong
+    shape for this app, NOT NULL columns this app never populated,
+    ambiguous ownership) has been dropped entirely in favour of an inline
+    customer name per repair ticket. Customer history is still visible —
+    filter repair tickets by customer name instead of a separate table.
+  - The client public progress view (?client=<id>) now goes through the
+    get_repair_by_id() RPC in migration.sql rather than a raw table read,
+    since repairs_electronics has no anon RLS policy at all.
 -->
+
 </body>
 </html>

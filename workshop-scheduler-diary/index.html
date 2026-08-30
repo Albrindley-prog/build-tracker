@@ -7,7 +7,17 @@
     <!-- Libraries -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- Was qrcode@1.5.3/build/qrcode.min.js — that npm package has no
+         browser bundle at all (Node/bundler-only, confirmed via jsDelivr's
+         file listing), so the URL 404'd and `new QRCode(...)` below always
+         threw "QRCode is not defined". renderJobs() throwing meant
+         updateStats()/updateCalendar() (called right after it in the same
+         try block in loadJobs()) never ran either — so no booking ever
+         appeared on the calendar, load error swallowed into a
+         console.error. This is qrcodejs (davidshimjs), whose
+         `new QRCode(element, options)` constructor is what the code
+         actually calls. -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -256,6 +266,10 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
 const PRODUCT_ID = 'workshop-scheduler-diary';
+// Dedicated table (see migration.sql) — NOT the shared `jobs` table used
+// by other products on this project, which has none of the columns a
+// booking needs (no start/end time, title, bay, technician or notes).
+const BOOKINGS_TABLE = 'wsd_bookings';
 
 let currentUser = null;
 let jobs = [];
@@ -474,7 +488,7 @@ async function loadJobs() {
     if (!currentUser) return;
     try {
         const { data, error } = await supabaseClient
-            .from('jobs')
+            .from(BOOKINGS_TABLE)
             .select('*')
             .eq('user_id', currentUser.id)
             .order('created_at', { ascending: false });
@@ -491,20 +505,36 @@ async function loadJobs() {
 async function saveJob(job) {
     if (!currentUser) return;
     try {
-        const { error } = await supabaseClient.from('jobs').upsert([{
+        const row = {
             user_id: currentUser.id,
             service: job.service,
             title: job.title,
             reg: job.reg,
             bay: job.bay,
             technician: job.technician,
-            start_time: job.start,
-            end_time: job.end,
+            // addNewJob() builds a fresh object with start/end (raw form
+            // values); updateStage() instead passes an existing job loaded
+            // straight from the DB, which has start_time/end_time (the
+            // actual column names) and no start/end at all. Falling back
+            // to start_time/end_time keeps both callers working — without
+            // it, supabase-js turns the resulting `undefined` into an
+            // explicit null, so updateStage() would silently wipe a
+            // booking's start/end time every time its stage changed.
+            start_time: job.start ?? job.start_time,
+            end_time: job.end ?? job.end_time,
             internal_notes: job.internal_notes,
             stage: job.stage,
             access_key: job.access_key,
             timeline: job.timeline
-        }]);
+        };
+        // Existing bookings carry a real id (loaded from the DB) — include
+        // it so upsert() updates that row instead of inserting a new one.
+        // The original code never included id here at all, so every save
+        // (including updateStage(), used every time a booking's stage
+        // changes) silently created a duplicate row rather than updating
+        // the existing booking.
+        if (job.id) row.id = job.id;
+        const { error } = await supabaseClient.from(BOOKINGS_TABLE).upsert([row]);
         if (error) throw error;
         loadJobs();
     } catch (err) {
@@ -666,12 +696,13 @@ function updateStats() {
 // --------------------------
 async function loadCustomerPortal(jobId, key) {
     try {
-        const { data: job, error } = await supabaseClient
-            .from('jobs')
-            .select('*')
-            .eq('id', jobId)
-            .eq('access_key', key)
-            .single();
+        // No anon SELECT policy on wsd_bookings at all (see migration.sql)
+        // — a raw table query here would just be denied. This RPC checks
+        // id+access_key server-side and returns nothing on a mismatch,
+        // without ever exposing other customers' bookings to anon.
+        const { data: rows, error } = await supabaseClient
+            .rpc('get_wsd_booking_by_key', { p_id: jobId, p_key: key });
+        const job = rows && rows[0];
         const cont = document.getElementById('customer-portal');
         if (error || !job) {
             cont.innerHTML = `<h2 class="text-xl text-red-500 text-center">Invalid or expired link</h2>`;
