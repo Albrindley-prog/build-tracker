@@ -773,8 +773,12 @@ const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 // Each app bills separately, so rows are scoped by (user_id, product).
 const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
 const PRODUCT_ID = 'quoting-tool';
-// This app's own quotes table (see SQL setup notes at the bottom of this file).
-const QUOTES_TABLE = 'qt_quotes';
+// This app's own tables — see the note at the bottom of this file. These
+// are the real live tables (not a table this app needs to create itself);
+// a quote's line items are normalized into their own table rather than a
+// jsonb column on the quote row.
+const QUOTES_TABLE = 'quotes';
+const QUOTE_ITEMS_TABLE = 'quote_items';
 
 // ════════════════════════════════════════════════════════════════
 // AUTH STATE
@@ -1037,32 +1041,99 @@ let viewingQuote = null;
 let itemCount    = 0;
 
 // ════════════════════════════════════════════════════════════════
-// QUOTES — persisted to Supabase (qt_quotes table), not localStorage
+// QUOTES — persisted to Supabase (quotes + quote_items tables), not
+// localStorage. Line items are normalized rows (quote_items.quote_id),
+// not a jsonb blob, so loading needs a second query to fetch them all
+// for the quotes just loaded and group them back onto each quote.
 // ════════════════════════════════════════════════════════════════
 async function loadQuotes() {
-  const { data, error } = await supabaseClient.from(QUOTES_TABLE)
+  const { data: quoteRows, error } = await supabaseClient.from(QUOTES_TABLE)
     .select('*')
     .order('created_at', { ascending: true });
   if (error) { console.error('Failed to load quotes:', error.message); quotes = []; return; }
-  quotes = (data || []).map(rowToQuote);
+
+  const ids = (quoteRows || []).map(r => r.id);
+  let itemsByQuote = {};
+  if (ids.length) {
+    const { data: itemRows, error: itemsErr } = await supabaseClient.from(QUOTE_ITEMS_TABLE)
+      .select('*')
+      .in('quote_id', ids)
+      .order('created_at', { ascending: true });
+    if (itemsErr) console.error('Failed to load quote line items:', itemsErr.message);
+    itemsByQuote = (itemRows || []).reduce((acc, row) => {
+      (acc[row.quote_id] = acc[row.quote_id] || []).push(row);
+      return acc;
+    }, {});
+  }
+
+  quotes = (quoteRows || []).map(row => rowToQuote(row, itemsByQuote[row.id] || []));
 }
 
-// DB rows use snake_case + jsonb items; the rest of the app works with
-// this camelCase shape, so convert both ways at the boundary.
-function rowToQuote(row) {
+// Pure UTC calendar arithmetic — a bare "YYYY-MM-DD" string parses as UTC
+// midnight per spec, so read/write it with the UTC accessors throughout
+// (setDate()/getDate() are local-time and would silently shift the result
+// by a day around local midnight depending on the browser's timezone).
+function addDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setUTCDate(d.getUTCDate() + (parseInt(days, 10) || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+// quotes.status has a live check constraint that only allows
+// draft/sent/accepted/declined/expired (confirmed empirically, not
+// documented anywhere — 'pending', what this app's UI calls a saved,
+// undecided quote, is rejected outright). 'sent' is the closest real
+// match for that, so map both ways at the boundary; a stray 'draft' row
+// (the column's own DB default) also reads back as 'pending' rather than
+// showing a status this UI has no badge for.
+const UI_TO_DB_STATUS = { pending: 'sent' };
+const DB_TO_UI_STATUS = { sent: 'pending', draft: 'pending' };
+function toDbStatus(uiStatus) { return UI_TO_DB_STATUS[uiStatus] || uiStatus; }
+function toUiStatus(dbStatus) { return DB_TO_UI_STATUS[dbStatus] || dbStatus; }
+
+// DB rows use different names/shapes than the rest of this app works
+// with, so convert both ways at this boundary:
+//  - quote_ref/customer_name/customer_email/customer_phone -> ref/customer/email/phone
+//  - line items live in their own table, not a jsonb column
+//  - there's no persisted "issue date" column, only created_at (fixed at
+//    insert time) + valid_days (an integer, not a date) — so "date" is
+//    always shown as the row's created_at, and "expiry" is derived from
+//    it (created_at + valid_days). Editing "date" on an existing quote
+//    only affects valid_days (via the gap to "expiry") for that save; it
+//    doesn't persist as its own value, since the live schema has nowhere
+//    to put it.
+function rowToQuote(row, itemRows) {
+  const created = row.created_at ? row.created_at.slice(0, 10) : today();
+  const validDays = row.valid_days != null ? row.valid_days : 30;
   return {
-    id: row.id, ref: row.ref, customer: row.customer, email: row.email, phone: row.phone,
-    title: row.title, date: row.date, expiry: row.expiry, status: row.status,
-    items: row.items || [], labour: row.labour, discount: row.discount, notes: row.notes,
+    id: row.id, ref: row.quote_ref, customer: row.customer_name,
+    email: row.customer_email, phone: row.customer_phone,
+    title: row.title, date: created, expiry: addDays(created, validDays), status: toUiStatus(row.status),
+    items: (itemRows || []).map(i => ({
+      desc: i.description, qty: i.quantity, unit: i.unit_price, vat: (i.vat_rate || 0) > 0,
+    })),
+    labour: row.labour_rate ?? '', discount: row.discount_value ?? '', notes: row.notes || '',
   };
 }
 
-function quoteToRow(q) {
+// Builds the `quotes` row only — line items are saved separately in
+// saveQuote() since they live in their own table.
+//
+// This app's UI only ever collected one flat labour amount and one flat
+// discount amount, but the live schema splits labour into hours x rate
+// and discount into type + value. Mapped as 1 hour x the entered amount,
+// and a fixed-amount discount, so the totals shown in this app stay
+// exactly what they were — a real hours/rate and percentage-discount UI
+// would be a follow-up, not part of this fix.
+function quoteRowFields(q) {
+  const validDays = Math.max(0, Math.round((new Date(q.expiry) - new Date(q.date)) / 86400000));
   return {
-    ref: q.ref, customer: q.customer, email: q.email, phone: q.phone,
-    title: q.title, date: q.date, expiry: q.expiry, status: q.status,
-    items: q.items, labour: q.labour, discount: q.discount, notes: q.notes,
-    user_id: currentUser.id,
+    quote_ref: q.ref, customer_name: q.customer,
+    customer_email: q.email, customer_phone: q.phone,
+    title: q.title, status: toDbStatus(q.status), valid_days: validDays,
+    labour_hours: q.labour ? 1 : null, labour_rate: q.labour || null,
+    discount_type: 'fixed', discount_value: q.discount || 0,
+    notes: q.notes, user_id: currentUser.id,
   };
 }
 
@@ -1270,21 +1341,42 @@ async function saveQuote() {
     notes:    document.getElementById('f-notes').value,
   };
 
+  let quoteId = editingId;
   if (editingId) {
     const ref = quotes.find(q => q.id === editingId).ref;
-    const row = quoteToRow({ ...quoteData, ref });
-    const { data, error } = await supabaseClient.from(QUOTES_TABLE).update(row).eq('id', editingId).select().single();
+    const row = quoteRowFields({ ...quoteData, ref });
+    const { error } = await supabaseClient.from(QUOTES_TABLE).update(row).eq('id', editingId);
     if (error) { alert('Error saving quote: ' + error.message); return; }
-    const updated = rowToQuote(data);
-    quotes = quotes.map(q => q.id === editingId ? updated : q);
-    viewingQuote = updated;
+    // Replace this quote's line items wholesale rather than diffing —
+    // the builder UI has no stable per-item id to match rows against
+    // (rows are just re-read from the DOM each save), so delete-then-
+    // reinsert is the simplest approach that's still correct.
+    const { error: delErr } = await supabaseClient.from(QUOTE_ITEMS_TABLE).delete().eq('quote_id', editingId);
+    if (delErr) { alert('Error saving quote line items: ' + delErr.message); return; }
   } else {
-    const row = quoteToRow({ ...quoteData, ref: nextRef() });
+    const row = quoteRowFields({ ...quoteData, ref: nextRef() });
     const { data, error } = await supabaseClient.from(QUOTES_TABLE).insert(row).select().single();
     if (error) { alert('Error saving quote: ' + error.message); return; }
-    quotes.push(rowToQuote(data));
+    quoteId = data.id;
   }
 
+  const itemRows = quoteData.items
+    .filter(i => (i.desc || '').trim() !== '' || parseFloat(i.unit) > 0)
+    .map(i => ({
+      quote_id: quoteId,
+      description: i.desc,
+      quantity: parseFloat(i.qty) || 0,
+      unit_price: parseFloat(i.unit) || 0,
+      vat_rate: i.vat ? 20 : 0,
+    }));
+  if (itemRows.length) {
+    const { error: itemsErr } = await supabaseClient.from(QUOTE_ITEMS_TABLE).insert(itemRows);
+    if (itemsErr) { alert('Quote saved, but line items failed to save: ' + itemsErr.message); return; }
+  }
+
+  await loadQuotes();
+  const saved = quotes.find(q => q.id === quoteId);
+  if (saved) viewingQuote = saved;
   showView('dashboard');
 }
 
@@ -1522,38 +1614,29 @@ supabaseClient.auth.onAuthStateChange((event) => {
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
-  DATABASE SETUP INSTRUCTIONS (run once in your Supabase SQL editor)
-═══════════════════════════════════════════════════════════════
+  DATABASE — no setup needed, these already exist on this Supabase
+  project and are already RLS-scoped to auth.uid() = user_id (verified
+  2026-08-30). This app previously pointed at a `qt_quotes` table that
+  was only ever described here, never actually created — every save/
+  load call failed silently against the live database. Fixed to use
+  the real tables instead:
 
-  create table qt_quotes (
-    id          bigint generated always as identity primary key,
-    user_id     uuid references auth.users(id) not null,
-    ref         text,
-    customer    text,
-    email       text,
-    phone       text,
-    title       text,
-    date        date,
-    expiry      date,
-    status      text default 'pending',
-    items       jsonb default '[]',
-    labour      numeric,
-    discount    numeric,
-    notes       text,
-    created_at  timestamptz default now()
-  );
+    quotes       — one row per quote (quote_ref, customer_name/email/
+                   phone, title, status, valid_days, labour_hours/rate,
+                   discount_type/value, notes, user_id, created_at, ...)
+    quote_items  — one row per line item (quote_id, description,
+                   quantity, unit_price, vat_rate, ...)
 
-  alter table qt_quotes enable row level security;
+  See rowToQuote()/quoteRowFields() above for the field mapping — a few
+  of this app's fields (a single flat labour amount, a single flat
+  discount, an editable issue date) don't have a 1:1 column on the real
+  schema and are deliberately simplified rather than persisted exactly;
+  those functions explain each one.
 
-  create policy "Users manage their own quotes"
-    on qt_quotes for all
-    using (auth.uid() = user_id)
-    with check (auth.uid() = user_id);
-
-  -- This app reuses the bt_subscriptions table (scoped by product =
-  -- 'quoting-tool') and create-checkout-session Edge Function already set
-  -- up for your other apps on this same Supabase project — no extra
-  -- setup needed there.
+  This app reuses the bt_subscriptions table (scoped by product =
+  'quoting-tool') and create-checkout-session Edge Function already set
+  up for your other apps on this same Supabase project — no extra
+  setup needed there either.
 ═══════════════════════════════════════════════════════════════ -->
 </body>
 </html>
