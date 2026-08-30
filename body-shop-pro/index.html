@@ -553,6 +553,13 @@ const STRIPE_PRICE_ID   = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 // rows are scoped by (user_id, product) — PRODUCT_ID identifies this app.
 const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
 const PRODUCT_ID = 'body-shop-pro';
+// This app used to read/write bs_jobs/bs_staff/bs_customers — those turned
+// out to be Workshop Tracker's real production tables (scoped by
+// tenant_id, no product column), which this app's shop_id-based scoping
+// would have collided with under the same account. Forked onto dedicated
+// bsp_jobs/bsp_staff/bsp_customers tables instead (see migration.sql) —
+// same column shapes, same shop_id-based app logic, zero change to
+// Workshop Tracker's tables/queries/RLS.
 
 
 // ── STAGES ────────────────────────────────────────────────────
@@ -823,7 +830,7 @@ async function loadApp(){
 
 // ── JOBS ──────────────────────────────────────────────────────
 async function loadJobs(){
-  const {data,error}=await sb.from('bs_jobs').select('*').eq('shop_id',shopId).order('created_at',{ascending:false});
+  const {data,error}=await sb.from('bsp_jobs').select('*').eq('shop_id',shopId).order('created_at',{ascending:false});
   if(error){console.error(error);return;}
   jobs=data||[];
 }
@@ -833,7 +840,7 @@ async function createJob(){
   const customer=document.getElementById('f-customer').value.trim();
   if(!num||!customer){setMsg('create-job-msg','Job number and customer name are required.',true);return;}
   const stages=STAGES.map(s=>({...s,done:false}));
-  const {error}=await sb.from('bs_jobs').insert({
+  const {error}=await sb.from('bsp_jobs').insert({
     shop_id:shopId,
     job_number:document.getElementById('f-num').value.trim(),
     registration:document.getElementById('f-reg').value.trim().toUpperCase(),
@@ -859,7 +866,7 @@ async function createJob(){
 
 async function deleteJob(id){
   if(!confirm('Delete this job? This cannot be undone.'))return;
-  await sb.from('bs_jobs').delete().eq('id',id);
+  await sb.from('bsp_jobs').delete().eq('id',id);
   showToast('Job deleted.');
   await loadJobs(); renderJobs();
 }
@@ -872,7 +879,7 @@ async function toggleStage(jobId,stageIdx){
   const done=stages.filter(s=>s.done).length;
   const progress=Math.round((done/stages.length)*100);
   const status=progress===100?'complete':job.status==='complete'?'active':job.status;
-  const {error}=await sb.from('bs_jobs').update({stages,progress,status}).eq('id',jobId);
+  const {error}=await sb.from('bsp_jobs').update({stages,progress,status}).eq('id',jobId);
   if(error){showToast('Error saving.',true);return;}
   job.stages=stages; job.progress=progress; job.status=status;
   // update progress bar
@@ -912,14 +919,14 @@ async function setStatus(id,status){
   let stages=job.stages;
   let progress=job.progress;
   if(status==='complete'){stages=job.stages.map(s=>({...s,done:true}));progress=100;}
-  await sb.from('bs_jobs').update({status,stages,progress}).eq('id',id);
+  await sb.from('bsp_jobs').update({status,stages,progress}).eq('id',id);
   showToast('Status updated.');
   await loadJobs(); renderJobs();
 }
 
 async function saveNote(id){
   const notes=document.getElementById('note_'+id).value;
-  await sb.from('bs_jobs').update({notes}).eq('id',id);
+  await sb.from('bsp_jobs').update({notes}).eq('id',id);
   const job=jobs.find(j=>j.id===id);
   if(job) job.notes=notes;
   showToast('📝 Note saved.');
@@ -927,7 +934,7 @@ async function saveNote(id){
 
 async function saveEstimate(id){
   const estimate=parseFloat(document.getElementById('est_'+id).value)||0;
-  await sb.from('bs_jobs').update({estimate}).eq('id',id);
+  await sb.from('bsp_jobs').update({estimate}).eq('id',id);
   const job=jobs.find(j=>j.id===id);
   if(job) job.estimate=estimate;
   document.getElementById('estdisp_'+id).innerText='£'+estimate.toFixed(2);
@@ -942,7 +949,7 @@ async function addPart(id){
   const job=jobs.find(j=>j.id===id);
   if(!job)return;
   const parts=[...(job.parts||[]),{id:'p'+uid(),name,received:false}];
-  await sb.from('bs_jobs').update({parts}).eq('id',id);
+  await sb.from('bsp_jobs').update({parts}).eq('id',id);
   job.parts=parts; input.value='';
   renderPartsEl(id,parts);
 }
@@ -951,7 +958,7 @@ async function togglePart(jobId,partId){
   const job=jobs.find(j=>j.id===jobId);
   if(!job||!job.parts)return;
   const parts=job.parts.map(p=>p.id===partId?{...p,received:!p.received}:p);
-  await sb.from('bs_jobs').update({parts}).eq('id',jobId);
+  await sb.from('bsp_jobs').update({parts}).eq('id',jobId);
   job.parts=parts; renderPartsEl(jobId,parts);
 }
 
@@ -959,7 +966,7 @@ async function deletePart(jobId,partId){
   const job=jobs.find(j=>j.id===jobId);
   if(!job||!job.parts)return;
   const parts=job.parts.filter(p=>p.id!==partId);
-  await sb.from('bs_jobs').update({parts}).eq('id',jobId);
+  await sb.from('bsp_jobs').update({parts}).eq('id',jobId);
   job.parts=parts; renderPartsEl(jobId,parts);
 }
 
@@ -992,7 +999,7 @@ function openEdit(id){
 
 async function saveEdit(){
   const id=document.getElementById('edit-id').value;
-  const {error}=await sb.from('bs_jobs').update({
+  const {error}=await sb.from('bsp_jobs').update({
     job_number:document.getElementById('edit-num').value.trim(),
     registration:document.getElementById('edit-reg').value.trim().toUpperCase(),
     customer:document.getElementById('edit-customer').value.trim(),
@@ -1092,14 +1099,14 @@ function printInvoice(){
 
 // ── CUSTOMERS ─────────────────────────────────────────────────
 async function loadCustomers(){
-  const {data}=await sb.from('bs_customers').select('*').eq('shop_id',shopId).order('created_at',{ascending:false});
+  const {data}=await sb.from('bsp_customers').select('*').eq('shop_id',shopId).order('created_at',{ascending:false});
   customers=data||[];
 }
 
 async function createCustomer(){
   const name=document.getElementById('c-name').value.trim();
   if(!name){setMsg('create-cust-msg','Customer name is required.',true);return;}
-  const {error}=await sb.from('bs_customers').insert({
+  const {error}=await sb.from('bsp_customers').insert({
     shop_id:shopId,name,
     company:document.getElementById('c-company').value.trim(),
     phone:document.getElementById('c-phone').value.trim(),
@@ -1116,7 +1123,7 @@ async function createCustomer(){
 
 async function deleteCustomer(id){
   if(!confirm('Delete this customer?'))return;
-  await sb.from('bs_customers').delete().eq('id',id);
+  await sb.from('bsp_customers').delete().eq('id',id);
   showToast('Customer deleted.');
   await loadCustomers(); refreshCustDropdown(); renderCustomers();
 }
@@ -1136,7 +1143,7 @@ function openEditCustomer(id){
 
 async function saveEditCustomer(){
   const id=document.getElementById('editc-id').value;
-  await sb.from('bs_customers').update({
+  await sb.from('bsp_customers').update({
     name:document.getElementById('editc-name').value.trim(),
     company:document.getElementById('editc-company').value.trim(),
     phone:document.getElementById('editc-phone').value.trim(),
@@ -1176,7 +1183,7 @@ function viewCustJobs(name){
 
 // ── STAFF ─────────────────────────────────────────────────────
 async function loadStaff(){
-  const {data}=await sb.from('bs_staff').select('*').eq('shop_id',shopId);
+  const {data}=await sb.from('bsp_staff').select('*').eq('shop_id',shopId);
   staffList=data||[];
   renderStaff();
 }
@@ -1191,7 +1198,7 @@ async function inviteStaff(){
   const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name,role:'staff',shop_id:shopId,shop_name:userProfile.shop}}});
   if(error){setMsg('staff-msg',error.message,true);return;}
   // Save staff record
-  await sb.from('bs_staff').insert({shop_id:shopId,name,email,user_id:data.user?.id});
+  await sb.from('bsp_staff').insert({shop_id:shopId,name,email,user_id:data.user?.id});
   document.getElementById('s-name').value='';
   document.getElementById('s-email').value='';
   document.getElementById('s-pw').value='';
@@ -1201,7 +1208,7 @@ async function inviteStaff(){
 
 async function removeStaff(id){
   if(!confirm('Remove this staff member?'))return;
-  await sb.from('bs_staff').delete().eq('id',id);
+  await sb.from('bsp_staff').delete().eq('id',id);
   showToast('Staff member removed.');
   await loadStaff();
 }
@@ -1445,7 +1452,7 @@ async function showClientView(jobId){
   document.getElementById('app-view').classList.add('hidden');
   const cv=document.getElementById('client-view');
   cv.classList.remove('hidden');
-  const {data:job,error}=await sb.from('bs_jobs').select('job_number,registration,vehicle,status,progress,stages,customer').eq('id',jobId).single();
+  const {data:job,error}=await sb.from('bsp_jobs').select('job_number,registration,vehicle,status,progress,stages,customer').eq('id',jobId).single();
   if(error||!job){cv.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:48px;margin-bottom:16px">🔍</div><p>Job not found</p></div>';return;}
   if(!job.stages||!job.stages.length) job.stages=STAGES.map(s=>({...s,done:false}));
   document.getElementById('cv-jobref').innerText='Job: '+job.job_number;
