@@ -834,7 +834,28 @@ async function register(){
 }
 
 async function loadUserProfile(){
-  const {data:prof} = await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  let {data:prof} = await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  if(!prof){
+    // Neither register() nor inviteStaff() ever creates the profiles row
+    // itself (both only call auth.signUp()), so every account — owner or
+    // invited staff, including ones already registered before this fix —
+    // hits this on first login. inviteStaff() does put shop_id/role:
+    // 'staff' into the new account's own user_metadata, so honour that
+    // when present; a plain owner signup (register()) has neither, so
+    // falls back to the self-shop-id pattern the other rented apps on
+    // this project use (a shop's own owner IS its shop_id).
+    const meta = currentUser.user_metadata || {};
+    const newProfile = {
+      id: currentUser.id,
+      name: meta.name || currentUser.email,
+      email: currentUser.email,
+      shop_id: meta.shop_id || currentUser.id,
+      role: meta.role || 'owner',
+    };
+    const {data:created,error:createErr} = await sb.from('profiles').insert(newProfile).select().single();
+    if(createErr){ console.error('Failed to create profile:', createErr.message); throw createErr; }
+    prof = created;
+  }
   userProfile = prof;
   shopId = prof.shop_id;
   document.getElementById('user-label').innerText = prof.name;
