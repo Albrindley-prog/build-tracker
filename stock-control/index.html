@@ -6,6 +6,10 @@
 <title>Stock Control V2</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- qrcodejs (davidshimjs), not the "qrcode" npm package — that one has no
+     browser bundle and 404s on jsDelivr. Same build already proven working
+     in workshop-scheduler-diary/index.html. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
 <script>
@@ -499,7 +503,81 @@ tbody td {
 .btn-icon.plus  { background: rgba(0,212,170,0.12); color: var(--accent2); }
 .btn-icon.minus { background: rgba(22,93,255,0.12); color: var(--accent); }
 .btn-icon.del   { background: rgba(255,71,87,0.10); color: var(--danger); }
+.btn-icon.qr    { background: rgba(107,116,153,0.15); color: var(--muted); }
 .btn-icon:hover { filter: brightness(1.3); transform: scale(1.08); }
+
+/* ───── QR MODAL ───── */
+.qr-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5,6,9,0.75);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.qr-overlay.open { display: flex; }
+.qr-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 320px;
+    width: 100%;
+    text-align: center;
+}
+.qr-box h3 { margin-bottom: 4px; text-transform: none; letter-spacing: 0; font-size: 16px; color: var(--text); }
+.qr-box .qr-sku { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.qr-canvas-wrap { display: inline-block; padding: 12px; background: #fff; border-radius: 10px; margin-bottom: 16px; }
+.qr-box .btn { width: 100%; margin-bottom: 8px; }
+
+/* ───── SCAN SCREEN (QR landing) ───── */
+#scanScreen {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(22,93,255,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,212,170,0.08) 0%, transparent 70%),
+        var(--bg);
+}
+.scan-box { width: 100%; max-width: 380px; }
+.scan-box .scan-name { font-size: 20px; font-weight: 600; margin-bottom: 2px; }
+.scan-box .scan-sku { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+.scan-box .scan-qty-current {
+    font-family: var(--mono);
+    font-size: 34px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.scan-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.scan-toggle button {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--muted);
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.scan-toggle button.active.in  { background: rgba(0,212,170,0.15); border-color: var(--accent2); color: var(--accent2); }
+.scan-toggle button.active.out { background: rgba(22,93,255,0.15); border-color: var(--accent); color: var(--accent); }
+.scan-box .auth-msg { margin-top: 12px; }
+
+@media print {
+    body > *:not(.qr-overlay) { display: none !important; }
+    .qr-overlay { position: static !important; background: #fff !important; display: flex !important; }
+    .qr-box { box-shadow: none !important; border: none !important; }
+    .qr-box .btn { display: none !important; }
+}
 
 .empty-state {
     text-align: center;
@@ -687,11 +765,59 @@ tbody td {
     </div>
 </div>
 
+<!-- ═══ QR CODE MODAL ═══ -->
+<div id="qrOverlay" class="qr-overlay">
+    <div class="qr-box">
+        <h3 id="qrItemName"></h3>
+        <div class="qr-sku" id="qrItemSku"></div>
+        <div class="qr-canvas-wrap" id="qrCanvas"></div>
+        <button class="btn btn-primary" onclick="window.print()">🖨 Print</button>
+        <button class="btn btn-ghost" onclick="closeQrModal()">Close</button>
+    </div>
+</div>
+
+<!-- ═══ SCAN SCREEN (opened via a QR code's link — item=<id> in the URL) ═══ -->
+<div id="scanScreen">
+    <div class="auth-box scan-box">
+        <div class="auth-logo">📦 Stock Control</div>
+        <div class="auth-title">Scan Stock Update</div>
+        <div id="scanNotFound" style="display:none;">
+            <p style="color:var(--muted);margin:12px 0 20px;">This item couldn't be found — it may have been deleted, or belongs to a different account.</p>
+            <button class="btn btn-ghost" style="width:100%;" onclick="backToDashboardFromScan()">Back to Dashboard</button>
+        </div>
+        <div id="scanFound" style="display:none;">
+            <div class="scan-name" id="scanItemName"></div>
+            <div class="scan-sku" id="scanItemSku"></div>
+            <div class="scan-qty-current"><span id="scanCurrentQty">0</span> in stock</div>
+            <div class="scan-toggle">
+                <button type="button" id="scanBtnIn"  class="in"  onclick="setScanDirection('in')">Stock In</button>
+                <button type="button" id="scanBtnOut" class="out" onclick="setScanDirection('out')">Stock Out</button>
+            </div>
+            <div class="field">
+                <label>Quantity</label>
+                <input type="number" id="scanQty" value="1" min="1" step="1">
+            </div>
+            <button class="auth-btn" onclick="submitScanAction()">Confirm</button>
+            <div class="auth-msg" id="scanMsg"></div>
+            <button class="btn btn-ghost" style="width:100%;margin-top:12px;" onclick="backToDashboardFromScan()">Back to Dashboard</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let stock = [];
 let logs  = [];
 let currentUser = null;
 let userData = null;
+
+// QR-scan landing — captured once at load, before login even runs. A QR
+// code encodes ?item=<stock.id> (see showQrModal()); no separate access
+// token, since this isn't a public link like the customer-portal QR flows
+// elsewhere in this codebase — whoever scans it still has to sign in to
+// their own Stock Control account first (checkAccess() below routes here
+// instead of the normal dashboard once that passes).
+const scanItemId = new URLSearchParams(window.location.search).get('item');
+let scanDirection = 'in';
 
 // ═══ AUTH ═══
 
@@ -733,6 +859,15 @@ async function checkAccess() {
     if(active) {
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('billingScreen').style.display = 'none';
+        // A scanned QR link takes priority over the normal dashboard, but
+        // only once the same trial/subscription gate as everything else in
+        // this app has passed — scanning a link doesn't bypass billing.
+        if (scanItemId) {
+            document.getElementById('appScreen').style.display = 'none';
+            document.getElementById('scanScreen').style.display = 'flex';
+            loadScanScreen();
+            return;
+        }
         document.getElementById('appScreen').style.display = 'block';
         document.getElementById('trialBadge').textContent = days > 0 ? `${days} days trial left` : '✓ Subscribed';
         loadData();
@@ -971,6 +1106,7 @@ function render() {
                 <div class="action-btns">
                     <button class="btn-icon plus"  onclick="adjust('${item.id}', 1)"  title="Stock In">+</button>
                     <button class="btn-icon minus" onclick="adjust('${item.id}',-1)"  title="Stock Out">−</button>
+                    <button class="btn-icon qr"    onclick="showQrModal('${item.id}')" title="QR Code">▦</button>
                     <button class="btn-icon del"   onclick="deleteItem('${item.id}')" title="Delete">✕</button>
                 </div>
             </td>
@@ -991,6 +1127,104 @@ function render() {
     document.getElementById('totalQty').textContent    = stock.reduce((t, i) => t + i.qty, 0);
     document.getElementById('stockValue').textContent  = '£' + stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
     document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
+}
+
+// ═══ QR CODE (per stock item) ═══
+
+function showQrModal(id) {
+    const item = stock.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('qrItemName').textContent = item.name;
+    document.getElementById('qrItemSku').textContent  = item.sku;
+    const canvasWrap = document.getElementById('qrCanvas');
+    canvasWrap.innerHTML = '';
+    // Just the item's own uuid — no separate access token needed, since
+    // whoever scans this still has to sign in to this Stock Control account
+    // (see checkAccess()/loadScanScreen()); it's not a public link.
+    const scanUrl = `${window.location.origin}${window.location.pathname}?item=${item.id}`;
+    new QRCode(canvasWrap, { text: scanUrl, width: 180, height: 180 });
+    document.getElementById('qrOverlay').classList.add('open');
+}
+
+function closeQrModal() {
+    document.getElementById('qrOverlay').classList.remove('open');
+}
+
+// ═══ QR SCAN LANDING SCREEN ═══
+// Reached via a scanned QR's ?item=<id> link, after the normal login +
+// trial/subscription check in checkAccess() passes. Deliberately does a
+// fresh scoped fetch/update/insert here instead of loading the full
+// stock/logs arrays and going through saveData() (which deletes and
+// re-inserts this user's *entire* stock and stock_logs tables on every
+// change) — a phone scanning one item shouldn't have to round-trip the
+// whole inventory, and a single-row update/insert can't clobber unrelated
+// changes made elsewhere at the same time the way saveData() could.
+let scanItem = null;
+
+async function loadScanScreen() {
+    scanDirection = 'in';
+    const { data, error } = await sbClient.from('stock').select('*')
+        .eq('id', scanItemId).eq('user_id', currentUser.id).maybeSingle();
+    if (error || !data) {
+        scanItem = null;
+        document.getElementById('scanFound').style.display = 'none';
+        document.getElementById('scanNotFound').style.display = 'block';
+        return;
+    }
+    scanItem = data;
+    document.getElementById('scanNotFound').style.display = 'none';
+    document.getElementById('scanFound').style.display = 'block';
+    document.getElementById('scanItemName').textContent  = scanItem.name;
+    document.getElementById('scanItemSku').textContent   = scanItem.sku;
+    document.getElementById('scanCurrentQty').textContent = scanItem.qty;
+    document.getElementById('scanQty').value = 1;
+    setScanDirection('in');
+}
+
+function setScanDirection(dir) {
+    scanDirection = dir;
+    document.getElementById('scanBtnIn').classList.toggle('active', dir === 'in');
+    document.getElementById('scanBtnOut').classList.toggle('active', dir === 'out');
+}
+
+async function submitScanAction() {
+    if (!scanItem) return;
+    const msg = document.getElementById('scanMsg');
+    msg.className = 'auth-msg';
+    msg.textContent = '';
+
+    const qty = Number(document.getElementById('scanQty').value);
+    if (!qty || qty <= 0) { msg.textContent = 'Enter a quantity greater than 0'; msg.className = 'auth-msg error'; return; }
+
+    const change = scanDirection === 'in' ? qty : -qty;
+    const newQty = Math.max(0, scanItem.qty + change);
+
+    const { error: updateErr } = await sbClient.from('stock')
+        .update({ qty: newQty })
+        .eq('id', scanItem.id).eq('user_id', currentUser.id);
+    if (updateErr) { msg.textContent = 'Could not update stock: ' + updateErr.message; msg.className = 'auth-msg error'; return; }
+
+    const { error: logErr } = await sbClient.from('stock_logs').insert({
+        id: crypto.randomUUID(),
+        user_id: currentUser.id,
+        date: new Date().toISOString(),
+        item: scanItem.name,
+        action: scanDirection === 'in' ? 'IN' : 'OUT',
+        qty: Math.abs(change)
+    });
+    if (logErr) { msg.textContent = 'Stock updated, but the log entry failed: ' + logErr.message; msg.className = 'auth-msg error'; return; }
+
+    scanItem.qty = newQty;
+    document.getElementById('scanCurrentQty').textContent = newQty;
+    document.getElementById('scanQty').value = 1;
+    msg.textContent = `✅ ${scanDirection === 'in' ? 'Stock in' : 'Stock out'} recorded — ${scanItem.name} is now ${newQty}.`;
+    msg.className = 'auth-msg success';
+}
+
+function backToDashboardFromScan() {
+    // Drop the ?item= param and reload straight into the normal dashboard,
+    // rather than leaving the scan screen reachable via back/forward.
+    window.location.href = window.location.origin + window.location.pathname;
 }
 
 function exportBackup() {
