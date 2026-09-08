@@ -608,6 +608,7 @@ tbody td {
         <div class="auth-sub">Sign in to manage your stock</div>
 
         <div class="trial-note">✅ 30 Days Free Trial — then £32.00 per month</div>
+        <div class="trial-note" id="inviteBanner" style="display:none;">You've been invited to join a team's Stock Control workspace — sign in or create an account below to accept.</div>
 
         <div class="auth-tabs">
             <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
@@ -719,8 +720,34 @@ tbody td {
             </div>
         </div>
 
-        <!-- Backup -->
+        <!-- Team -->
         <div class="card">
+            <h3>Team</h3>
+            <div id="teamOwnerControls" style="display:none;">
+                <div class="add-grid" style="grid-template-columns: 2fr auto;">
+                    <div class="form-field">
+                        <label>Invite by email</label>
+                        <input id="inviteEmail" type="email" placeholder="colleague@example.com">
+                    </div>
+                    <button class="btn btn-primary" onclick="sendInvite()">Send Invite</button>
+                </div>
+                <p id="inviteMsg" style="font-size:12px;color:var(--muted);margin-top:8px;word-break:break-all;"></p>
+            </div>
+            <table style="margin-top:12px;">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="teamBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Backup -->
+        <div class="card" id="backupCard">
             <h3>Backup & Restore</h3>
             <div class="backup-row">
                 <button class="btn btn-ghost" onclick="exportBackup()">⬇ Export Backup</button>
@@ -810,6 +837,14 @@ let logs  = [];
 let currentUser = null;
 let userData = null;
 
+// ownerId is the shared-workspace identity every stock/stock_logs/users
+// query is scoped by from here on — for an owner this equals their own
+// currentUser.id, for an invited staff member it's the owner who invited
+// them. Resolved once per session in getUserData() via sc_resolve_owner().
+// currentRole ('owner'|'staff') gates the Team/Backup owner-only controls.
+let ownerId = null;
+let currentRole = 'owner';
+
 // QR-scan landing — captured once at load, before login even runs. A QR
 // code encodes ?item=<stock.id> (see showQrModal()); no separate access
 // token, since this isn't a public link like the customer-portal QR flows
@@ -818,6 +853,17 @@ let userData = null;
 // instead of the normal dashboard once that passes).
 const scanItemId = new URLSearchParams(window.location.search).get('item');
 let scanDirection = 'in';
+
+// Team invite landing — ?invite=<token>, see sendInvite()/tryAcceptInvite().
+// hasInviteParam stays true for the banner even after inviteToken itself
+// is consumed (set null) once tryAcceptInvite() actually redeems it, so a
+// signup-then-login round trip only ever attempts redemption once.
+let inviteToken = new URLSearchParams(window.location.search).get('invite');
+const hasInviteParam = !!inviteToken;
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
 
 // ═══ AUTH ═══
 
@@ -842,6 +888,10 @@ function clearMsg() {
     el.textContent = '';
 }
 
+if (hasInviteParam) {
+    document.getElementById('inviteBanner').style.display = 'block';
+}
+
 // --------------------------
 // TRIAL & PAYMENT FUNCTIONS
 // --------------------------
@@ -855,7 +905,7 @@ function daysRemaining() {
 
 async function checkAccess() {
     const days = daysRemaining();
-    const active = days > 0 ? true : await hasActiveSubscription(currentUser);
+    const active = days > 0 ? true : await hasActiveSubscription();
     if(active) {
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('billingScreen').style.display = 'none';
@@ -870,21 +920,27 @@ async function checkAccess() {
         }
         document.getElementById('appScreen').style.display = 'block';
         document.getElementById('trialBadge').textContent = days > 0 ? `${days} days trial left` : '✓ Subscribed';
+        // Backup/restore replaces the entire shared workspace's data in
+        // one go — kept owner-only rather than "full access, same as
+        // owner" like everything else, since it's uniquely destructive.
+        document.getElementById('backupCard').style.display = currentRole === 'owner' ? 'block' : 'none';
         loadData();
+        loadTeam();
     } else {
         showBilling();
     }
 }
 
 // Real subscription check — a row in the shared bt_subscriptions table for
-// this user, scoped to this product, with status='active'. Replaces the old
-// client-set userData.subscribed flag, which any signed-in user could flip
-// themselves with no payment ever taking place.
-async function hasActiveSubscription(user) {
-    if(!user) return false;
+// this WORKSPACE (keyed to ownerId, not whichever login is currently
+// signed in — see getUserData()), scoped to this product, with
+// status='active'. Replaces the old client-set userData.subscribed flag,
+// which any signed-in user could flip themselves with no payment ever
+// taking place.
+async function hasActiveSubscription() {
     const { data, error } = await sbClient.from(SUBSCRIPTIONS_TABLE)
         .select('status')
-        .eq('user_id', user.id)
+        .eq('user_id', ownerId)
         .eq('product', PRODUCT_ID)
         .eq('status', 'active')
         .maybeSingle();
@@ -899,13 +955,26 @@ function showBilling() {
     document.getElementById('billingScreen').style.display = 'flex';
 
     const msgEl = document.getElementById('billingMessage');
+    const subscribeBtn = document.getElementById('subscribeBtn');
+
+    // Only the workspace owner can actually pay — an invited staff member
+    // hitting a lapsed trial/subscription sees the same lock (the whole
+    // workspace is paused either way) but with no way to start checkout
+    // themselves, and a message pointing at who can.
+    if (currentRole !== 'owner') {
+        subscribeBtn.style.display = 'none';
+        msgEl.innerHTML = `<p style="color:var(--danger);margin-bottom:16px;">❌ This workspace's free trial has ended.<br>Ask ${escapeHtml(userData?.email || 'the workspace owner')} to subscribe to continue.</p>`;
+        return;
+    }
+    subscribeBtn.style.display = '';
+
     if(days > 0) {
         msgEl.innerHTML = `<p style="color:var(--accent2);margin-bottom:16px;">✅ ${days} days of free trial remaining</p>`;
     } else {
         msgEl.innerHTML = `<p style="color:var(--danger);margin-bottom:16px;">❌ Your free trial has ended. Subscribe now to continue.</p>`;
     }
 
-    document.getElementById('subscribeBtn').onclick = startSubscription;
+    subscribeBtn.onclick = startSubscription;
 }
 
 // Redirects to a real Stripe Checkout session (created server-side by the
@@ -925,7 +994,7 @@ async function startSubscription() {
             body: JSON.stringify({
                 price_id: STRIPE_PRICE_ID,
                 product: PRODUCT_ID,
-                user_id: currentUser.id,
+                user_id: ownerId,
                 email: currentUser.email,
                 success_url: window.location.origin + window.location.pathname + '?payment=success',
                 cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
@@ -951,12 +1020,69 @@ async function handlePaymentResult() {
     }
 }
 
+// Resolves the caller's owner_id via sc_resolve_owner() — their own id if
+// they're an owner (existing single-user account, or a brand new signup;
+// either way this is what bootstraps their sc_team_members row on first
+// call), or the id of whoever invited them if they're staff.
+async function resolveOwner() {
+    const { data, error } = await sbClient.rpc('sc_resolve_owner');
+    if (error) { console.error('sc_resolve_owner failed:', error.message); return currentUser.id; }
+    return data;
+}
+
+// Redeems a pending ?invite=<token> exactly once. Must run BEFORE
+// resolveOwner()/getUserData() below — sc_accept_invite() inserts this
+// account's sc_team_members row itself, so resolveOwner() then finds
+// that existing row (owner_id = the inviter) instead of bootstrapping a
+// brand new separate owner for this account.
+//
+// Returns the outcome instead of just showing a message directly — a
+// rejection here needs to survive past whatever the caller does next
+// (doRegister() immediately overwrites any authMsg text with "Account
+// created!", and doLogin() hides #authScreen — and #authMsg along with
+// it — the moment checkAccess() succeeds). Callers below use alert()
+// with this result instead, since that's the one thing guaranteed to
+// stay visible across both of those.
+async function tryAcceptInvite() {
+    if (!inviteToken) return null;
+    const token = inviteToken;
+    inviteToken = null; // consume once, so a doRegister() -> doLogin() round trip doesn't retry
+    // try/catch kept permanently, not just for this investigation —
+    // without it, any thrown exception (not just a graceful {ok:false}
+    // response) would propagate straight out of this function and abort
+    // whichever caller is awaiting it before it ever reaches its own
+    // alert(...) check below, silently — a thrown exception here
+    // shouldn't be able to look identical to "nothing happened".
+    try {
+        const { data, error } = await sbClient.rpc('sc_accept_invite', { p_token: token });
+        const url = new URL(window.location.href);
+        url.searchParams.delete('invite');
+        window.history.replaceState({}, '', url.pathname + url.search);
+        if (error) { console.error('sc_accept_invite failed:', error.message); return { ok: false, error: 'Could not process the invite: ' + error.message }; }
+        return data;
+    } catch (e) {
+        console.error('tryAcceptInvite() threw:', e);
+        return { ok: false, error: 'Unexpected error accepting invite: ' + e.message };
+    }
+}
+
 async function getUserData() {
-    const { data, error } = await sbClient.from('users').select('*').eq('id', currentUser.id).single();
+    ownerId = await resolveOwner();
+
+    const { data: myMembership } = await sbClient.from('sc_team_members')
+        .select('role').eq('owner_id', ownerId).eq('user_id', currentUser.id).maybeSingle();
+    currentRole = myMembership ? myMembership.role : 'owner';
+
+    // Trial/subscription state is the WORKSPACE's (one users row per
+    // owner_id, not per login) — an invited staff member reads the
+    // OWNER's row here, never their own, so their first login can't mint
+    // a fresh personal 30-day trial independent of the workspace's real
+    // trial/subscription status.
+    const { data } = await sbClient.from('users').select('*').eq('id', ownerId).single();
     if(!data) {
         // Create new user record if first login
         const newUser = {
-            id: currentUser.id,
+            id: ownerId,
             email: currentUser.email,
             signup_date: new Date().toISOString()
         };
@@ -980,9 +1106,11 @@ async function doLogin() {
     btn.disabled = false; btn.textContent = 'Sign In';
 
     if (error) { showMsg(error.message); return; }
-    
+
     currentUser = data.user;
+    const inviteResult = await tryAcceptInvite();
     await getUserData();
+    if (inviteResult && !inviteResult.ok) { alert('Invite not accepted: ' + inviteResult.error); }
     checkAccess();
 }
 
@@ -1006,7 +1134,20 @@ async function doRegister() {
 
     if (data.user) {
         currentUser = data.user;
+        // Only meaningful if signUp() granted an immediate session (email
+        // confirmation off) — accept_invite needs auth.uid(), which a
+        // session-less signup response doesn't have yet. If there's no
+        // session here, tryAcceptInvite() runs again from doLogin() once
+        // they actually sign in below, and inviteToken is still set since
+        // this path never got the chance to consume it.
+        let inviteResult = null;
+        if (data.session) inviteResult = await tryAcceptInvite();
         await getUserData();
+        // alert() here, not showMsg() — showMsg('Account created!...')
+        // right below would silently overwrite it instantly otherwise,
+        // which is exactly how the real rejection reason got hidden the
+        // first time this was tested.
+        if (inviteResult && !inviteResult.ok) { alert('Invite not accepted: ' + inviteResult.error); }
         showMsg('Account created! Your 30-day free trial starts now.', 'success');
         switchTab('login');
     }
@@ -1016,6 +1157,8 @@ async function doLogout() {
     await sbClient.auth.signOut();
     currentUser = null;
     userData = null;
+    ownerId = null;
+    currentRole = 'owner';
     stock = []; logs = [];
     document.getElementById('appScreen').style.display  = 'none';
     document.getElementById('billingScreen').style.display = 'none';
@@ -1029,23 +1172,32 @@ function enterApp(user) {
 // ═══ DATA ═══
 
 async function loadData() {
-    const { data: stockData } = await sbClient.from('stock').select('*').eq('user_id', currentUser.id);
+    const { data: stockData } = await sbClient.from('stock').select('*').eq('owner_id', ownerId);
     // Real live table is `stock_logs` — this used to point at a `logs`
     // table that doesn't exist, so every log write/read failed outright.
-    const { data: logData }   = await sbClient.from('stock_logs').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
+    const { data: logData }   = await sbClient.from('stock_logs').select('*').eq('owner_id', ownerId).order('date', { ascending: false });
     stock = stockData || [];
     logs  = logData  || [];
     render();
 }
 
+// Only used by importBackup() now (owner-only — see checkAccess()). Every
+// other mutation below does a targeted single-row insert/update/delete
+// instead: a full delete-and-reinsert of the whole shared workspace's
+// data would re-stamp every row's user_id with whichever team member
+// happened to trigger it, and would clobber anything a different team
+// member changed at the same moment — fine for a full backup restore
+// (which wants exactly that "replace everything" behaviour), wrong for
+// every day-to-day add/adjust/delete once more than one login can touch
+// the same data.
 async function saveData() {
-    await sbClient.from('stock').delete().eq('user_id', currentUser.id);
-    await sbClient.from('stock').insert(stock.map(i => ({ ...i, user_id: currentUser.id })));
-    await sbClient.from('stock_logs').delete().eq('user_id', currentUser.id);
-    await sbClient.from('stock_logs').insert(logs.map(l => ({ ...l, user_id: currentUser.id })));
+    await sbClient.from('stock').delete().eq('owner_id', ownerId);
+    await sbClient.from('stock').insert(stock.map(i => ({ ...i, owner_id: ownerId, user_id: currentUser.id })));
+    await sbClient.from('stock_logs').delete().eq('owner_id', ownerId);
+    await sbClient.from('stock_logs').insert(logs.map(l => ({ ...l, owner_id: ownerId, user_id: currentUser.id })));
 }
 
-function addItem() {
+async function addItem() {
     const item = {
         // stock.id and stock_logs.id are both live `uuid` columns — a
         // plain Date.now() timestamp isn't a valid uuid and every save
@@ -1055,6 +1207,8 @@ function addItem() {
         // keeps comparing correctly with === against ids loaded back from
         // Supabase after a reload, which are also uuid strings.
         id:   crypto.randomUUID(),
+        owner_id: ownerId,
+        user_id:  currentUser.id,
         name: document.getElementById('name').value.trim(),
         sku:  document.getElementById('sku').value.trim(),
         qty:  Number(document.getElementById('qty').value),
@@ -1062,14 +1216,18 @@ function addItem() {
     };
     if (!item.name || !item.sku) { alert('Please enter Item Name and SKU'); return; }
 
-    stock.push(item);
+    const { error } = await sbClient.from('stock').insert(item);
+    if (error) { alert('Could not save item: ' + error.message); return; }
+
     // stock_logs.date is a live `timestamptz` column — store real ISO,
     // not a locale-formatted string (which isn't a valid timestamp and
     // would also vary by browser/locale). render() formats it for display.
-    logs.unshift({ id: crypto.randomUUID(), date: new Date().toISOString(), item: item.name, action: 'ADD', qty: item.qty });
+    await sbClient.from('stock_logs').insert({
+        id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id,
+        date: new Date().toISOString(), item: item.name, action: 'ADD', qty: item.qty
+    });
 
-    saveData();
-    render();
+    await loadData();
 
     document.getElementById('name').value = '';
     document.getElementById('sku').value  = '';
@@ -1077,20 +1235,27 @@ function addItem() {
     document.getElementById('cost').value = '0';
 }
 
-function adjust(id, change) {
+async function adjust(id, change) {
     const item = stock.find(i => i.id === id);
     if (!item) return;
-    item.qty = Math.max(0, item.qty + change);
-    logs.unshift({ id: crypto.randomUUID(), date: new Date().toISOString(), item: item.name, action: change > 0 ? 'IN' : 'OUT', qty: Math.abs(change) });
-    saveData();
-    render();
+    const newQty = Math.max(0, item.qty + change);
+
+    const { error } = await sbClient.from('stock').update({ qty: newQty }).eq('id', id).eq('owner_id', ownerId);
+    if (error) { alert('Could not update stock: ' + error.message); return; }
+
+    await sbClient.from('stock_logs').insert({
+        id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id,
+        date: new Date().toISOString(), item: item.name, action: change > 0 ? 'IN' : 'OUT', qty: Math.abs(change)
+    });
+
+    await loadData();
 }
 
-function deleteItem(id) {
+async function deleteItem(id) {
     if (!confirm('Delete this item?')) return;
-    stock = stock.filter(i => i.id !== id);
-    saveData();
-    render();
+    const { error } = await sbClient.from('stock').delete().eq('id', id).eq('owner_id', ownerId);
+    if (error) { alert('Could not delete item: ' + error.message); return; }
+    await loadData();
 }
 
 function render() {
@@ -1129,6 +1294,80 @@ function render() {
     document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
 }
 
+// ═══ TEAM (invite-by-email, shared full access) ═══
+// v1 has no automated invite email — sc_create_invite() just returns a
+// token, and the owner copies the generated link and sends it themselves
+// (same fallback every invite flow in this product family already shows
+// even when automated sending IS wired up elsewhere). Wiring up a real
+// send would need a new Edge Function deployed into the bms-system-main
+// repo, the only place any of these products' Edge Functions currently
+// live — a separate, bigger piece of work.
+
+async function loadTeam() {
+    document.getElementById('teamOwnerControls').style.display = currentRole === 'owner' ? 'block' : 'none';
+
+    const { data: members } = await sbClient.from('sc_team_members')
+        .select('user_id, role').eq('owner_id', ownerId);
+
+    // auth.users isn't directly selectable from the client, so the only
+    // real email this screen can show for a member who ISN'T "me" would
+    // need its own RPC — out of scope for v1. Showing "You" for the
+    // caller's own row and a shortened id for everyone else is still
+    // enough to answer "who currently has access and what role".
+    const memberRows = (members || []).map(m => `
+        <tr>
+            <td>${m.user_id === currentUser.id ? escapeHtml(currentUser.email) + ' (you)' : (m.role === 'owner' ? 'Owner' : 'Staff — ' + m.user_id.slice(0, 8))}</td>
+            <td>${m.role}</td>
+            <td>Active</td>
+            <td>${currentRole === 'owner' && m.user_id !== currentUser.id ? `<button class="btn-icon del" onclick="removeMember('${m.user_id}')" title="Remove">✕</button>` : ''}</td>
+        </tr>`).join('');
+
+    let inviteRows = '';
+    if (currentRole === 'owner') {
+        const { data: invites } = await sbClient.from('sc_team_invites')
+            .select('id, invited_email').eq('owner_id', ownerId).eq('status', 'pending').order('created_at', { ascending: false });
+        inviteRows = (invites || []).map(i => `
+            <tr>
+                <td>${escapeHtml(i.invited_email)}</td>
+                <td>staff</td>
+                <td>Pending</td>
+                <td><button class="btn-icon del" onclick="revokeInvite('${i.id}')" title="Revoke">✕</button></td>
+            </tr>`).join('');
+    }
+
+    document.getElementById('teamBody').innerHTML = (memberRows + inviteRows)
+        || `<tr><td colspan="4"><div class="empty-state">No team members yet.</div></td></tr>`;
+}
+
+async function sendInvite() {
+    const email = document.getElementById('inviteEmail').value.trim();
+    const msg = document.getElementById('inviteMsg');
+    msg.style.color = 'var(--muted)';
+    if (!email) { msg.textContent = 'Enter an email address.'; return; }
+
+    const { data, error } = await sbClient.rpc('sc_create_invite', { p_email: email });
+    if (error) { msg.textContent = 'Could not create invite: ' + error.message; msg.style.color = 'var(--danger)'; return; }
+    if (!data.ok) { msg.textContent = data.error; msg.style.color = 'var(--danger)'; return; }
+
+    const link = `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(data.token)}`;
+    msg.innerHTML = `Invite created for ${escapeHtml(email)}. Copy this link and send it to them yourself:<br><span style="font-family:var(--mono);">${escapeHtml(link)}</span>`;
+    msg.style.color = 'var(--accent2)';
+    document.getElementById('inviteEmail').value = '';
+    loadTeam();
+}
+
+async function revokeInvite(id) {
+    if (!confirm('Revoke this invite?')) return;
+    await sbClient.rpc('sc_revoke_invite', { p_invite_id: id });
+    loadTeam();
+}
+
+async function removeMember(userId) {
+    if (!confirm("Remove this team member's access? They'll keep their own login, but will no longer see this workspace's stock.")) return;
+    await sbClient.rpc('sc_remove_member', { p_target_user_id: userId });
+    loadTeam();
+}
+
 // ═══ QR CODE (per stock item) ═══
 
 function showQrModal(id) {
@@ -1164,7 +1403,7 @@ let scanItem = null;
 async function loadScanScreen() {
     scanDirection = 'in';
     const { data, error } = await sbClient.from('stock').select('*')
-        .eq('id', scanItemId).eq('user_id', currentUser.id).maybeSingle();
+        .eq('id', scanItemId).eq('owner_id', ownerId).maybeSingle();
     if (error || !data) {
         scanItem = null;
         document.getElementById('scanFound').style.display = 'none';
@@ -1201,11 +1440,12 @@ async function submitScanAction() {
 
     const { error: updateErr } = await sbClient.from('stock')
         .update({ qty: newQty })
-        .eq('id', scanItem.id).eq('user_id', currentUser.id);
+        .eq('id', scanItem.id).eq('owner_id', ownerId);
     if (updateErr) { msg.textContent = 'Could not update stock: ' + updateErr.message; msg.className = 'auth-msg error'; return; }
 
     const { error: logErr } = await sbClient.from('stock_logs').insert({
         id: crypto.randomUUID(),
+        owner_id: ownerId,
         user_id: currentUser.id,
         date: new Date().toISOString(),
         item: scanItem.name,
@@ -1236,15 +1476,20 @@ function exportBackup() {
 }
 
 function importBackup(event) {
+    // Owner-only — this replaces the ENTIRE shared workspace's stock and
+    // log history in one go, no undo. The Backup card itself is already
+    // hidden from staff (see checkAccess()); this is the defensive
+    // backstop in case this function is ever reachable another way.
+    if (currentRole !== 'owner') { alert('Only the workspace owner can import a backup.'); event.target.value = ''; return; }
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => {
+    reader.onload = async e => {
         const data = JSON.parse(e.target.result);
         stock = data.stock || [];
         logs  = data.logs  || [];
-        saveData();
-        render();
+        await saveData();
+        await loadData();
     };
     reader.readAsText(file);
 }
@@ -1254,6 +1499,7 @@ function importBackup(event) {
     const { data: { session } } = await sbClient.auth.getSession();
     if (session) {
         currentUser = session.user;
+        await tryAcceptInvite();
         await getUserData();
         checkAccess();
     }
