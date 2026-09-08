@@ -18,7 +18,7 @@ $to = $in['customerEmail'];
 $subject = "Build Complete: Job {$in['jobNumber']}";
 $message = "Hello {$in['customerName']},\n\nYour build is complete.\nJob: {$in['jobNumber']}\nChassis: {$in['chassisNumber']}\nLink: {$in['portalLink']}\n\nRegards,\nBuild Tracker";
 
-$headers = "From: info.buildtracker@gmail.com\r\nReply-To: info.buildtracker@gmail.com";
+$headers = "From: info@build-tracker.co.uk\r\nReply-To: info@build-tracker.co.uk";
 
 if (mail($to, $subject, $message, $headers)) {
     echo json_encode(['success' => true]);
