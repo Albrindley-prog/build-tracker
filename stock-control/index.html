@@ -702,19 +702,19 @@ tbody td {
             <div class="add-grid">
                 <div class="form-field">
                     <label>Item Name</label>
-                    <input id="name" placeholder="e.g. Widget A">
+                    <input id="name" placeholder="e.g. Widget A" autocomplete="off">
                 </div>
                 <div class="form-field">
                     <label>SKU / Part No.</label>
-                    <input id="sku" placeholder="e.g. WGT-001">
+                    <input id="sku" placeholder="e.g. WGT-001" autocomplete="off">
                 </div>
                 <div class="form-field">
                     <label>Quantity</label>
-                    <input id="qty" type="number" value="0">
+                    <input id="qty" type="number" value="0" autocomplete="off">
                 </div>
                 <div class="form-field">
                     <label>Cost Price (£)</label>
-                    <input id="cost" type="number" step="0.01" value="0">
+                    <input id="cost" type="number" step="0.01" value="0" autocomplete="off">
                 </div>
                 <button class="btn btn-primary" onclick="addItem()">Save Item</button>
             </div>
@@ -727,7 +727,7 @@ tbody td {
                 <div class="add-grid" style="grid-template-columns: 2fr auto;">
                     <div class="form-field">
                         <label>Invite by email</label>
-                        <input id="inviteEmail" type="email" placeholder="colleague@example.com">
+                        <input id="inviteEmail" type="email" placeholder="colleague@example.com" autocomplete="off">
                     </div>
                     <button class="btn btn-primary" onclick="sendInvite()">Send Invite</button>
                 </div>
@@ -822,7 +822,7 @@ tbody td {
             </div>
             <div class="field">
                 <label>Quantity</label>
-                <input type="number" id="scanQty" value="1" min="1" step="1">
+                <input type="number" id="scanQty" value="1" min="1" step="1" autocomplete="off">
             </div>
             <button class="auth-btn" onclick="submitScanAction()">Confirm</button>
             <div class="auth-msg" id="scanMsg"></div>
