@@ -586,6 +586,37 @@ tbody td {
     font-size: 14px;
 }
 
+/* ───── STOCK ROW -> LOG FILTER ───── */
+#stockBody tr { cursor: pointer; }
+#stockBody tr.row-selected { background: rgba(22,93,255,0.08); }
+
+.log-filter-label {
+    font-family: var(--sans);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.clear-filter-link {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+.clear-filter-link:hover { text-decoration: underline; }
+
+@keyframes cardFlash {
+    0% { background: rgba(22,93,255,0.18); }
+    100% { background: var(--card); }
+}
+.card.flash-highlight { animation: cardFlash 1s ease; }
+
 /* ───── RESPONSIVE ───── */
 @media (max-width: 700px) {
     .add-grid {
@@ -775,8 +806,11 @@ tbody td {
         </div>
 
         <!-- Log Table -->
-        <div class="card">
-            <h3>Movement Log</h3>
+        <div class="card" id="movementLogCard">
+            <h3 style="display:flex;align-items:center;justify-content:space-between;">
+                <span>Movement Log<span class="log-filter-label" id="logFilterLabel"></span></span>
+                <button type="button" class="clear-filter-link" id="clearLogFilterBtn" style="display:none;" onclick="clearLogFilter()">✕ Clear filter</button>
+            </h3>
             <table>
                 <thead>
                     <tr>
@@ -1258,10 +1292,38 @@ async function deleteItem(id) {
     await loadData();
 }
 
+// Movement Log filter state. Client-side only, over the already-loaded
+// `logs` array — no extra Supabase query, and works identically for
+// owner and staff since it's just filtering data both already fetched
+// (log visibility was never role-gated to begin with).
+//
+// Matched by item NAME, not a stable id — stock_logs rows only ever
+// store `item: <name string>` at the time of that movement (see
+// addItem()/adjust()/submitScanAction()), never stock.id. There's no
+// item_id/foreign key column in play here at all, so two different
+// stock rows that happen to share the exact same name would show
+// combined history under this filter — no way to tell them apart from
+// the log data alone. Not a concern in practice today (nothing in this
+// app currently lets you rename an item after creation, so a stale-name
+// mismatch specifically from renaming can't happen yet), but worth
+// knowing if a rename feature or duplicate-name items ever come up.
+let filteredItemId = null;
+let filteredItemName = null;
+
 function render() {
+    renderStock();
+    renderLog();
+
+    document.getElementById('totalItems').textContent  = stock.length;
+    document.getElementById('totalQty').textContent    = stock.reduce((t, i) => t + i.qty, 0);
+    document.getElementById('stockValue').textContent  = '£' + stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
+    document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
+}
+
+function renderStock() {
     const sb = document.getElementById('stockBody');
     sb.innerHTML = stock.length ? stock.map(item => `
-        <tr>
+        <tr class="${item.id === filteredItemId ? 'row-selected' : ''}" onclick="filterLogByItem('${item.id}')">
             <td>${item.name}</td>
             <td class="mono">${item.sku}</td>
             <td><span class="qty-badge${item.qty <= 5 ? ' low' : ''}">${item.qty}</span></td>
@@ -1269,29 +1331,64 @@ function render() {
             <td class="mono">£${(item.qty * item.cost).toFixed(2)}</td>
             <td>
                 <div class="action-btns">
-                    <button class="btn-icon plus"  onclick="adjust('${item.id}', 1)"  title="Stock In">+</button>
-                    <button class="btn-icon minus" onclick="adjust('${item.id}',-1)"  title="Stock Out">−</button>
-                    <button class="btn-icon qr"    onclick="showQrModal('${item.id}')" title="QR Code">▦</button>
-                    <button class="btn-icon del"   onclick="deleteItem('${item.id}')" title="Delete">✕</button>
+                    <button class="btn-icon plus"  onclick="event.stopPropagation(); adjust('${item.id}', 1)"  title="Stock In">+</button>
+                    <button class="btn-icon minus" onclick="event.stopPropagation(); adjust('${item.id}',-1)"  title="Stock Out">−</button>
+                    <button class="btn-icon qr"    onclick="event.stopPropagation(); showQrModal('${item.id}')" title="QR Code">▦</button>
+                    <button class="btn-icon del"   onclick="event.stopPropagation(); deleteItem('${item.id}')" title="Delete">✕</button>
                 </div>
             </td>
         </tr>`) .join('')
     : `<tr><td colspan="6"><div class="empty-state">No stock items yet — add one above.</div></td></tr>`;
+}
 
+function renderLog() {
     const lb = document.getElementById('logBody');
-    lb.innerHTML = logs.length ? logs.slice(0, 50).map(log => `
+    const filterLabel = document.getElementById('logFilterLabel');
+    const clearBtn = document.getElementById('clearLogFilterBtn');
+
+    if (!filteredItemId) {
+        lb.innerHTML = `<tr><td colspan="4"><div class="empty-state">Click a stock item above to see its movement history.</div></td></tr>`;
+        filterLabel.textContent = '';
+        clearBtn.style.display = 'none';
+        return;
+    }
+
+    filterLabel.textContent = ` — ${filteredItemName}`;
+    clearBtn.style.display = '';
+
+    const filtered = logs.filter(l => l.item === filteredItemName);
+    lb.innerHTML = filtered.length ? filtered.slice(0, 50).map(log => `
         <tr>
             <td class="mono" style="font-size:12px;color:var(--muted)">${new Date(log.date).toLocaleString()}</td>
             <td>${log.item}</td>
             <td><span style="font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:4px;background:var(--input-bg)">${log.action}</span></td>
             <td class="mono">${log.qty}</td>
         </tr>`).join('')
-    : `<tr><td colspan="4"><div class="empty-state">No movements recorded yet.</div></td></tr>`;
+    : `<tr><td colspan="4"><div class="empty-state">No movements recorded yet for ${escapeHtml(filteredItemName)}.</div></td></tr>`;
+}
 
-    document.getElementById('totalItems').textContent  = stock.length;
-    document.getElementById('totalQty').textContent    = stock.reduce((t, i) => t + i.qty, 0);
-    document.getElementById('stockValue').textContent  = '£' + stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
-    document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
+function filterLogByItem(id) {
+    if (filteredItemId === id) { clearLogFilter(); return; } // clicking the same item again toggles it off
+    const item = stock.find(i => i.id === id);
+    if (!item) return;
+    filteredItemId = id;
+    filteredItemName = item.name;
+    renderStock(); // re-render for the row-selected highlight
+    renderLog();
+
+    const card = document.getElementById('movementLogCard');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    card.classList.remove('flash-highlight');
+    void card.offsetWidth; // restart the flash animation even if it's already mid-fade from a previous click
+    card.classList.add('flash-highlight');
+    setTimeout(() => card.classList.remove('flash-highlight'), 1000);
+}
+
+function clearLogFilter() {
+    filteredItemId = null;
+    filteredItemName = null;
+    renderStock();
+    renderLog();
 }
 
 // ═══ TEAM (invite-by-email, shared full access) ═══
