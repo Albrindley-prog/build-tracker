@@ -3795,6 +3795,7 @@ async function installApp() {
   if (installPrompt) {                       // Android, and Chrome/Edge on a computer: the real prompt
     const p = installPrompt;
     installPrompt = null;
+    closeSheet();
     p.prompt();
     try { await p.userChoice; } catch (e) {}
     updateInstallUI();
@@ -3816,9 +3817,31 @@ async function installApp() {
     return;
   }
   openSheet(`<h3>Install the app</h3>
-    <p style="font-size:15px;color:var(--text2);margin-bottom:14px">Open your browser's menu and choose <strong style="color:var(--text)">Install app</strong> or <strong style="color:var(--text)">Add to Home screen</strong>.</p>
+    <p style="font-size:15px;color:var(--text2);margin-bottom:10px">Open your browser's menu and choose <strong style="color:var(--text)">Install app</strong> or <strong style="color:var(--text)">Add to Home screen</strong>.</p>
+    <p class="hint" style="margin-bottom:14px">Already installed? Open Courtesy Cars from your home screen or app list.</p>
     <button class="btn btn-primary btn-lg btn-block" onclick="closeSheet()">OK</button>`);
 }
+
+// Arriving from the website's "Download the app" links (…/?install): offer
+// the install straight away. Chrome's own install offer can land a moment
+// after the page loads, so wait up to 3 seconds for it. Browsers only allow
+// the real prompt after a tap, hence the button in this box.
+const cameToInstall = new URLSearchParams(location.search).has('install');
+if (cameToInstall) history.replaceState(null, '', location.pathname + location.hash);   // keep the home-screen address clean
+function offerInstall(waited = 0) {
+  if (isStandalone()) return;
+  if (isIOS()) { installApp(); return; }
+  if (!installPrompt && waited < 3000) { setTimeout(() => offerInstall(waited + 250), 250); return; }
+  if (!installPrompt) { installApp(); return; }   // no offer from this browser: menu steps
+  openSheet(`<div class="install-row" style="margin-bottom:16px">
+      <img src="icons/icon-192.png" alt="">
+      <div><strong style="font-size:17px">Install Courtesy Cars</strong>
+        <div class="sub">Adds it to your home screen. It opens full screen, like any other app.</div></div>
+    </div>
+    <button class="btn btn-primary btn-lg btn-block" onclick="installApp()">Install app</button>
+    <button class="btn btn-lg btn-block" style="margin-top:10px" onclick="closeSheet()">Not now</button>`);
+}
+if (cameToInstall) window.addEventListener('load', () => offerInstall());
 
 // Has a newer version been published since this page loaded? GitHub Pages
 // gives every version of the page a different ETag, so compare it when the
