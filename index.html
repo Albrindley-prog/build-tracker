@@ -274,8 +274,66 @@
 
     #faq h4 { color:var(--accent); font-family:'Space Grotesk',sans-serif; font-weight:600; margin-bottom:.3rem; }
     #faq p { color:var(--text2); }
+    #faq a { color:var(--accent); text-decoration:none; }
+
+    /* "Get the app": strip across the top, menu link and section */
+    .app-strip { position:relative; display:flex; align-items:center; justify-content:center; padding:.5rem 3rem .5rem 1rem;
+      background:linear-gradient(90deg, rgba(249,115,22,.22), rgba(249,115,22,.09) 50%, rgba(249,115,22,.22)); border-bottom:1px solid var(--accent-border); }
+    .app-strip-link { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:.35rem .8rem; color:var(--text); text-decoration:none; font-size:.9rem; text-align:center; }
+    .app-strip-msg { display:inline-flex; align-items:center; gap:.5rem; }
+    .app-strip-short { display:none; }
+    .app-strip-link .icon { color:var(--accent); }
+    .app-strip-cta { display:inline-flex; align-items:center; background:var(--accent); color:#14161d; font-weight:700; padding:.22rem .85rem; border-radius:30px; font-size:.82rem; white-space:nowrap; transition:background .15s; }
+    .app-strip-link:hover .app-strip-cta { background:var(--accent-hover); }
+    .app-strip-close { position:absolute; right:.6rem; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; border-radius:50%; background:transparent; color:var(--text2); font-size:1.35rem; line-height:1; cursor:pointer; }
+    .app-strip-close:hover { color:var(--text); background:rgba(255,255,255,.08); }
+    nav a.nav-app { color:var(--accent); font-weight:600; display:inline-flex; align-items:center; gap:.35rem; }
+    nav a.nav-app:hover { color:var(--accent-hover); }
+    #get-the-app { scroll-margin-top:80px; }
+    .app-hero { display:flex; align-items:center; justify-content:center; gap:1rem; margin-bottom:1rem; }
+    .app-hero img { width:64px; height:64px; border-radius:15px; box-shadow:0 8px 24px rgba(249,115,22,.25); flex-shrink:0; }
+    .app-hero h3 { text-align:left; margin-bottom:0; }
+    .app-steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:1.2rem; margin:1.5rem 0; }
+    .app-card { position:relative; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; }
+    .app-card.this-device { border-color:var(--accent-border); order:-1; }
+    .app-card h4 { display:flex; align-items:center; gap:.5rem; font-size:1.05rem; font-weight:600; margin-bottom:.8rem; padding-right:5.5rem; }
+    .app-card h4 .icon { color:var(--accent); }
+    .app-card ol { list-style:none; counter-reset:s; }
+    .app-card li { counter-increment:s; position:relative; padding:.35rem 0 .35rem 2.1rem; color:var(--text2); font-size:.92rem; }
+    .app-card li::before { content:counter(s); position:absolute; left:0; top:.42rem; width:1.5rem; height:1.5rem; border-radius:50%; background:var(--accent-dim); border:1px solid var(--accent-border); color:var(--accent); font-size:.78rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
+    .app-card li strong { color:var(--text); font-weight:600; }
+    .device-badge { display:none; position:absolute; top:1.35rem; right:1.2rem; background:var(--accent); color:#14161d; font-size:.72rem; font-weight:700; padding:.15rem .6rem; border-radius:30px; }
+    .this-device .device-badge { display:inline-block; }
+    .app-points { display:flex; flex-wrap:wrap; justify-content:center; gap:.6rem 1.6rem; list-style:none; color:var(--text2); font-size:.92rem; margin:0 0 1rem; }
+    .app-points li { display:flex; align-items:center; gap:.45rem; }
+    .app-points .icon { color:var(--accent); }
+
+    /* Slightly tighter menu on smaller screens so "Get the App" fits without
+       adding a row: the menu is never taller than it was before the link. */
+    @media (max-width: 1180px) {
+      nav a { margin:0 .45rem; }
+      .dropbtn { padding:.6rem .5rem; }
+      nav a.nav-app .icon { display:none; }
+      #mainNav .mkt-btn { padding:.6rem 1rem; margin:.5rem .3rem; }
+    }
+    @media (max-width: 1010px) {
+      nav a { margin:0 .3rem; }
+      .dropbtn { padding:.6rem .4rem; }
+      #mainNav .mkt-btn { padding:.6rem .9rem; }
+    }
+    @media (max-width: 840px) {
+      .dropbtn { padding:.3rem .4rem; }
+      #mainNav .mkt-btn { margin:.4rem .3rem; }
+    }
+    @media (max-width: 960px) { .app-strip-long { display:none; } }
+    @media (max-width: 400px) { .app-strip-msg .icon { display:none; } }
 
     @media (max-width: 768px) {
+      .app-strip { padding:.45rem 2.6rem .45rem .8rem; }
+      .app-strip-link { font-size:.85rem; flex-wrap:nowrap; }
+      .app-strip-full { display:none; }
+      .app-strip-short { display:inline; white-space:nowrap; }
+      .app-hero h3 { font-size:1.35rem; }
       .hero h1 { font-size:2rem; }
       .hero h2 { font-size:1.05rem; }
       .section { padding:2.5rem 6%; }
@@ -289,6 +347,17 @@
 <body>
 
 <div id="marketing-site">
+<!-- "Get the app" strip across the top (the ✕ hides it for that visitor) -->
+<div class="app-strip" id="appStrip">
+  <a href="#get-the-app" class="app-strip-link" onclick="return appLink()">
+    <span class="app-strip-msg"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+    <span class="app-strip-full"><strong>New:</strong> Courtesy Car Manager is now an app for your phone<span class="app-strip-long"> — install it straight from this website</span></span>
+    <span class="app-strip-short"><strong>New:</strong> Courtesy Car Manager app</span></span>
+    <span class="app-strip-cta"><span class="app-strip-full">Get the app →</span><span class="app-strip-short">Get it →</span></span>
+  </a>
+  <button type="button" class="app-strip-close" aria-label="Hide this message" onclick="hideAppStrip()">×</button>
+</div>
+<script>try { if (localStorage.getItem('bt-app-strip-hidden') === '1') document.getElementById('appStrip').classList.add('hidden'); } catch (e) {}</script>
 <nav>
   <a href="#" class="logo" onclick="showHome(); return false;">
     <svg width="320" height="100" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -327,9 +396,11 @@
         <a href="https://build-tracker-cloud.onrender.com" target="_blank" rel="noopener">Cloud Storage</a>
       </div>
     </div>
+    <a href="#get-the-app" class="nav-app" onclick="return appLink()"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg>Get the App</a>
     <button class="mkt-btn mkt-btn-blue" onclick="showSignup()">Start Free Trial</button>
   </div>
   <div class="nav-right hidden" id="loggedInNav">
+    <a href="#get-the-app" class="nav-app" onclick="return appLink()"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg>Get the App</a>
     <a href="#dashboard">Dashboard</a>
     <button class="mkt-btn mkt-btn-signin" onclick="logout()">Logout</button>
   </div>
@@ -443,6 +514,55 @@
   </div>
 </section>
 
+<section id="get-the-app" class="section">
+  <div class="app-hero">
+    <img src="courtesy-car-manager/icons/icon-192.png" alt="Courtesy Cars app icon" width="64" height="64">
+    <div>
+      <p class="tool-group-label" style="margin-bottom:.1rem">New · Get the app</p>
+      <h3>Courtesy Car Manager on your phone</h3>
+    </div>
+  </div>
+  <p class="section-lede">Install it straight from this website — no app store needed. It sits on your home screen and opens full screen like any other app, so hand‑overs and returns are one tap away.</p>
+  <div class="app-steps">
+    <div class="app-card" id="app-android">
+      <span class="device-badge">This device</span>
+      <h4><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg> Android</h4>
+      <ol>
+        <li>Open <strong>Courtesy Car Manager</strong> in <strong>Chrome</strong>.</li>
+        <li>Tap <strong>Install app</strong> — or Chrome's ⋮ menu → <strong>Install app</strong>.</li>
+        <li>Open <strong>Courtesy Cars</strong> from your home screen and sign in.</li>
+      </ol>
+    </div>
+    <div class="app-card" id="app-ios">
+      <span class="device-badge">This device</span>
+      <h4><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg> iPhone &amp; iPad</h4>
+      <ol>
+        <li>Open <strong>Courtesy Car Manager</strong> in <strong>Safari</strong>.</li>
+        <li>Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong> → <strong>Add</strong>.</li>
+        <li>Open <strong>Courtesy Cars</strong> from your home screen and sign in.</li>
+      </ol>
+    </div>
+    <div class="app-card" id="app-desktop">
+      <span class="device-badge">This device</span>
+      <h4><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> Computer</h4>
+      <ol>
+        <li>Open <strong>Courtesy Car Manager</strong> in <strong>Chrome</strong> or <strong>Edge</strong>.</li>
+        <li>Click <strong>Install app</strong> in its ☰ menu, or the install icon in the address bar.</li>
+        <li>It opens in its own window — pin it to your taskbar.</li>
+      </ol>
+    </div>
+  </div>
+  <ul class="app-points">
+    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> No app store needed</li>
+    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Updates itself automatically</li>
+    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Same login and records as on the website</li>
+  </ul>
+  <div style="text-align:center">
+    <a href="courtesy-car-manager/" class="mkt-btn mkt-btn-blue">Open Courtesy Car Manager</a>
+    <p style="font-size:.85rem;color:var(--text3);margin-top:.3rem">£9.99/month after a 30‑day free trial · needs an internet connection</p>
+  </div>
+</section>
+
 <section id="pricing" class="section bg-alt">
   <h3>Simple Pricing</h3>
   <div class="price-box">
@@ -482,7 +602,7 @@
   <div style="max-width:800px;margin:0 auto;">
     <div style="margin-bottom:1.5rem;">
       <h4>Do I need to install anything?</h4>
-      <p>No — everything runs in your web browser. Access from any computer, tablet or phone.</p>
+      <p>No — everything runs in your web browser. Access from any computer, tablet or phone. Courtesy Car Manager can also be added to your home screen as an app — see <a href="#get-the-app" onclick="return appLink()">Get the App</a>.</p>
     </div>
     <div style="margin-bottom:1.5rem;">
       <h4>How does the free trial work?</h4>
@@ -931,6 +1051,30 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 window.addEventListener('click', function(e) {
   document.querySelectorAll('.popup').forEach(p => { if (e.target === p) p.style.display = 'none'; });
 });
+
+// "Get the app" strip, menu link and section. The install steps live in the
+// #get-the-app section; when it isn't on show (signed in, or on the sign-in
+// form) go straight to Courtesy Car Manager, which has its own Install button.
+function appLink() {
+  const sec = document.getElementById('get-the-app');
+  if (sec.classList.contains('hidden')) { location.href = 'courtesy-car-manager/'; return false; }
+  // Scroll to the section clear of the menu bar, which stays pinned at the
+  // top and is taller on phones (its links wrap onto several rows).
+  const menu = document.querySelector('nav').getBoundingClientRect().height;
+  window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - menu - 8, behavior: 'smooth' });
+  try { history.replaceState(null, '', '#get-the-app'); } catch (e) {}
+  return false;
+}
+function hideAppStrip() {
+  document.getElementById('appStrip').classList.add('hidden');
+  try { localStorage.setItem('bt-app-strip-hidden', '1'); } catch (e) {}
+}
+// Put the steps for the visitor's own device first.
+(function () {
+  const ua = navigator.userAgent;
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  document.getElementById(ios ? 'app-ios' : /android/i.test(ua) ? 'app-android' : 'app-desktop').classList.add('this-device');
+})();
 </script>
 
 </body>
