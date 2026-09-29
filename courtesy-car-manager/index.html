@@ -847,10 +847,10 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const PRODUCT_ID = 'courtesy-car-manager';
 const TRIAL_DAYS = 30;
 const PRICE_LABEL = '£9.99';
-// The £9.99/month Stripe price for this tool (price_…). Until it's filled in,
-// the Subscribe button explains that online payment isn't switched on yet
-// rather than sending anyone to a checkout for the wrong price.
-const STRIPE_PRICE_ID = '';
+// The £9.99/month Stripe price for this tool (product "Courtesy Car Manager").
+// If this is ever blank, the Subscribe button explains that online payment
+// isn't switched on yet rather than sending anyone to the wrong checkout.
+const STRIPE_PRICE_ID = 'price_1UKv8GICF2fQjVNybgK2xsOW';
 const BUCKET = 'ccm-files';
 // Shared DVLA lookup Edge Function (same one Build Tracker uses). The DVLA
 // key stays server-side; the Look up button only appears if it's deployed.
