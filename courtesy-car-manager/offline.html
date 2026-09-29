@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#181c27">
+  <title>Offline | Courtesy Car Manager</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#0f1117;color:#f0f2f8;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;text-align:center}
+    .box{max-width:360px}
+    .ic{width:64px;height:64px;border-radius:16px;background:#f97316;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+    .ic svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    h1{font-size:21px;font-weight:600;margin-bottom:10px}
+    p{font-size:15px;line-height:1.5;color:#8b92a8;margin-bottom:24px}
+    button{width:100%;min-height:54px;border:none;border-radius:8px;background:#f97316;color:#fff;font-size:17px;font-weight:600;cursor:pointer}
+  </style>
+</head>
+<body>
+  <!-- Shown by the service worker when the app is opened without a connection. -->
+  <div class="box">
+    <div class="ic"><svg viewBox="0 0 24 24"><path d="M5 17h-.5A1.5 1.5 0 0 1 3 15.5V12l2.2-5.1A2 2 0 0 1 7 5.7h10a2 2 0 0 1 1.8 1.2L21 12v3.5a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M3 12h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></div>
+    <h1>You're offline</h1>
+    <p>Courtesy Car Manager needs an internet connection. Check your Wi-Fi or mobile signal, then try again.</p>
+    <button onclick="location.reload()">Try again</button>
+  </div>
+  <script>window.addEventListener('online', () => location.reload());</script>
+</body>
+</html>
