@@ -15,15 +15,19 @@ const OFFLINE_URL = new URL('offline.html', self.registration.scope).href;
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-    const cache = await caches.open(VERSION);
-    await cache.add(new Request(OFFLINE_URL, { cache: 'reload' }));
+    // Keep the offline page if the device lets us. If its storage is full or
+    // unavailable, carry on without it: always-fresh pages matter more.
+    try {
+      const cache = await caches.open(VERSION);
+      await cache.add(new Request(OFFLINE_URL, { cache: 'reload' }));
+    } catch (e) { /* no offline page on this device */ }
     await self.skipWaiting();   // a new version takes over straight away
   })());
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    for (const key of await caches.keys()) if (key !== VERSION) await caches.delete(key);
+    try { for (const key of await caches.keys()) if (key !== VERSION) await caches.delete(key); } catch (e) {}
     await self.clients.claim();
   })());
 });
@@ -36,7 +40,8 @@ self.addEventListener('fetch', (event) => {
       // A page reached via a redirect can't be handed back as-is; pass on a clean copy.
       return res.redirected ? new Response(res.body, { status: res.status, statusText: res.statusText, headers: res.headers }) : res;
     } catch (e) {
-      return (await caches.match(OFFLINE_URL)) || new Response('You are offline.', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      const saved = await caches.match(OFFLINE_URL).catch(() => null);
+      return saved || new Response('You are offline. Check your connection, then try again.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
   })());
 });
