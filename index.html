@@ -7,7 +7,7 @@
 
   <!-- SEO Meta Tags -->
   <meta name="description" content="Build Tracker Solutions: UK software for car build tracking, workshop job logs, restoration progress, and garage management. 30-day free trial.">
-  <meta name="keywords" content="car build tracking software UK, workshop job log system, restoration progress tracker, garage management tool UK, body shop software, stock control, quotes">
+  <meta name="keywords" content="car build tracking software UK, workshop job log system, restoration progress tracker, garage management tool UK, body shop software, stock control, quotes, courtesy car management software">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://build-tracker.co.uk/">
 
@@ -322,6 +322,7 @@
         <a href="supplier-purchase-order-system/index.html">Supplier & Purchase Order System</a>
         <a href="job-card-workshop-log-system/index.html">Job Card & Workshop Log System</a>
         <a href="quoting-tool/quotebuilder.html">Quote Builder</a>
+        <a href="courtesy-car-manager/index.html">Courtesy Car Manager</a>
         <a href="https://bms-system.onrender.com" target="_blank" rel="noopener">Workshop Tracker</a>
         <a href="https://build-tracker-cloud.onrender.com" target="_blank" rel="noopener">Cloud Storage</a>
       </div>
@@ -428,6 +429,16 @@
       <h4>Build Tracker Cloud</h4>
       <p>Secure cloud storage for plans, photos and job records, with the same login as your Build Tracker software. Separate from the £32 plan, with its own 14‑day free trial.</p>
       <a href="https://build-tracker-cloud.onrender.com" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue" style="margin-top:.8rem;display:inline-block">Try Cloud Storage</a>
+    </div>
+  </div>
+
+  <div class="tool-featured" style="margin-top:1rem">
+    <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M5 17h-.5A1.5 1.5 0 0 1 3 15.5V12l2.2-5.1A2 2 0 0 1 7 5.7h10a2 2 0 0 1 1.8 1.2L21 12v3.5a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M3 12h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></div>
+    <div>
+      <p class="tool-group-label" style="margin-bottom:.3rem">Add‑on · £9.99/month</p>
+      <h4>Courtesy Car Manager</h4>
+      <p>Keep track of your loan cars: MOT, tax and insurance checks, phone‑friendly hand‑overs with photos, damage marks and an on‑screen signature, and returns that work out mileage, fuel and late charges. Separate from the £32 plan, with its own 30‑day free trial.</p>
+      <a href="courtesy-car-manager/index.html" class="mkt-btn mkt-btn-blue" style="margin-top:.8rem;display:inline-block">Try Courtesy Car Manager</a>
     </div>
   </div>
 </section>
@@ -651,6 +662,13 @@
       <p>Secure file storage · from £3.99/month</p>
       <a href="https://build-tracker-cloud.onrender.com" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
+    <div class="dashboard-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M5 17h-.5A1.5 1.5 0 0 1 3 15.5V12l2.2-5.1A2 2 0 0 1 7 5.7h10a2 2 0 0 1 1.8 1.2L21 12v3.5a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M3 12h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></div>
+      <h3>Courtesy Car Manager</h3>
+      <p>Loan cars, hand-overs &amp; returns · £9.99/month</p>
+      <a href="courtesy-car-manager/index.html" class="mkt-btn mkt-btn-blue">Open</a>
+      <button type="button" id="ms-btn-courtesy-car-manager" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal('courtesy-car-manager')">Manage Subscription</button>
+    </div>
   </div>
   <div style="text-align:center; margin-top:2rem;">
     <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Subscribe / Pay £32/month</button>
@@ -812,13 +830,14 @@ async function checkSubscription() {
 // The other tiles (Workshop Scheduler & Diary, Stock Control, Purchase
 // Order System, Workshop Tracker) have no product slug to check yet, so
 // they're left out and keep their normal Open-only behaviour.
-const MANAGED_PRODUCTS = ['build-tracker', 'body-shop-pro', 'electronics-repair', 'job-card-workshop-log-system', 'quoting-tool'];
+const MANAGED_PRODUCTS = ['build-tracker', 'body-shop-pro', 'electronics-repair', 'job-card-workshop-log-system', 'quoting-tool', 'courtesy-car-manager'];
 const PRODUCT_LABELS = {
   'build-tracker': 'Build Tracker',
   'body-shop-pro': 'Body Shop Pro',
   'electronics-repair': 'Electronics Repair',
   'job-card-workshop-log-system': 'Job Card & Workshop Log',
-  'quoting-tool': 'Quote Builder'
+  'quoting-tool': 'Quote Builder',
+  'courtesy-car-manager': 'Courtesy Car Manager'
 };
 
 async function refreshDashboardSubscriptions(userId) {
