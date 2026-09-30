@@ -1,0 +1,2286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Control — PD Stevens &amp; Sons Ltd</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- JsBarcode draws the Code 128 labels, SheetJS reads/writes Excel files, and
+     html5-qrcode is used only for its camera barcode reader (it works on iPhones,
+     which the browser's own BarcodeDetector does not). -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script>
+const SB_URL = 'https://dkdnlgwflrwdxtrovrrq.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZG5sZ3dmbHJ3ZHh0cm92cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjM4NjUsImV4cCI6MjA5NTk5OTg2NX0.vf3uAq8uInMBMEw6fU-qng2kg_BjunGNgFhGoA_V4Gk';
+const HDR = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+
+// --------------------------
+// PAYMENT & TRIAL CONFIG
+// --------------------------
+const TRIAL_DAYS = 30;
+const MONTHLY_PRICE = 32.00;
+const CURRENCY = 'gbp';
+// Same Supabase project as Body Shop Pro / Workshop Scheduler & Diary, so
+// reusing its bt_trials/bt_subscriptions tables and create-checkout-session
+// function. Each app bills separately — rows are scoped by (user_id, product).
+const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
+const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
+const PRODUCT_ID = 'stock-control';
+</script>
+
+<style>
+:root {
+    --bg:       #0b0d14;
+    --surface:  #13161f;
+    --card:     #181c29;
+    --border:   #252a3a;
+    --input-bg: #1e2336;
+    --accent:   #165DFF;
+    --accent2:  #00d4aa;
+    --danger:   #ff4757;
+    --text:     #e8eaf2;
+    --muted:    #6b7499;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+/* ───── AUTH SCREEN ───── */
+#authScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(22,93,255,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,212,170,0.08) 0%, transparent 70%),
+        var(--bg);
+}
+
+.auth-box {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.auth-logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.auth-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.auth-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+}
+
+.auth-tabs {
+    display: flex;
+    background: var(--input-bg);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 24px;
+    gap: 4px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.auth-tab.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.field {
+    margin-bottom: 14px;
+}
+
+.field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+}
+
+.field input {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.field input:focus {
+    border-color: var(--accent);
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.auth-btn:hover { opacity: 0.9; }
+.auth-btn:active { transform: scale(0.98); }
+.auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-msg {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+}
+
+.auth-msg.error   { background: rgba(255,71,87,0.12); color: #ff6b7a; border: 1px solid rgba(255,71,87,0.25); display: block; }
+.auth-msg.success { background: rgba(0,212,170,0.10); color: var(--accent2); border: 1px solid rgba(0,212,170,0.25); display: block; }
+
+.trial-note {
+    background: rgba(0,212,170,0.08);
+    border: 1px solid rgba(0,212,170,0.2);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+/* ───── BILLING SCREEN ───── */
+#billingScreen {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(22,93,255,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,212,170,0.08) 0%, transparent 70%),
+        var(--bg);
+}
+
+.billing-box {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    text-align: center;
+}
+
+.billing-box h2 {
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+
+.billing-box .price {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 16px 0;
+}
+
+/* ───── APP SCREEN ───── */
+#appScreen { display: none; }
+
+.topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.topbar-brand {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.trial-badge {
+    font-size: 11px;
+    background: rgba(0,212,170,0.15);
+    color: var(--accent2);
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.user-email {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+}
+
+.logout-btn {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.app-body {
+    padding: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.page-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* ───── STATS ───── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+}
+
+.stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.stat-card.low .stat-value { color: var(--danger); }
+.stat-card.value .stat-value { color: var(--accent2); }
+
+/* ───── CARD ───── */
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 16px;
+}
+
+/* ───── FORM ───── */
+.add-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.3fr 1.3fr 0.8fr 0.9fr auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.form-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.form-field label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+}
+
+.form-field input {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-field input:focus { border-color: var(--accent); }
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { opacity: 0.88; }
+
+.btn-ghost {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ───── BACKUP ROW ───── */
+.backup-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.file-label {
+    padding: 10px 20px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.file-label:hover { border-color: var(--accent); color: var(--accent); }
+#importFile { display: none; }
+
+/* ───── TABLE ───── */
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 0 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+tbody tr { transition: background 0.15s; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+tbody td {
+    padding: 12px 10px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.mono { font-family: var(--mono); font-size: 13px; }
+
+.qty-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--input-bg);
+    color: var(--text);
+}
+
+.qty-badge.low { background: rgba(255,71,87,0.15); color: var(--danger); }
+
+.action-btns { display: flex; gap: 6px; }
+
+.btn-icon {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.btn-icon.plus  { background: rgba(0,212,170,0.12); color: var(--accent2); }
+.btn-icon.minus { background: rgba(22,93,255,0.12); color: var(--accent); }
+.btn-icon.del   { background: rgba(255,71,87,0.10); color: var(--danger); }
+.btn-icon.bar   { background: rgba(107,116,153,0.15); color: var(--muted); }
+.btn-icon:hover { filter: brightness(1.3); transform: scale(1.08); }
+
+/* ───── MODALS (barcode label, camera, Excel import) ───── */
+.bc-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5,6,9,0.75);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.bc-overlay.open { display: flex; }
+.bc-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 360px;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    text-align: center;
+}
+.bc-box.cam  { max-width: 440px; }
+.bc-box.wide { max-width: 720px; text-align: left; }
+.bc-box h3 { margin-bottom: 4px; text-transform: none; letter-spacing: 0; font-size: 16px; color: var(--text); }
+.bc-box .bc-sku { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.bc-box .bc-loc { font-size: 13px; color: var(--accent2); margin-bottom: 14px; min-height: 18px; }
+.bc-wrap { display: inline-block; max-width: 100%; padding: 6px; background: #fff; border-radius: 10px; margin-bottom: 16px; }
+.bc-wrap svg { display: block; max-width: 100%; height: auto; }
+.bc-box .btn { width: 100%; margin-bottom: 8px; }
+.bc-box.wide .btn { width: auto; margin-bottom: 0; }
+#camReader { width: 100%; border-radius: 10px; overflow: hidden; background: #000; min-height: 120px; }
+#camMsg { font-size: 13px; color: var(--muted); margin: 12px 0; }
+
+/* ───── SCAN SCREEN (reached from the scan box, camera or a ?item= link) ───── */
+#scanScreen {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(22,93,255,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,212,170,0.08) 0%, transparent 70%),
+        var(--bg);
+}
+.scan-box { width: 100%; max-width: 380px; }
+.scan-box .scan-name { font-size: 20px; font-weight: 600; margin-bottom: 2px; }
+.scan-box .scan-sku { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.scan-box .scan-loc { font-size: 13px; color: var(--accent2); margin-bottom: 18px; min-height: 18px; }
+.scan-box .scan-qty-current {
+    font-family: var(--mono);
+    font-size: 34px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.scan-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.scan-toggle button {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--muted);
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.scan-toggle button.active.in  { background: rgba(0,212,170,0.15); border-color: var(--accent2); color: var(--accent2); }
+.scan-toggle button.active.out { background: rgba(22,93,255,0.15); border-color: var(--accent); color: var(--accent); }
+.scan-box .auth-msg { margin-top: 12px; }
+
+/* Two things print: the single-item barcode label (only while its modal is open)
+   or the multi-label sheet (body.printing-labels). Everything else is hidden. */
+#labelSheet { display: none; }
+@media print {
+    body > * { display: none !important; }
+    body:not(.printing-labels) > #barcodeOverlay.open { display: flex !important; position: static !important; background: #fff !important; }
+    body:not(.printing-labels) .bc-box { box-shadow: none !important; border: none !important; background: #fff !important; color: #000 !important; }
+    body:not(.printing-labels) .bc-box h3,
+    body:not(.printing-labels) .bc-box .bc-sku,
+    body:not(.printing-labels) .bc-box .bc-loc { color: #000 !important; }
+    body:not(.printing-labels) .bc-box .btn { display: none !important; }
+    body.printing-labels > #labelSheet { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 4mm; padding: 6mm; background: #fff; }
+    #labelSheet .lbl { border: 1px dashed #999; border-radius: 2mm; padding: 3mm; text-align: center; color: #000; background: #fff; break-inside: avoid; page-break-inside: avoid; }
+    #labelSheet .lbl-name { font: 600 11pt 'IBM Plex Sans', sans-serif; margin-bottom: 1mm; overflow-wrap: anywhere; }
+    #labelSheet .lbl-loc  { font: 9pt 'IBM Plex Sans', sans-serif; }
+    #labelSheet .lbl svg  { max-width: 100%; height: auto; }
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+/* ───── STOCK ROW -> LOG FILTER ───── */
+#stockBody tr { cursor: pointer; }
+#stockBody tr.row-selected { background: rgba(22,93,255,0.08); }
+
+.log-filter-label {
+    font-family: var(--sans);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.clear-filter-link {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+.clear-filter-link:hover { text-decoration: underline; }
+
+@keyframes cardFlash {
+    0% { background: rgba(22,93,255,0.18); }
+    100% { background: var(--card); }
+}
+.card.flash-highlight { animation: cardFlash 1s ease; }
+
+/* ───── SCAN BAR, SEARCH, LOCATION, EXCEL IMPORT ───── */
+.scanbar-row { display: flex; gap: 10px; }
+.scanbar-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 14px 16px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.scanbar-row input:focus { border-color: var(--accent2); }
+.scanbar-msg { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+.scanbar-msg.error { color: var(--danger); }
+.scanbar-msg a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+.stock-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.stock-tools { display: flex; align-items: center; gap: 8px; }
+.search-input {
+    width: 260px;
+    padding: 8px 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+}
+.search-input:focus { border-color: var(--accent); }
+.btn-sm { padding: 8px 14px; font-size: 12px; }
+.table-scroll { overflow-x: auto; }
+.stock-scroll table { min-width: 780px; } /* scrolls sideways inside its card on a phone rather than squashing */
+
+.loc-input {
+    width: 100%;
+    min-width: 96px;
+    padding: 6px 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+}
+.loc-input:hover { border-color: var(--border); }
+.loc-input:focus { border-color: var(--accent); background: var(--input-bg); }
+.loc-input::placeholder { color: var(--muted); opacity: 0.6; }
+
+.db-warn {
+    display: none;
+    background: rgba(255,71,87,0.10);
+    border: 1px solid rgba(255,71,87,0.3);
+    color: #ff8a95;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.imp-row { display: grid; grid-template-columns: 190px 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+.imp-row label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.imp-row select {
+    padding: 9px 10px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+}
+.imp-note { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+.imp-check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; margin: 4px 0 12px; }
+.imp-summary {
+    background: rgba(0,212,170,0.08);
+    border: 1px solid rgba(0,212,170,0.2);
+    color: var(--accent2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 14px 0;
+}
+.imp-summary.bad { background: rgba(255,71,87,0.10); border-color: rgba(255,71,87,0.3); color: #ff8a95; }
+.imp-preview { font-size: 12px; margin-bottom: 14px; }
+.imp-preview th { padding: 0 8px 8px; }
+.imp-preview td { padding: 6px 8px; font-size: 12px; }
+.imp-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+.imp-bar { height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; margin: 14px 0 8px; }
+.imp-bar > div { height: 100%; width: 0; background: var(--accent2); transition: width 0.2s; }
+
+/* ───── RESPONSIVE ───── */
+@media (max-width: 700px) {
+    .add-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .add-grid .btn-primary {
+        grid-column: span 2;
+    }
+    .search-input { width: 100%; }
+    .scanbar-row { flex-direction: column; }
+    .stock-tools { width: 100%; }
+    .imp-row { grid-template-columns: 1fr; gap: 4px; }
+    .user-email { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH SCREEN ═══ -->
+<div id="authScreen">
+    <div class="auth-box">
+        <div class="auth-logo">📦 Stock Control</div>
+        <div class="auth-title">Welcome back</div>
+        <div class="auth-sub">Sign in to manage your stock</div>
+
+        <div class="trial-note">✅ 30 Days Free Trial — then £32.00 per month</div>
+        <div class="trial-note" id="inviteBanner" style="display:none;">You've been invited to join a team's Stock Control workspace — sign in or create an account below to accept.</div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+            <button class="auth-tab" onclick="switchTab('register')">Create Account</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="loginForm">
+            <div class="field">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <button class="auth-btn" onclick="doLogin()">Sign In</button>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="registerForm" style="display:none">
+            <div class="field">
+                <label>Email</label>
+                <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="regPass" placeholder="Min. 6 characters" autocomplete="new-password">
+            </div>
+            <div class="field">
+                <label>Confirm Password</label>
+                <input type="password" id="regPass2" placeholder="Repeat password" autocomplete="new-password">
+            </div>
+            <button class="auth-btn" onclick="doRegister()">Create Account</button>
+        </div>
+
+        <div class="auth-msg" id="authMsg"></div>
+    </div>
+</div>
+
+<!-- ═══ BILLING SCREEN ═══ -->
+<div id="billingScreen">
+    <div class="billing-box">
+        <h2>Subscription Required</h2>
+        <div id="billingMessage"></div>
+        <button class="auth-btn" id="subscribeBtn">Subscribe £32.00/month</button>
+        <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;">(approx. $43 USD)</p>
+        <p id="paymentMsg" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;"></p>
+        <button class="btn btn-ghost" onclick="doLogout()" style="margin-top:12px;width:100%;">Sign Out</button>
+    </div>
+</div>
+
+<!-- ═══ APP SCREEN ═══ -->
+<div id="appScreen">
+
+    <div class="topbar">
+        <div class="topbar-brand">📦 Stock Control V2</div>
+        <div class="topbar-user">
+            <span class="trial-badge" id="trialBadge"></span>
+            <span class="user-email" id="userEmail"></span>
+            <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+        </div>
+    </div>
+
+    <div class="app-body">
+        <div class="page-title">Stock Dashboard</div>
+
+        <div class="db-warn" id="dbWarn">
+            <strong>One-off setup step needed.</strong> The database doesn't have the Location column yet, so locations can't be saved.
+            Run <code>migration-barcode.sql</code> once in Supabase (SQL Editor), then refresh this page.
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Items</div>
+                <div class="stat-value" id="totalItems">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Quantity</div>
+                <div class="stat-value" id="totalQty">0</div>
+            </div>
+            <div class="stat-card value">
+                <div class="stat-label">Stock Value</div>
+                <div class="stat-value" id="stockValue">£0.00</div>
+            </div>
+            <div class="stat-card low">
+                <div class="stat-label">Low Stock ≤5</div>
+                <div class="stat-value" id="lowStock">0</div>
+            </div>
+        </div>
+
+        <!-- Scan -->
+        <div class="card">
+            <h3>Scan a barcode</h3>
+            <div class="scanbar-row">
+                <input id="scanBox" placeholder="Click here, then scan a barcode — or type a product code and press Enter" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <button type="button" class="btn btn-ghost" onclick="openCamera()">📷 Use camera</button>
+            </div>
+            <div class="scanbar-msg" id="scanBoxMsg"></div>
+        </div>
+
+        <!-- Add Item -->
+        <div class="card" id="addItemCard">
+            <h3>Add Item</h3>
+            <div class="add-grid">
+                <div class="form-field">
+                    <label>Item Name</label>
+                    <input id="name" placeholder="e.g. Widget A" autocomplete="off">
+                </div>
+                <div class="form-field">
+                    <label>Product Code</label>
+                    <input id="sku" placeholder="e.g. WGT-001" autocomplete="off">
+                </div>
+                <div class="form-field">
+                    <label>Location</label>
+                    <input id="location" placeholder="e.g. Aisle 3, Shelf B" autocomplete="off">
+                </div>
+                <div class="form-field">
+                    <label>Quantity</label>
+                    <input id="qty" type="number" value="0" autocomplete="off">
+                </div>
+                <div class="form-field">
+                    <label>Cost Price (£)</label>
+                    <input id="cost" type="number" step="0.01" value="0" autocomplete="off">
+                </div>
+                <button class="btn btn-primary" onclick="addItem()">Save Item</button>
+            </div>
+        </div>
+
+        <!-- Team -->
+        <div class="card">
+            <h3>Team</h3>
+            <div id="teamOwnerControls" style="display:none;">
+                <div class="add-grid" style="grid-template-columns: 2fr auto;">
+                    <div class="form-field">
+                        <label>Invite by email</label>
+                        <input id="inviteEmail" type="email" placeholder="colleague@example.com" autocomplete="off">
+                    </div>
+                    <button class="btn btn-primary" onclick="sendInvite()">Send Invite</button>
+                </div>
+                <p id="inviteMsg" style="font-size:12px;color:var(--muted);margin-top:8px;word-break:break-all;"></p>
+            </div>
+            <table style="margin-top:12px;">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="teamBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Excel + Backup -->
+        <div class="card" id="backupCard">
+            <h3>Excel &amp; Backup</h3>
+            <div class="backup-row">
+                <label class="file-label" for="excelFile">⬆ Import from Excel</label>
+                <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="onExcelFile(event)" style="display:none;">
+                <button class="btn btn-ghost" onclick="exportExcel()">⬇ Export to Excel</button>
+            </div>
+            <p class="imp-note" style="margin:10px 0 16px;">Import reads the first sheet of your spreadsheet and lets you choose which column is the product code, name, location, quantity and cost. Parts already in Stock Control are matched by product code and updated; new ones are added.</p>
+            <div class="backup-row">
+                <button class="btn btn-ghost" onclick="exportBackup()">⬇ Export Backup</button>
+                <label class="file-label" for="importFile">⬆ Import Backup</label>
+                <input type="file" id="importFile" accept=".json" onchange="importBackup(event)">
+            </div>
+        </div>
+
+        <!-- Stock Table -->
+        <div class="card">
+            <h3 class="stock-head">
+                <span>Stock Items<span class="log-filter-label" id="stockCount"></span></span>
+                <span class="stock-tools">
+                    <input id="stockSearch" class="search-input" placeholder="Search code, name or location…" oninput="onStockSearch(this.value)" autocomplete="off">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="printLabels()">🖨 Print labels</button>
+                </span>
+            </h3>
+            <div class="table-scroll stock-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Product Code</th>
+                        <th>Location</th>
+                        <th>Qty</th>
+                        <th>Unit Cost</th>
+                        <th>Value</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="stockBody"></tbody>
+            </table>
+            </div>
+        </div>
+
+        <!-- Log Table -->
+        <div class="card" id="movementLogCard">
+            <h3 style="display:flex;align-items:center;justify-content:space-between;">
+                <span>Movement Log<span class="log-filter-label" id="logFilterLabel"></span></span>
+                <button type="button" class="clear-filter-link" id="clearLogFilterBtn" style="display:none;" onclick="clearLogFilter()">✕ Clear filter</button>
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Item</th>
+                        <th>Action</th>
+                        <th>Qty</th>
+                    </tr>
+                </thead>
+                <tbody id="logBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ BARCODE LABEL MODAL ═══ -->
+<div id="barcodeOverlay" class="bc-overlay">
+    <div class="bc-box">
+        <h3 id="bcItemName"></h3>
+        <div class="bc-sku" id="bcItemSku"></div>
+        <div class="bc-loc" id="bcItemLoc"></div>
+        <div class="bc-wrap"><svg id="bcSvg"></svg></div>
+        <p id="bcError" style="display:none;font-size:12px;color:var(--danger);margin-bottom:12px;">This product code has characters that can't be made into a barcode.</p>
+        <button class="btn btn-primary" onclick="window.print()">🖨 Print</button>
+        <button class="btn btn-ghost" onclick="closeBarcodeModal()">Close</button>
+    </div>
+</div>
+
+<!-- ═══ CAMERA SCANNER ═══ -->
+<div id="camOverlay" class="bc-overlay">
+    <div class="bc-box cam">
+        <h3>Point the camera at a barcode</h3>
+        <div id="camReader"></div>
+        <p id="camMsg"></p>
+        <button class="btn btn-ghost" onclick="closeCamera()">Cancel</button>
+    </div>
+</div>
+
+<!-- ═══ EXCEL IMPORT ═══ -->
+<div id="importOverlay" class="bc-overlay">
+    <div class="bc-box wide" id="importBody"></div>
+</div>
+
+<!-- Filled and printed by printLabels() -->
+<div id="labelSheet"></div>
+
+<!-- ═══ SCAN SCREEN (opened via a QR code's link — item=<id> in the URL) ═══ -->
+<div id="scanScreen">
+    <div class="auth-box scan-box">
+        <div class="auth-logo">📦 Stock Control</div>
+        <div class="auth-title">Scan Stock Update</div>
+        <div id="scanNotFound" style="display:none;">
+            <p style="color:var(--muted);margin:12px 0 20px;">This item couldn't be found — it may have been deleted, or belongs to a different account.</p>
+            <button class="btn btn-ghost" style="width:100%;" onclick="backToDashboardFromScan()">Back to Dashboard</button>
+        </div>
+        <div id="scanFound" style="display:none;">
+            <div class="scan-name" id="scanItemName"></div>
+            <div class="scan-sku" id="scanItemSku"></div>
+            <div class="scan-loc" id="scanItemLoc"></div>
+            <div class="scan-qty-current"><span id="scanCurrentQty">0</span> in stock</div>
+            <div class="scan-toggle">
+                <button type="button" id="scanBtnIn"  class="in"  onclick="setScanDirection('in')">Stock In</button>
+                <button type="button" id="scanBtnOut" class="out" onclick="setScanDirection('out')">Stock Out</button>
+            </div>
+            <div class="field">
+                <label>Quantity</label>
+                <input type="number" id="scanQty" value="1" min="1" step="1" autocomplete="off">
+            </div>
+            <button class="auth-btn" onclick="submitScanAction()">Confirm</button>
+            <div class="auth-msg" id="scanMsg"></div>
+            <button class="btn btn-ghost" style="width:100%;margin-top:12px;" onclick="backToDashboardFromScan()">Back to Dashboard</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let stock = [];
+let logs  = [];
+let currentUser = null;
+let userData = null;
+
+// ownerId is the shared-workspace identity every stock/stock_logs/users
+// query is scoped by from here on — for an owner this equals their own
+// currentUser.id, for an invited staff member it's the owner who invited
+// them. Resolved once per session in getUserData() via sc_resolve_owner().
+// currentRole ('owner'|'staff') gates the Team/Backup owner-only controls.
+let ownerId = null;
+let currentRole = 'owner';
+
+// Scan landing — the id of the item being booked in/out. Set at load from an
+// old ?item=<stock.id> link (captured before login even runs — whoever opens
+// it still has to sign in first, and checkAccess() below routes here instead
+// of the normal dashboard once that passes), and later by openScanScreen()
+// when a barcode is scanned into the scan box or the camera reads one.
+let scanItemId = new URLSearchParams(window.location.search).get('item');
+let scanDirection = 'in';
+
+// Team invite landing — ?invite=<token>, see sendInvite()/tryAcceptInvite().
+// hasInviteParam stays true for the banner even after inviteToken itself
+// is consumed (set null) once tryAcceptInvite() actually redeems it, so a
+// signup-then-login round trip only ever attempts redemption once.
+let inviteToken = new URLSearchParams(window.location.search).get('invite');
+const hasInviteParam = !!inviteToken;
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// ═══ AUTH ═══
+
+function switchTab(tab) {
+    document.getElementById('loginForm').style.display    = tab === 'login'    ? '' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? '' : 'none';
+    document.querySelectorAll('.auth-tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+    });
+    clearMsg();
+}
+
+function showMsg(text, type = 'error') {
+    const el = document.getElementById('authMsg');
+    el.textContent = text;
+    el.className = 'auth-msg ' + type;
+}
+
+function clearMsg() {
+    const el = document.getElementById('authMsg');
+    el.className = 'auth-msg';
+    el.textContent = '';
+}
+
+if (hasInviteParam) {
+    document.getElementById('inviteBanner').style.display = 'block';
+}
+
+// --------------------------
+// TRIAL & PAYMENT FUNCTIONS
+// --------------------------
+function daysRemaining() {
+    if(!userData || !userData.signup_date) return 0;
+    const signup = new Date(userData.signup_date);
+    const now = new Date();
+    const diff = TRIAL_DAYS - Math.floor((now - signup) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+}
+
+async function checkAccess() {
+    const days = daysRemaining();
+    const active = days > 0 ? true : await hasActiveSubscription();
+    if(active) {
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('billingScreen').style.display = 'none';
+        // A scanned QR link takes priority over the normal dashboard, but
+        // only once the same trial/subscription gate as everything else in
+        // this app has passed — scanning a link doesn't bypass billing.
+        document.getElementById('trialBadge').textContent = days > 0 ? `${days} days trial left` : '✓ Subscribed';
+        // Backup/restore replaces the entire shared workspace's data in
+        // one go — kept owner-only rather than "full access, same as
+        // owner" like everything else, since it's uniquely destructive.
+        // The Excel import shares the card, and can overwrite parts too.
+        document.getElementById('backupCard').style.display = currentRole === 'owner' ? 'block' : 'none';
+        if (scanItemId) {
+            document.getElementById('appScreen').style.display = 'none';
+            document.getElementById('scanScreen').style.display = 'flex';
+            loadScanScreen();
+            return;
+        }
+        document.getElementById('appScreen').style.display = 'block';
+        loadData();
+        loadTeam();
+        checkLocationColumn();
+        focusScanBox();
+    } else {
+        showBilling();
+    }
+}
+
+// Real subscription check — a row in the shared bt_subscriptions table for
+// this WORKSPACE (keyed to ownerId, not whichever login is currently
+// signed in — see getUserData()), scoped to this product, with
+// status='active'. Replaces the old client-set userData.subscribed flag,
+// which any signed-in user could flip themselves with no payment ever
+// taking place.
+async function hasActiveSubscription() {
+    const { data, error } = await sbClient.from(SUBSCRIPTIONS_TABLE)
+        .select('status')
+        .eq('user_id', ownerId)
+        .eq('product', PRODUCT_ID)
+        .eq('status', 'active')
+        .maybeSingle();
+    if(error) { console.error('Subscription check failed:', error.message); return false; }
+    return !!data;
+}
+
+function showBilling() {
+    const days = daysRemaining();
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('billingScreen').style.display = 'flex';
+
+    const msgEl = document.getElementById('billingMessage');
+    const subscribeBtn = document.getElementById('subscribeBtn');
+
+    // Only the workspace owner can actually pay — an invited staff member
+    // hitting a lapsed trial/subscription sees the same lock (the whole
+    // workspace is paused either way) but with no way to start checkout
+    // themselves, and a message pointing at who can.
+    if (currentRole !== 'owner') {
+        subscribeBtn.style.display = 'none';
+        msgEl.innerHTML = `<p style="color:var(--danger);margin-bottom:16px;">❌ This workspace's free trial has ended.<br>Ask ${escapeHtml(userData?.email || 'the workspace owner')} to subscribe to continue.</p>`;
+        return;
+    }
+    subscribeBtn.style.display = '';
+
+    if(days > 0) {
+        msgEl.innerHTML = `<p style="color:var(--accent2);margin-bottom:16px;">✅ ${days} days of free trial remaining</p>`;
+    } else {
+        msgEl.innerHTML = `<p style="color:var(--danger);margin-bottom:16px;">❌ Your free trial has ended. Subscribe now to continue.</p>`;
+    }
+
+    subscribeBtn.onclick = startSubscription;
+}
+
+// Redirects to a real Stripe Checkout session (created server-side by the
+// existing 'create-checkout-session' Edge Function), instead of taking card
+// details directly in the browser.
+async function startSubscription() {
+    const msgEl = document.getElementById('paymentMsg');
+    if(msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
+    try {
+        const { data: { session } } = await sbClient.auth.getSession();
+        const res = await fetch(`${SB_URL}/functions/v1/create-checkout-session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+                price_id: STRIPE_PRICE_ID,
+                product: PRODUCT_ID,
+                user_id: ownerId,
+                email: currentUser.email,
+                success_url: window.location.origin + window.location.pathname + '?payment=success',
+                cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
+            })
+        });
+        const { url, error } = await res.json();
+        if(error || !url) throw new Error(error || 'No checkout URL returned');
+        window.location.href = url;
+    } catch(err) {
+        if(msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
+    }
+}
+
+// Checks for ?payment=success/cancel on the URL after redirect back from Stripe.
+async function handlePaymentResult() {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('payment');
+    if(!result) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    if(result === 'success') {
+        // Webhook may take a moment to write the active row; brief delay then re-check.
+        setTimeout(() => { checkAccess(); }, 1500);
+    }
+}
+
+// Resolves the caller's owner_id via sc_resolve_owner() — their own id if
+// they're an owner (existing single-user account, or a brand new signup;
+// either way this is what bootstraps their sc_team_members row on first
+// call), or the id of whoever invited them if they're staff.
+async function resolveOwner() {
+    const { data, error } = await sbClient.rpc('sc_resolve_owner');
+    if (error) { console.error('sc_resolve_owner failed:', error.message); return currentUser.id; }
+    return data;
+}
+
+// Redeems a pending ?invite=<token> exactly once. Must run BEFORE
+// resolveOwner()/getUserData() below — sc_accept_invite() inserts this
+// account's sc_team_members row itself, so resolveOwner() then finds
+// that existing row (owner_id = the inviter) instead of bootstrapping a
+// brand new separate owner for this account.
+//
+// Returns the outcome instead of just showing a message directly — a
+// rejection here needs to survive past whatever the caller does next
+// (doRegister() immediately overwrites any authMsg text with "Account
+// created!", and doLogin() hides #authScreen — and #authMsg along with
+// it — the moment checkAccess() succeeds). Callers below use alert()
+// with this result instead, since that's the one thing guaranteed to
+// stay visible across both of those.
+async function tryAcceptInvite() {
+    if (!inviteToken) return null;
+    const token = inviteToken;
+    inviteToken = null; // consume once, so a doRegister() -> doLogin() round trip doesn't retry
+    // try/catch kept permanently, not just for this investigation —
+    // without it, any thrown exception (not just a graceful {ok:false}
+    // response) would propagate straight out of this function and abort
+    // whichever caller is awaiting it before it ever reaches its own
+    // alert(...) check below, silently — a thrown exception here
+    // shouldn't be able to look identical to "nothing happened".
+    try {
+        const { data, error } = await sbClient.rpc('sc_accept_invite', { p_token: token });
+        const url = new URL(window.location.href);
+        url.searchParams.delete('invite');
+        window.history.replaceState({}, '', url.pathname + url.search);
+        if (error) { console.error('sc_accept_invite failed:', error.message); return { ok: false, error: 'Could not process the invite: ' + error.message }; }
+        return data;
+    } catch (e) {
+        console.error('tryAcceptInvite() threw:', e);
+        return { ok: false, error: 'Unexpected error accepting invite: ' + e.message };
+    }
+}
+
+async function getUserData() {
+    ownerId = await resolveOwner();
+
+    const { data: myMembership } = await sbClient.from('sc_team_members')
+        .select('role').eq('owner_id', ownerId).eq('user_id', currentUser.id).maybeSingle();
+    currentRole = myMembership ? myMembership.role : 'owner';
+
+    // Trial/subscription state is the WORKSPACE's (one users row per
+    // owner_id, not per login) — an invited staff member reads the
+    // OWNER's row here, never their own, so their first login can't mint
+    // a fresh personal 30-day trial independent of the workspace's real
+    // trial/subscription status.
+    const { data } = await sbClient.from('users').select('*').eq('id', ownerId).single();
+    if(!data) {
+        // Create new user record if first login
+        const newUser = {
+            id: ownerId,
+            email: currentUser.email,
+            signup_date: new Date().toISOString()
+        };
+        await sbClient.from('users').insert(newUser);
+        userData = newUser;
+    } else {
+        userData = data;
+    }
+}
+
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPass').value;
+    if (!email || !pass) { showMsg('Please enter your email and password.'); return; }
+
+    const btn = document.querySelector('#loginForm .auth-btn');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+
+    const { data, error } = await sbClient.auth.signInWithPassword({ email, password: pass });
+
+    btn.disabled = false; btn.textContent = 'Sign In';
+
+    if (error) { showMsg(error.message); return; }
+
+    currentUser = data.user;
+    const inviteResult = await tryAcceptInvite();
+    await getUserData();
+    if (inviteResult && !inviteResult.ok) { alert('Invite not accepted: ' + inviteResult.error); }
+    checkAccess();
+}
+
+async function doRegister() {
+    const email = document.getElementById('regEmail').value.trim();
+    const pass  = document.getElementById('regPass').value;
+    const pass2 = document.getElementById('regPass2').value;
+
+    if (!email || !pass) { showMsg('Please fill in all fields.'); return; }
+    if (pass !== pass2)  { showMsg('Passwords do not match.'); return; }
+    if (pass.length < 6) { showMsg('Password must be at least 6 characters.'); return; }
+
+    const btn = document.querySelector('#registerForm .auth-btn');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+
+    const { data, error } = await sbClient.auth.signUp({ email, password: pass });
+
+    btn.disabled = false; btn.textContent = 'Create Account';
+
+    if (error) { showMsg(error.message); return; }
+
+    if (data.user) {
+        currentUser = data.user;
+        // Only meaningful if signUp() granted an immediate session (email
+        // confirmation off) — accept_invite needs auth.uid(), which a
+        // session-less signup response doesn't have yet. If there's no
+        // session here, tryAcceptInvite() runs again from doLogin() once
+        // they actually sign in below, and inviteToken is still set since
+        // this path never got the chance to consume it.
+        let inviteResult = null;
+        if (data.session) inviteResult = await tryAcceptInvite();
+        await getUserData();
+        // alert() here, not showMsg() — showMsg('Account created!...')
+        // right below would silently overwrite it instantly otherwise,
+        // which is exactly how the real rejection reason got hidden the
+        // first time this was tested.
+        if (inviteResult && !inviteResult.ok) { alert('Invite not accepted: ' + inviteResult.error); }
+        showMsg('Account created! Your 30-day free trial starts now.', 'success');
+        switchTab('login');
+    }
+}
+
+async function doLogout() {
+    await sbClient.auth.signOut();
+    currentUser = null;
+    userData = null;
+    ownerId = null;
+    currentRole = 'owner';
+    stock = []; logs = []; stockLoaded = false;
+    filteredItemId = null; filteredItemName = null; filteredLogs = [];
+    document.getElementById('appScreen').style.display  = 'none';
+    document.getElementById('billingScreen').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+}
+
+function enterApp(user) {
+    // Not used directly — we use checkAccess instead
+}
+
+// ═══ DATA ═══
+
+// Supabase hands back at most 1000 rows per request, and this copy is meant
+// for a big imported parts list — so stock is read a page at a time.
+// Ordering by sku then id keeps the pages stable between requests.
+const PAGE_SIZE = 1000;
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+let stockLoaded = false;
+// False until migration-barcode.sql has added stock.location — see checkLocationColumn().
+let hasLocationCol = true;
+
+async function fetchAllPages(table, orderCols) {
+    let all = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+        let q = sbClient.from(table).select('*').eq('owner_id', ownerId);
+        orderCols.forEach(([col, asc]) => { q = q.order(col, { ascending: asc }); });
+        const { data, error } = await q.range(from, from + PAGE_SIZE - 1);
+        // A half-loaded list would make a barcode scan report "not found" for
+        // parts that do exist, so say so rather than carrying on quietly.
+        if (error) { console.error('Loading ' + table + ' failed:', error.message); alert('Could not load all of your ' + table.replace('_', ' ') + ': ' + error.message); break; }
+        all = all.concat(data || []);
+        if (!data || data.length < PAGE_SIZE) break;
+    }
+    return all;
+}
+
+function sortStock() { stock.sort((a, b) => collator.compare(a.sku, b.sku)); }
+
+async function loadData() {
+    stock = await fetchAllPages('stock', [['sku', true], ['id', true]]);
+    sortStock();
+    stockLoaded = true;
+    render();
+    if (filteredItemId) loadFilteredLogs();
+}
+
+// The Location column is added by migration-barcode.sql. Checked once per
+// session so the owner gets a clear pointer instead of a failed save, and so
+// everything else keeps working (just without locations) until it's been run.
+async function checkLocationColumn() {
+    const { error } = await sbClient.from('stock').select('location').limit(1);
+    hasLocationCol = !(error && /location/i.test(error.message));
+    document.getElementById('dbWarn').style.display = hasLocationCol ? 'none' : 'block';
+}
+
+async function insertChunks(table, rows) {
+    for (let i = 0; i < rows.length; i += 500) {
+        const { error } = await sbClient.from(table).insert(rows.slice(i, i + 500));
+        if (error) throw new Error(error.message);
+    }
+}
+
+// Only used by importBackup() now (owner-only — see checkAccess()). Every
+// other mutation below does a targeted single-row insert/update/delete
+// instead: a full delete-and-reinsert of the whole shared workspace's
+// data would re-stamp every row's user_id with whichever team member
+// happened to trigger it, and would clobber anything a different team
+// member changed at the same moment — fine for a full backup restore
+// (which wants exactly that "replace everything" behaviour), wrong for
+// every day-to-day add/adjust/delete once more than one login can touch
+// the same data.
+async function saveData() {
+    const stockRows = stock.map(i => {
+        const row = { ...i, owner_id: ownerId, user_id: currentUser.id };
+        if (!hasLocationCol) delete row.location;
+        return row;
+    });
+    await sbClient.from('stock').delete().eq('owner_id', ownerId);
+    await insertChunks('stock', stockRows);
+    await sbClient.from('stock_logs').delete().eq('owner_id', ownerId);
+    await insertChunks('stock_logs', logs.map(l => ({ ...l, owner_id: ownerId, user_id: currentUser.id })));
+}
+
+async function addItem() {
+    const item = {
+        // stock.id and stock_logs.id are both live `uuid` columns — a
+        // plain Date.now() timestamp isn't a valid uuid and every save
+        // was failing with a "22P02 invalid input syntax for type uuid"
+        // error. crypto.randomUUID() is a real uuid, so it's safe to send
+        // straight to the DB (no server-generated id needed) *and* it
+        // keeps comparing correctly with === against ids loaded back from
+        // Supabase after a reload, which are also uuid strings.
+        id:   crypto.randomUUID(),
+        owner_id: ownerId,
+        user_id:  currentUser.id,
+        name: document.getElementById('name').value.trim(),
+        sku:  document.getElementById('sku').value.trim(),
+        qty:  Number(document.getElementById('qty').value),
+        cost: Number(document.getElementById('cost').value)
+    };
+    if (hasLocationCol) item.location = document.getElementById('location').value.trim() || null;
+    if (!item.name || !item.sku) { alert('Please enter Item Name and Product Code'); return; }
+    // Scanning looks a part up by product code, so two parts sharing one
+    // would make every scan of it ambiguous.
+    if (findBySku(item.sku)) { alert('There is already an item with the product code ' + item.sku + '.'); return; }
+
+    const { error } = await sbClient.from('stock').insert(item);
+    if (error) { alert('Could not save item: ' + error.message); return; }
+
+    // stock_logs.date is a live `timestamptz` column — store real ISO,
+    // not a locale-formatted string (which isn't a valid timestamp and
+    // would also vary by browser/locale). renderLog() formats it for display.
+    await sbClient.from('stock_logs').insert({
+        id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id,
+        date: new Date().toISOString(), item: item.name, action: 'ADD', qty: item.qty
+    });
+
+    // Local update rather than re-reading the whole list — with thousands of
+    // parts that would be several requests after every single save.
+    stock.push(item);
+    sortStock();
+    render();
+
+    document.getElementById('name').value = '';
+    document.getElementById('sku').value  = '';
+    document.getElementById('location').value = '';
+    document.getElementById('qty').value  = '0';
+    document.getElementById('cost').value = '0';
+}
+
+async function adjust(id, change) {
+    const item = stock.find(i => i.id === id);
+    if (!item) return;
+    const newQty = Math.max(0, item.qty + change);
+
+    const { error } = await sbClient.from('stock').update({ qty: newQty }).eq('id', id).eq('owner_id', ownerId);
+    if (error) { alert('Could not update stock: ' + error.message); return; }
+
+    await sbClient.from('stock_logs').insert({
+        id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id,
+        date: new Date().toISOString(), item: item.name, action: change > 0 ? 'IN' : 'OUT', qty: Math.abs(change)
+    });
+
+    item.qty = newQty;
+    render();
+    if (filteredItemName === item.name) loadFilteredLogs();
+}
+
+async function updateLocation(id, value) {
+    const item = stock.find(i => i.id === id);
+    if (!item) return;
+    const location = value.trim();
+    if ((item.location || '') === location) return;
+    if (!hasLocationCol) { alert('Locations can\'t be saved yet — the one-off database setup step (migration-barcode.sql) still needs running.'); renderStock(); return; }
+
+    const { error } = await sbClient.from('stock').update({ location: location || null }).eq('id', id).eq('owner_id', ownerId);
+    if (error) { alert('Could not save location: ' + error.message); renderStock(); return; }
+    item.location = location || null;
+}
+
+async function deleteItem(id) {
+    if (!confirm('Delete this item?')) return;
+    const { error } = await sbClient.from('stock').delete().eq('id', id).eq('owner_id', ownerId);
+    if (error) { alert('Could not delete item: ' + error.message); return; }
+    stock = stock.filter(i => i.id !== id);
+    if (filteredItemId === id) clearLogFilter();
+    render();
+}
+
+// Movement Log filter state. The log is fetched per item, on click (newest
+// 50 movements), instead of loading every movement ever made up front — a
+// busy parts store racks those up fast, and only one item's history is ever
+// on screen anyway.
+//
+// Matched by item NAME, not a stable id — stock_logs rows only ever
+// store `item: <name string>` at the time of that movement (see
+// addItem()/adjust()/submitScanAction()), never stock.id. There's no
+// item_id/foreign key column in play here at all, so two different
+// stock rows that happen to share the exact same name would show
+// combined history under this filter — no way to tell them apart from
+// the log data alone. Not a concern in practice today (nothing in this
+// app currently lets you rename an item after creation, so a stale-name
+// mismatch specifically from renaming can't happen yet), but worth
+// knowing if a rename feature or duplicate-name items ever come up.
+let filteredItemId = null;
+let filteredItemName = null;
+let filteredLogs = [];
+let logsLoading = false;
+
+let stockSearch = '';
+let searchTimer = null;
+const RENDER_LIMIT = 100; // rows drawn at once — the search box narrows the rest down
+
+function render() {
+    renderStock();
+    renderLog();
+
+    document.getElementById('totalItems').textContent  = stock.length;
+    document.getElementById('totalQty').textContent    = stock.reduce((t, i) => t + i.qty, 0);
+    document.getElementById('stockValue').textContent  = '£' + stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
+    document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
+}
+
+function visibleStock() {
+    const q = stockSearch.trim().toLowerCase();
+    if (!q) return stock;
+    return stock.filter(i =>
+        String(i.name || '').toLowerCase().includes(q) ||
+        String(i.sku || '').toLowerCase().includes(q) ||
+        String(i.location || '').toLowerCase().includes(q));
+}
+
+function onStockSearch(value) {
+    stockSearch = value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderStock, 120);
+}
+
+function renderStock() {
+    const sb = document.getElementById('stockBody');
+    const list = visibleStock();
+    const shown = list.slice(0, RENDER_LIMIT);
+
+    document.getElementById('stockCount').textContent = !stock.length ? ''
+        : list.length === stock.length ? ` — ${stock.length} parts`
+        : ` — ${list.length} of ${stock.length} parts`;
+
+    if (!list.length) {
+        sb.innerHTML = `<tr><td colspan="7"><div class="empty-state">${stock.length
+            ? 'No items match “' + escapeHtml(stockSearch.trim()) + '”.'
+            : 'No stock items yet — add one above, or import your Excel list.'}</div></td></tr>`;
+        return;
+    }
+
+    // name/sku/location can come straight from an imported spreadsheet, so
+    // they're escaped here rather than trusted as markup.
+    sb.innerHTML = shown.map(item => `
+        <tr class="${item.id === filteredItemId ? 'row-selected' : ''}" onclick="filterLogByItem('${item.id}')">
+            <td>${escapeHtml(item.name)}</td>
+            <td class="mono">${escapeHtml(item.sku)}</td>
+            <td><input class="loc-input" value="${escapeHtml(item.location || '')}" placeholder="Add location" autocomplete="off"
+                onclick="event.stopPropagation()" onchange="updateLocation('${item.id}', this.value)" onkeydown="if(event.key==='Enter')this.blur()"></td>
+            <td><span class="qty-badge${item.qty <= 5 ? ' low' : ''}">${item.qty}</span></td>
+            <td class="mono">£${Number(item.cost).toFixed(2)}</td>
+            <td class="mono">£${(item.qty * item.cost).toFixed(2)}</td>
+            <td>
+                <div class="action-btns">
+                    <button class="btn-icon plus"  onclick="event.stopPropagation(); adjust('${item.id}', 1)"  title="Stock In">+</button>
+                    <button class="btn-icon minus" onclick="event.stopPropagation(); adjust('${item.id}',-1)"  title="Stock Out">−</button>
+                    <button class="btn-icon bar"   onclick="event.stopPropagation(); showBarcodeModal('${item.id}')" title="Barcode label">▮▯</button>
+                    <button class="btn-icon del"   onclick="event.stopPropagation(); deleteItem('${item.id}')" title="Delete">✕</button>
+                </div>
+            </td>
+        </tr>`).join('')
+        + (list.length > shown.length
+            ? `<tr><td colspan="7"><div class="empty-state">Showing the first ${shown.length} of ${list.length} — type in the search box to narrow it down.</div></td></tr>`
+            : '');
+}
+
+function renderLog() {
+    const lb = document.getElementById('logBody');
+    const filterLabel = document.getElementById('logFilterLabel');
+    const clearBtn = document.getElementById('clearLogFilterBtn');
+
+    if (!filteredItemId) {
+        lb.innerHTML = `<tr><td colspan="4"><div class="empty-state">Click a stock item above to see its movement history.</div></td></tr>`;
+        filterLabel.textContent = '';
+        clearBtn.style.display = 'none';
+        return;
+    }
+
+    filterLabel.textContent = ` — ${filteredItemName}`;
+    clearBtn.style.display = '';
+
+    lb.innerHTML = filteredLogs.length ? filteredLogs.map(log => `
+        <tr>
+            <td class="mono" style="font-size:12px;color:var(--muted)">${new Date(log.date).toLocaleString()}</td>
+            <td>${escapeHtml(log.item)}</td>
+            <td><span style="font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:4px;background:var(--input-bg)">${escapeHtml(log.action)}</span></td>
+            <td class="mono">${log.qty}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="4"><div class="empty-state">${logsLoading ? 'Loading…' : 'No movements recorded yet for ' + escapeHtml(filteredItemName) + '.'}</div></td></tr>`;
+}
+
+async function loadFilteredLogs() {
+    const name = filteredItemName;
+    const { data, error } = await sbClient.from('stock_logs').select('*')
+        .eq('owner_id', ownerId).eq('item', name)
+        .order('date', { ascending: false }).limit(50);
+    if (name !== filteredItemName) return; // another item was clicked while this was loading
+    filteredLogs = error ? [] : (data || []);
+    logsLoading = false;
+    renderLog();
+}
+
+function filterLogByItem(id) {
+    if (filteredItemId === id) { clearLogFilter(); return; } // clicking the same item again toggles it off
+    const item = stock.find(i => i.id === id);
+    if (!item) return;
+    filteredItemId = id;
+    filteredItemName = item.name;
+    filteredLogs = [];
+    logsLoading = true;
+    renderStock(); // re-render for the row-selected highlight
+    renderLog();
+    loadFilteredLogs();
+
+    const card = document.getElementById('movementLogCard');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    card.classList.remove('flash-highlight');
+    void card.offsetWidth; // restart the flash animation even if it's already mid-fade from a previous click
+    card.classList.add('flash-highlight');
+    setTimeout(() => card.classList.remove('flash-highlight'), 1000);
+}
+
+function clearLogFilter() {
+    filteredItemId = null;
+    filteredItemName = null;
+    filteredLogs = [];
+    renderStock();
+    renderLog();
+}
+
+// ═══ TEAM (invite-by-email, shared full access) ═══
+// v1 has no automated invite email — sc_create_invite() just returns a
+// token, and the owner copies the generated link and sends it themselves
+// (same fallback every invite flow in this product family already shows
+// even when automated sending IS wired up elsewhere). Wiring up a real
+// send would need a new Edge Function deployed into the bms-system-main
+// repo, the only place any of these products' Edge Functions currently
+// live — a separate, bigger piece of work.
+
+async function loadTeam() {
+    document.getElementById('teamOwnerControls').style.display = currentRole === 'owner' ? 'block' : 'none';
+
+    const { data: members } = await sbClient.from('sc_team_members')
+        .select('user_id, role').eq('owner_id', ownerId);
+
+    // auth.users isn't directly selectable from the client, so the only
+    // real email this screen can show for a member who ISN'T "me" would
+    // need its own RPC — out of scope for v1. Showing "You" for the
+    // caller's own row and a shortened id for everyone else is still
+    // enough to answer "who currently has access and what role".
+    const memberRows = (members || []).map(m => `
+        <tr>
+            <td>${m.user_id === currentUser.id ? escapeHtml(currentUser.email) + ' (you)' : (m.role === 'owner' ? 'Owner' : 'Staff — ' + m.user_id.slice(0, 8))}</td>
+            <td>${m.role}</td>
+            <td>Active</td>
+            <td>${currentRole === 'owner' && m.user_id !== currentUser.id ? `<button class="btn-icon del" onclick="removeMember('${m.user_id}')" title="Remove">✕</button>` : ''}</td>
+        </tr>`).join('');
+
+    let inviteRows = '';
+    if (currentRole === 'owner') {
+        const { data: invites } = await sbClient.from('sc_team_invites')
+            .select('id, invited_email').eq('owner_id', ownerId).eq('status', 'pending').order('created_at', { ascending: false });
+        inviteRows = (invites || []).map(i => `
+            <tr>
+                <td>${escapeHtml(i.invited_email)}</td>
+                <td>staff</td>
+                <td>Pending</td>
+                <td><button class="btn-icon del" onclick="revokeInvite('${i.id}')" title="Revoke">✕</button></td>
+            </tr>`).join('');
+    }
+
+    document.getElementById('teamBody').innerHTML = (memberRows + inviteRows)
+        || `<tr><td colspan="4"><div class="empty-state">No team members yet.</div></td></tr>`;
+}
+
+async function sendInvite() {
+    const email = document.getElementById('inviteEmail').value.trim();
+    const msg = document.getElementById('inviteMsg');
+    msg.style.color = 'var(--muted)';
+    if (!email) { msg.textContent = 'Enter an email address.'; return; }
+
+    const { data, error } = await sbClient.rpc('sc_create_invite', { p_email: email });
+    if (error) { msg.textContent = 'Could not create invite: ' + error.message; msg.style.color = 'var(--danger)'; return; }
+    if (!data.ok) { msg.textContent = data.error; msg.style.color = 'var(--danger)'; return; }
+
+    const link = `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(data.token)}`;
+    msg.innerHTML = `Invite created for ${escapeHtml(email)}. Copy this link and send it to them yourself:<br><span style="font-family:var(--mono);">${escapeHtml(link)}</span>`;
+    msg.style.color = 'var(--accent2)';
+    document.getElementById('inviteEmail').value = '';
+    loadTeam();
+}
+
+async function revokeInvite(id) {
+    if (!confirm('Revoke this invite?')) return;
+    await sbClient.rpc('sc_revoke_invite', { p_invite_id: id });
+    loadTeam();
+}
+
+async function removeMember(userId) {
+    if (!confirm("Remove this team member's access? They'll keep their own login, but will no longer see this workspace's stock.")) return;
+    await sbClient.rpc('sc_remove_member', { p_target_user_id: userId });
+    loadTeam();
+}
+
+// ═══ BARCODE LABEL (per stock item) ═══
+
+// Code 128 of the product code itself — not a link — so the label works with
+// a handheld scanner (it types the code into the scan box, then Enter) and with
+// the camera scanner below, and matches whatever codes are already in Excel.
+function drawBarcode(svgEl, value, opts = {}) {
+    try {
+        JsBarcode(svgEl, value, { format: 'CODE128', width: 2, height: 70, margin: 8, fontSize: 16, displayValue: true, background: '#ffffff', lineColor: '#000000', ...opts });
+        return true;
+    } catch (e) {
+        return false; // Code 128 can't encode every character (e.g. accented letters)
+    }
+}
+
+function showBarcodeModal(id) {
+    const item = stock.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('bcItemName').textContent = item.name;
+    document.getElementById('bcItemSku').textContent  = item.sku;
+    document.getElementById('bcItemLoc').textContent  = item.location ? 'Location: ' + item.location : '';
+    const svg = document.getElementById('bcSvg');
+    svg.innerHTML = '';
+    const ok = drawBarcode(svg, item.sku);
+    document.getElementById('bcError').style.display = ok ? 'none' : 'block';
+    document.getElementById('barcodeOverlay').classList.add('open');
+}
+
+function closeBarcodeModal() {
+    document.getElementById('barcodeOverlay').classList.remove('open');
+}
+
+// One sheet of labels for whatever the search box is showing (everything, if
+// it's empty), three across — see #labelSheet in the print CSS.
+function printLabels() {
+    let list = visibleStock();
+    if (!list.length) { alert('There are no items to print labels for.'); return; }
+    const MAX = 300;
+    if (list.length > MAX) {
+        if (!confirm(`That's ${list.length} labels. Print the first ${MAX} now? (Type in the search box to pick a smaller group.)`)) return;
+        list = list.slice(0, MAX);
+    }
+    const sheet = document.getElementById('labelSheet');
+    sheet.innerHTML = list.map(() => '<div class="lbl"><div class="lbl-name"></div><svg></svg><div class="lbl-loc"></div></div>').join('');
+    sheet.querySelectorAll('.lbl').forEach((el, i) => {
+        const item = list[i];
+        el.querySelector('.lbl-name').textContent = item.name;
+        el.querySelector('.lbl-loc').textContent  = item.location ? 'Location: ' + item.location : '';
+        const svg = el.querySelector('svg');
+        if (!drawBarcode(svg, item.sku, { height: 50, fontSize: 14 })) svg.replaceWith(document.createTextNode(item.sku + ' (no barcode possible)'));
+    });
+    document.body.classList.add('printing-labels');
+    window.print();
+}
+
+window.addEventListener('afterprint', () => {
+    document.body.classList.remove('printing-labels');
+    document.getElementById('labelSheet').innerHTML = '';
+});
+
+// ═══ SCANNING ═══
+// A handheld scanner acts as a keyboard: it types the code and presses Enter.
+// So the scan box just waits for Enter and then looks the code up as a product
+// code. The camera button feeds the same lookup.
+
+function normSku(v) { return String(v === null || v === undefined ? '' : v).trim().toLowerCase(); }
+function findBySku(code) {
+    const c = normSku(code);
+    return c ? stock.find(i => normSku(i.sku) === c) : null;
+}
+
+let pendingScanCode = '';
+
+function focusScanBox() {
+    // The cursor is parked in the scan box so a handheld scanner can just be
+    // used — but not on a phone/tablet, where that would pop the keyboard open.
+    if (window.matchMedia('(pointer: fine)').matches) document.getElementById('scanBox').focus();
+}
+
+function handleScannedCode(raw) {
+    const code = String(raw || '').trim();
+    const msg = document.getElementById('scanBoxMsg');
+    if (!code) return;
+    const item = findBySku(code);
+    if (item) {
+        msg.className = 'scanbar-msg';
+        msg.textContent = '';
+        openScanScreen(item.id);
+        return;
+    }
+    pendingScanCode = code;
+    msg.className = 'scanbar-msg error';
+    msg.innerHTML = `Nothing in stock with the code “${escapeHtml(code)}”. <a onclick="addFromScan()">Add it as a new item</a>`;
+}
+
+function addFromScan() {
+    document.getElementById('sku').value = pendingScanCode;
+    document.getElementById('scanBoxMsg').textContent = '';
+    document.getElementById('addItemCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('name').focus();
+}
+
+document.getElementById('scanBox').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = e.target.value;
+    e.target.value = '';
+    handleScannedCode(code);
+});
+
+// Camera scanning. html5-qrcode rather than the browser's own BarcodeDetector,
+// because that isn't available in iPhone Safari.
+let camScanner = null;
+
+async function openCamera() {
+    const msg = document.getElementById('camMsg');
+    document.getElementById('camOverlay').classList.add('open');
+    if (typeof Html5Qrcode === 'undefined') { msg.textContent = 'The camera scanner could not load — check your internet connection and refresh.'; return; }
+    msg.textContent = 'Starting the camera…';
+    try {
+        const f = Html5QrcodeSupportedFormats;
+        camScanner = new Html5Qrcode('camReader', { verbose: false, formatsToSupport: [f.CODE_128, f.CODE_39, f.CODE_93, f.EAN_13, f.EAN_8, f.UPC_A, f.UPC_E, f.ITF, f.CODABAR] });
+        await camScanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 300, height: 130 } },
+            text => { closeCamera(); handleScannedCode(text); }, () => {});
+        msg.textContent = 'Hold the barcode inside the box.';
+    } catch (e) {
+        msg.textContent = 'Could not start the camera: ' + (e && e.message ? e.message : e) + ' — check this site is allowed to use the camera.';
+    }
+}
+
+async function closeCamera() {
+    document.getElementById('camOverlay').classList.remove('open');
+    const scanner = camScanner;
+    camScanner = null;
+    if (!scanner) return;
+    try { if (scanner.isScanning) await scanner.stop(); scanner.clear(); } catch (e) { /* already stopped */ }
+}
+
+// ═══ SCAN LANDING SCREEN ═══
+// Reached after the normal login + trial/subscription check in checkAccess()
+// passes — from a scanned barcode (openScanScreen()) or an old ?item=<id>
+// link. Deliberately does a fresh scoped fetch/update/insert here instead of
+// going through saveData() (which deletes and re-inserts the whole
+// workspace's stock and stock_logs on every change) — booking one item in
+// shouldn't have to round-trip the whole inventory, and a single-row
+// update/insert can't clobber unrelated changes made elsewhere at the same
+// time the way saveData() could.
+let scanItem = null;
+
+function openScanScreen(id) {
+    scanItemId = id;
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('scanScreen').style.display = 'flex';
+    window.scrollTo(0, 0);
+    loadScanScreen();
+}
+
+async function loadScanScreen() {
+    scanDirection = 'in';
+    document.getElementById('scanMsg').className = 'auth-msg';
+    document.getElementById('scanMsg').textContent = '';
+    const { data, error } = await sbClient.from('stock').select('*')
+        .eq('id', scanItemId).eq('owner_id', ownerId).maybeSingle();
+    if (error || !data) {
+        scanItem = null;
+        document.getElementById('scanFound').style.display = 'none';
+        document.getElementById('scanNotFound').style.display = 'block';
+        return;
+    }
+    scanItem = data;
+    document.getElementById('scanNotFound').style.display = 'none';
+    document.getElementById('scanFound').style.display = 'block';
+    document.getElementById('scanItemName').textContent  = scanItem.name;
+    document.getElementById('scanItemSku').textContent   = scanItem.sku;
+    document.getElementById('scanItemLoc').textContent   = scanItem.location ? 'Location: ' + scanItem.location : '';
+    document.getElementById('scanCurrentQty').textContent = scanItem.qty;
+    const qtyInput = document.getElementById('scanQty');
+    qtyInput.value = 1;
+    setScanDirection('in');
+    qtyInput.focus();
+    qtyInput.select();
+}
+
+document.getElementById('scanQty').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitScanAction(); }
+});
+
+function setScanDirection(dir) {
+    scanDirection = dir;
+    document.getElementById('scanBtnIn').classList.toggle('active', dir === 'in');
+    document.getElementById('scanBtnOut').classList.toggle('active', dir === 'out');
+}
+
+async function submitScanAction() {
+    if (!scanItem) return;
+    const msg = document.getElementById('scanMsg');
+    msg.className = 'auth-msg';
+    msg.textContent = '';
+
+    const qty = Number(document.getElementById('scanQty').value);
+    if (!qty || qty <= 0) { msg.textContent = 'Enter a quantity greater than 0'; msg.className = 'auth-msg error'; return; }
+
+    const change = scanDirection === 'in' ? qty : -qty;
+    const newQty = Math.max(0, scanItem.qty + change);
+
+    const { error: updateErr } = await sbClient.from('stock')
+        .update({ qty: newQty })
+        .eq('id', scanItem.id).eq('owner_id', ownerId);
+    if (updateErr) { msg.textContent = 'Could not update stock: ' + updateErr.message; msg.className = 'auth-msg error'; return; }
+
+    const { error: logErr } = await sbClient.from('stock_logs').insert({
+        id: crypto.randomUUID(),
+        owner_id: ownerId,
+        user_id: currentUser.id,
+        date: new Date().toISOString(),
+        item: scanItem.name,
+        action: scanDirection === 'in' ? 'IN' : 'OUT',
+        qty: Math.abs(change)
+    });
+    if (logErr) { msg.textContent = 'Stock updated, but the log entry failed: ' + logErr.message; msg.className = 'auth-msg error'; return; }
+
+    scanItem.qty = newQty;
+    const listed = stock.find(i => i.id === scanItem.id);
+    if (listed) listed.qty = newQty; // keep the dashboard's copy in step for when we go back to it
+    document.getElementById('scanCurrentQty').textContent = newQty;
+    document.getElementById('scanQty').value = 1;
+    msg.textContent = `✅ ${scanDirection === 'in' ? 'Stock in' : 'Stock out'} recorded — ${scanItem.name} is now ${newQty}.`;
+    msg.className = 'auth-msg success';
+}
+
+function backToDashboardFromScan() {
+    scanItemId = null;
+    scanItem = null;
+    // Drop a ?item= param from the address bar so a refresh lands on the
+    // dashboard rather than back on this item.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('item');
+    window.history.replaceState({}, '', url.pathname + url.search);
+    document.getElementById('scanScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    if (stockLoaded) render();
+    else { loadData(); loadTeam(); checkLocationColumn(); } // arrived straight on a scan screen, so the dashboard hasn't loaded yet
+    focusScanBox();
+}
+
+// ═══ EXCEL IMPORT / EXPORT ═══
+// Import reads the first sheet, lets the owner say which column is which
+// (guessed from the headings), then adds new parts and updates ones already
+// here, matched by product code. Owner-only, like the JSON backup below.
+
+let importState = null;
+
+function cellStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }
+function toQty(v) {
+    if (cellStr(v) === '') return null;
+    const n = Math.floor(Number(cellStr(v).replace(/[,\s]/g, '')));
+    return isFinite(n) && n > 0 ? n : 0;
+}
+function toMoney(v) {
+    if (cellStr(v) === '') return null;
+    const n = Number(cellStr(v).replace(/[£$,\s]/g, ''));
+    return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0;
+}
+
+function guessColumns(headers) {
+    const rules = {
+        sku:      [/^(product|part|item|stock)\s*(code|no\.?|number|num|ref)/i, /^sku$/i, /part\s*(no|number)/i, /barcode|ean|upc/i, /^code$/i, /code/i, /^ref/i],
+        location: [/loc/i, /\b(bin|shelf|rack|aisle|bay|position)\b/i],
+        name:     [/desc/i, /^(product\s*|item\s*|part\s*)?name$/i, /title/i, /^(product|item|part)$/i],
+        qty:      [/^(qty|quantity)\b/i, /on\s*hand|in\s*stock|stock\s*level|^stock$/i, /qty|quantity/i],
+        cost:     [/cost/i, /price/i]
+    };
+    const map = { sku: -1, name: -1, qty: -1, cost: -1, location: -1 };
+    const used = new Set();
+    for (const key of ['sku', 'location', 'name', 'qty', 'cost']) {
+        search: for (const re of rules[key]) {
+            for (let i = 0; i < headers.length; i++) {
+                if (!used.has(i) && re.test(headers[i])) { map[key] = i; used.add(i); break search; }
+            }
+        }
+    }
+    return map;
+}
+
+async function onExcelFile(event) {
+    const file = event.target.files[0];
+    event.target.value = ''; // so choosing the same file again still fires
+    if (!file) return;
+    if (currentRole !== 'owner') { alert('Only the workspace owner can import a spreadsheet.'); return; }
+    if (typeof XLSX === 'undefined') { alert('The Excel reader could not load — check your internet connection and refresh.'); return; }
+
+    let grid;
+    try {
+        const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+        grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', blankrows: false });
+    } catch (e) { alert('Could not read that file: ' + e.message); return; }
+
+    // Headings = the first row (in the top ten) with at least two filled-in
+    // cells, which skips over a title line sitting above them.
+    let h = grid.slice(0, 10).findIndex(r => r.filter(c => cellStr(c) !== '').length >= 2);
+    if (h < 0) h = 0;
+    const headers = (grid[h] || []).map((c, i) => cellStr(c) || 'Column ' + (i + 1));
+    const rows = grid.slice(h + 1);
+    if (!headers.length || !rows.length) { alert('That spreadsheet has no rows to import.'); return; }
+
+    importState = { fileName: file.name, headers, rows, map: guessColumns(headers), updateQty: false };
+    renderImportMapping();
+    document.getElementById('importOverlay').classList.add('open');
+}
+
+function computeImportPlan() {
+    const { rows, map } = importState;
+    const bySku = new Map(stock.map(i => [normSku(i.sku), i]));
+    const wanted = new Map();
+    let skipped = 0, repeats = 0;
+    for (const r of rows) {
+        if (map.sku < 0) break;
+        const sku = cellStr(r[map.sku]);
+        if (!sku) { skipped++; continue; }
+        const rec = {
+            sku,
+            name:     map.name     >= 0 ? cellStr(r[map.name])  : '',
+            location: map.location >= 0 ? cellStr(r[map.location]) : '',
+            qty:      map.qty      >= 0 ? toQty(r[map.qty])     : null,
+            cost:     map.cost     >= 0 ? toMoney(r[map.cost])  : null
+        };
+        const key = normSku(sku);
+        if (wanted.has(key)) repeats++;
+        wanted.set(key, rec); // the last row for a code wins
+    }
+    const add = [], update = [];
+    for (const [key, rec] of wanted) {
+        if (bySku.has(key)) update.push([bySku.get(key), rec]); else add.push(rec);
+    }
+    return { add, update, skipped, repeats };
+}
+
+function setImportMap(key, value) {
+    importState.map[key] = Number(value);
+    renderImportMapping();
+}
+
+function renderImportMapping() {
+    const s = importState;
+    const options = sel => '<option value="-1">— not in my file —</option>'
+        + s.headers.map((h, i) => `<option value="${i}"${sel === i ? ' selected' : ''}>${escapeHtml(h)}</option>`).join('');
+    const field = (key, label, star) => `<div class="imp-row"><label>${label}${star ? ' *' : ''}</label>
+        <select onchange="setImportMap('${key}', this.value)">${options(s.map[key])}</select></div>`;
+
+    const plan = computeImportPlan();
+    const usable = plan.add.length + plan.update.length;
+    const summary = s.map.sku < 0
+        ? '<div class="imp-summary bad">Choose which column holds the product code — that is how parts are matched.</div>'
+        : `<div class="imp-summary">
+            ${plan.add.length} new part${plan.add.length === 1 ? '' : 's'} will be added<br>
+            ${plan.update.length} part${plan.update.length === 1 ? '' : 's'} already in Stock Control will be updated<br>
+            ${plan.skipped ? plan.skipped + ' row' + (plan.skipped === 1 ? '' : 's') + ' skipped — no product code<br>' : ''}
+            ${plan.repeats ? plan.repeats + ' repeated product code' + (plan.repeats === 1 ? '' : 's') + ' in the file — the last row for each is used<br>' : ''}
+        </div>`;
+
+    const cols = [['sku', 'Product code'], ['name', 'Name'], ['location', 'Location'], ['qty', 'Qty'], ['cost', 'Unit cost']].filter(([k]) => s.map[k] >= 0);
+    const preview = cols.length ? `<div class="table-scroll"><table class="imp-preview"><thead><tr>${cols.map(([, l]) => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
+        s.rows.slice(0, 5).map(r => `<tr>${cols.map(([k]) => `<td>${escapeHtml(cellStr(r[s.map[k]]))}</td>`).join('')}</tr>`).join('')
+    }</tbody></table></div>` : '';
+
+    document.getElementById('importBody').innerHTML = `
+        <h3>Import from Excel</h3>
+        <p class="imp-note">${escapeHtml(s.fileName)} — ${s.rows.length} row${s.rows.length === 1 ? '' : 's'} found. Check the columns below match your spreadsheet.</p>
+        ${field('sku', 'Product code', true)}
+        ${field('name', 'Name / description')}
+        ${field('location', 'Location')}
+        ${field('qty', 'Quantity')}
+        ${field('cost', 'Unit cost (£)')}
+        ${s.map.qty >= 0 ? `<label class="imp-check"><input type="checkbox" ${s.updateQty ? 'checked' : ''} onchange="importState.updateQty = this.checked">
+            <span>For parts already in Stock Control, also replace their quantity with the number in the spreadsheet. (New parts always start with the spreadsheet's quantity.)</span></label>` : ''}
+        <p class="imp-note">Blank cells never overwrite what is already in Stock Control.</p>
+        ${preview}
+        ${summary}
+        <div class="imp-actions">
+            <button class="btn btn-ghost" onclick="closeImport()">Cancel</button>
+            <button class="btn btn-primary" onclick="runImport()" ${s.map.sku < 0 || !usable ? 'disabled' : ''}>Import ${usable || ''} part${usable === 1 ? '' : 's'}</button>
+        </div>`;
+}
+
+function closeImport() {
+    document.getElementById('importOverlay').classList.remove('open');
+    importState = null;
+}
+
+async function runImport() {
+    const s = importState;
+    const plan = computeImportPlan();
+    const body = document.getElementById('importBody');
+    const total = plan.add.length + plan.update.length;
+    let done = 0;
+    const progress = label => {
+        body.innerHTML = `<h3>Importing…</h3><div class="imp-bar"><div style="width:${Math.round(done / total * 100)}%"></div></div>
+            <p class="imp-note">${label} ${done} of ${total}. Please keep this page open.</p>`;
+    };
+    const nowIso = new Date().toISOString();
+    const logRow = (item, action, qty) => ({ id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id, date: nowIso, item, action, qty });
+
+    try {
+        progress('Adding');
+        const newRows = plan.add.map(rec => {
+            const row = { id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id,
+                name: rec.name || rec.sku, sku: rec.sku, qty: rec.qty || 0, cost: rec.cost || 0 };
+            if (hasLocationCol) row.location = rec.location || null;
+            return row;
+        });
+        for (let i = 0; i < newRows.length; i += 500) {
+            await insertChunks('stock', newRows.slice(i, i + 500));
+            done += Math.min(500, newRows.length - i);
+            progress('Adding');
+        }
+        await insertChunks('stock_logs', newRows.filter(r => r.qty > 0).map(r => logRow(r.name, 'ADD', r.qty)));
+
+        // Existing parts go through an upsert on id (one request per 500 rather than one per part).
+        // Each row is the part's current row with only the mapped, non-blank fields changed.
+        const changed = [], changeLogs = [];
+        for (const [ex, rec] of plan.update) {
+            const row = { ...ex };
+            if (rec.name) row.name = rec.name;
+            if (rec.cost !== null) row.cost = rec.cost;
+            if (hasLocationCol && rec.location) row.location = rec.location;
+            if (s.updateQty && rec.qty !== null && rec.qty !== ex.qty) {
+                changeLogs.push(logRow(row.name, rec.qty > ex.qty ? 'IN' : 'OUT', Math.abs(rec.qty - ex.qty)));
+                row.qty = rec.qty;
+            }
+            changed.push(row);
+        }
+        for (let i = 0; i < changed.length; i += 500) {
+            const { error } = await sbClient.from('stock').upsert(changed.slice(i, i + 500), { onConflict: 'id' });
+            if (error) throw new Error(error.message);
+            done += Math.min(500, changed.length - i);
+            progress('Updating');
+        }
+        await insertChunks('stock_logs', changeLogs);
+    } catch (e) {
+        body.innerHTML = `<h3>Import stopped</h3><div class="imp-summary bad">${escapeHtml(e.message)}</div>
+            <p class="imp-note">Anything imported before this point is saved. You can run the same import again — parts are matched by product code, so nothing will be added twice.</p>
+            <div class="imp-actions"><button class="btn btn-primary" onclick="closeImport(); loadData();">Close</button></div>`;
+        return;
+    }
+
+    await loadData();
+    body.innerHTML = `<h3>Import finished</h3>
+        <div class="imp-summary">${plan.add.length} part${plan.add.length === 1 ? '' : 's'} added<br>${plan.update.length} part${plan.update.length === 1 ? '' : 's'} updated</div>
+        <div class="imp-actions"><button class="btn btn-primary" onclick="closeImport()">Done</button></div>`;
+}
+
+function exportExcel() {
+    if (typeof XLSX === 'undefined') { alert('The Excel writer could not load — check your internet connection and refresh.'); return; }
+    const sheet = XLSX.utils.json_to_sheet(stock.map(i => ({
+        'Product code': i.sku, 'Name': i.name, 'Location': i.location || '',
+        'Quantity': i.qty, 'Unit cost': Number(i.cost), 'Value': Math.round(i.qty * i.cost * 100) / 100
+    })), { header: ['Product code', 'Name', 'Location', 'Quantity', 'Unit cost', 'Value'] });
+    sheet['!cols'] = [{ wch: 18 }, { wch: 38 }, { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, 'Stock');
+    XLSX.writeFile(wb, 'stock-list.xlsx');
+}
+
+// ═══ BACKUP (JSON) ═══
+
+async function exportBackup() {
+    // The movement log isn't held in memory any more (it's fetched per item),
+    // so a backup reads all of it now.
+    const allLogs = await fetchAllPages('stock_logs', [['date', false], ['id', true]]);
+    const blob = new Blob([JSON.stringify({ stock, logs: allLogs }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'stock-backup.json';
+    a.click();
+}
+
+function importBackup(event) {
+    // Owner-only — this replaces the ENTIRE shared workspace's stock and
+    // log history in one go, no undo. The Backup card itself is already
+    // hidden from staff (see checkAccess()); this is the defensive
+    // backstop in case this function is ever reachable another way.
+    if (currentRole !== 'owner') { alert('Only the workspace owner can import a backup.'); event.target.value = ''; return; }
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async e => {
+        const data = JSON.parse(e.target.result);
+        stock = data.stock || [];
+        logs  = data.logs  || [];
+        try { await saveData(); } catch (err) { alert('Restore stopped part-way: ' + err.message); }
+        logs = [];
+        await loadData();
+    };
+    reader.readAsText(file);
+}
+
+// ═══ BOOT — check existing session ═══
+(async () => {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session) {
+        currentUser = session.user;
+        await tryAcceptInvite();
+        await getUserData();
+        checkAccess();
+    }
+    await handlePaymentResult();
+})();
+</script>
+
+</body>
+</html>
