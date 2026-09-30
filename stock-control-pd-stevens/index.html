@@ -739,6 +739,15 @@ tbody td {
 .imp-bar { height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; margin: 14px 0 8px; }
 .imp-bar > div { height: 100%; width: 0; background: var(--accent2); transition: width 0.2s; }
 
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-danger { background: rgba(255,71,87,0.10); border: 1px solid rgba(255,71,87,0.35); color: var(--danger); }
+.btn-danger:hover:not(:disabled) { background: rgba(255,71,87,0.2); }
+.btn-danger.solid { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-danger.solid:hover:not(:disabled) { background: #ff2d3f; }
+.danger-zone { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.clear-word { width: 100%; padding: 10px 12px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 15px; letter-spacing: 0.08em; outline: none; }
+.clear-word:focus { border-color: var(--danger); }
+
 /* ───── RESPONSIVE ───── */
 @media (max-width: 700px) {
     .add-grid {
@@ -936,6 +945,10 @@ tbody td {
                 <label class="file-label" for="importFile">⬆ Import Backup</label>
                 <input type="file" id="importFile" accept=".json" onchange="importBackup(event)">
             </div>
+            <div class="danger-zone">
+                <button class="btn btn-danger" onclick="openClearDialog()">🗑 Clear all data…</button>
+                <span class="imp-note" style="margin:0;">Put the wrong spreadsheet in? Wipe every part and start again. A backup is downloaded first.</span>
+            </div>
         </div>
 
         <!-- Stock Table -->
@@ -1012,6 +1025,11 @@ tbody td {
 <!-- ═══ EXCEL IMPORT ═══ -->
 <div id="importOverlay" class="bc-overlay">
     <div class="bc-box wide" id="importBody"></div>
+</div>
+
+<!-- ═══ CLEAR ALL DATA ═══ -->
+<div id="clearOverlay" class="bc-overlay">
+    <div class="bc-box wide" id="clearBody" style="max-width:520px;"></div>
 </div>
 
 <!-- Filled and printed by printLabels() -->
@@ -1398,7 +1416,7 @@ let stockLoaded = false;
 // False until migration-barcode.sql has added stock.location — see checkLocationColumn().
 let hasLocationCol = true;
 
-async function fetchAllPages(table, orderCols) {
+async function fetchAllPages(table, orderCols, strict = false) {
     let all = [];
     for (let from = 0; ; from += PAGE_SIZE) {
         let q = sbClient.from(table).select('*').eq('owner_id', ownerId);
@@ -1406,6 +1424,7 @@ async function fetchAllPages(table, orderCols) {
         const { data, error } = await q.range(from, from + PAGE_SIZE - 1);
         // A half-loaded list would make a barcode scan report "not found" for
         // parts that do exist, so say so rather than carrying on quietly.
+        if (error && strict) throw new Error(error.message);
         if (error) { console.error('Loading ' + table + ' failed:', error.message); alert('Could not load all of your ' + table.replace('_', ' ') + ': ' + error.message); break; }
         all = all.concat(data || []);
         if (!data || data.length < PAGE_SIZE) break;
@@ -1432,10 +1451,23 @@ async function checkLocationColumn() {
     document.getElementById('dbWarn').style.display = hasLocationCol ? 'none' : 'block';
 }
 
+// A quantity like 0.5 (half a roll) is sent as it is. If that table's qty column only
+// holds whole numbers the database refuses it, so the chunk is retried rounded rather than
+// failing the whole import — and the table is remembered so later chunks go straight to rounded.
+const wholeQtyTables = new Set();
+async function sendChunk(table, chunk, send) {
+    const rounded = c => c.map(r => ('qty' in r ? { ...r, qty: Math.round(r.qty) } : r));
+    let { error } = await send(wholeQtyTables.has(table) ? rounded(chunk) : chunk);
+    if (error && !wholeQtyTables.has(table) && /integer/i.test(error.message)) {
+        wholeQtyTables.add(table);
+        ({ error } = await send(rounded(chunk)));
+    }
+    if (error) throw new Error(error.message);
+}
+
 async function insertChunks(table, rows) {
     for (let i = 0; i < rows.length; i += 500) {
-        const { error } = await sbClient.from(table).insert(rows.slice(i, i + 500));
-        if (error) throw new Error(error.message);
+        await sendChunk(table, rows.slice(i, i + 500), c => sbClient.from(table).insert(c));
     }
 }
 
@@ -1575,7 +1607,7 @@ function render() {
     renderLog();
 
     document.getElementById('totalItems').textContent  = stock.length;
-    document.getElementById('totalQty').textContent    = stock.reduce((t, i) => t + i.qty, 0);
+    document.getElementById('totalQty').textContent    = +stock.reduce((t, i) => t + Number(i.qty), 0).toFixed(2);
     document.getElementById('stockValue').textContent  = '£' + stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
     document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
 }
@@ -2026,15 +2058,10 @@ function backToDashboardFromScan() {
 let importState = null;
 
 function cellStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }
-function toQty(v) {
-    if (cellStr(v) === '') return null;
-    const n = Math.floor(Number(cellStr(v).replace(/[,\s]/g, '')));
-    return isFinite(n) && n > 0 ? n : 0;
-}
-function toMoney(v) {
-    if (cellStr(v) === '') return null;
-    const n = Number(cellStr(v).replace(/[£$,\s]/g, ''));
-    return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0;
+// null = blank cell, NaN = something that isn't a number, otherwise the number (£ signs and commas ignored)
+function numOf(v) {
+    const t = cellStr(v).replace(/[£$,\s]/g, '');
+    return t === '' ? null : Number(t);
 }
 
 function guessColumns(headers) {
@@ -2043,7 +2070,7 @@ function guessColumns(headers) {
         location: [/loc/i, /\b(bin|shelf|rack|aisle|bay|position)\b/i],
         name:     [/desc/i, /^(product\s*|item\s*|part\s*)?name$/i, /title/i, /^(product|item|part)$/i],
         qty:      [/^(qty|quantity)\b/i, /on\s*hand|in\s*stock|stock\s*level|^stock$/i, /qty|quantity/i],
-        cost:     [/cost/i, /price/i]
+        cost:     [/unit\s*(price|cost)/i, /cost/i, /price/i] // "Unit Price" before a "Price (£)" that is really the row total
     };
     const map = { sku: -1, name: -1, qty: -1, cost: -1, location: -1 };
     const used = new Set();
@@ -2067,47 +2094,98 @@ async function onExcelFile(event) {
     let grid;
     try {
         const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-        grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', blankrows: false });
+        // Blank rows are kept so a row's position here is its row number in Excel (used when reporting skipped rows).
+        grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', blankrows: true });
     } catch (e) { alert('Could not read that file: ' + e.message); return; }
 
-    // Headings = the first row (in the top ten) with at least two filled-in
-    // cells, which skips over a title line sitting above them.
-    let h = grid.slice(0, 10).findIndex(r => r.filter(c => cellStr(c) !== '').length >= 2);
+    // Headings = the first row in the top fifteen with three or more filled-in
+    // cells that are all text. That skips a title line above them (often just a
+    // label and a total). Falls back to the first row with two filled-in cells.
+    const filled = r => r.filter(c => cellStr(c) !== '');
+    const top = grid.slice(0, 15);
+    let h = top.findIndex(r => filled(r).length >= 3 && filled(r).every(c => typeof c === 'string'));
+    if (h < 0) h = top.findIndex(r => filled(r).length >= 2);
     if (h < 0) h = 0;
     const headers = (grid[h] || []).map((c, i) => cellStr(c) || 'Column ' + (i + 1));
     const rows = grid.slice(h + 1);
-    if (!headers.length || !rows.length) { alert('That spreadsheet has no rows to import.'); return; }
+    const realRows = rows.filter(r => filled(r).length);
+    if (!headers.length || !realRows.length) { alert('That spreadsheet has no rows to import.'); return; }
 
-    importState = { fileName: file.name, headers, rows, map: guessColumns(headers), updateQty: false };
+    importState = {
+        fileName: file.name, headers, rows, firstRow: h + 2, rowCount: realRows.length, preview: realRows.slice(0, 5),
+        map: guessColumns(headers), updateQty: false, autoCodes: true
+    };
     renderImportMapping();
     document.getElementById('importOverlay').classList.add('open');
 }
 
+// Works out what an import would do, without doing it. Real spreadsheets are messy, so
+// nothing is dropped silently: a row is either imported, or listed in `skipped` with why.
 function computeImportPlan() {
-    const { rows, map } = importState;
+    const { rows, map, firstRow, autoCodes } = importState;
+    const plan = { add: [], update: [], skipped: [], repeats: 0, autoCoded: 0, fractions: 0, badPrices: 0, value: 0 };
+    if (map.sku < 0) return plan;
+
     const bySku = new Map(stock.map(i => [normSku(i.sku), i]));
-    const wanted = new Map();
-    let skipped = 0, repeats = 0;
-    for (const r of rows) {
-        if (map.sku < 0) break;
-        const sku = cellStr(r[map.sku]);
-        if (!sku) { skipped++; continue; }
-        const rec = {
-            sku,
-            name:     map.name     >= 0 ? cellStr(r[map.name])  : '',
-            location: map.location >= 0 ? cellStr(r[map.location]) : '',
-            qty:      map.qty      >= 0 ? toQty(r[map.qty])     : null,
-            cost:     map.cost     >= 0 ? toMoney(r[map.cost])  : null
-        };
-        const key = normSku(sku);
-        if (wanted.has(key)) repeats++;
-        wanted.set(key, rec); // the last row for a code wins
+    // Parts an earlier import gave an automatic code (NEW-0001…) are found again by
+    // name, so importing the same sheet twice doesn't add them twice. Each existing
+    // part can be claimed by one row only.
+    const autoByName = new Map();
+    let nextAuto = 1;
+    for (const i of stock) {
+        const m = /^NEW-(\d+)$/.exec(String(i.sku));
+        if (!m) continue;
+        nextAuto = Math.max(nextAuto, Number(m[1]) + 1);
+        const key = cellStr(i.name).toLowerCase();
+        if (!autoByName.has(key)) autoByName.set(key, []);
+        autoByName.get(key).push(i);
     }
-    const add = [], update = [];
-    for (const [key, rec] of wanted) {
-        if (bySku.has(key)) update.push([bySku.get(key), rec]); else add.push(rec);
-    }
-    return { add, update, skipped, repeats };
+    const seen = new Map(); // product code -> how many rows have used it so far
+
+    rows.forEach((r, n) => {
+        const get = key => map[key] >= 0 ? r[map[key]] : '';
+        const rowNo = firstRow + n;
+        let code = cellStr(get('sku'));
+        const name = cellStr(get('name'));
+        const qtyN = numOf(get('qty')), costN = numOf(get('cost'));
+        if (!code && !name && !qtyN) return; // an empty row (or a stray heading) — nothing worth reporting
+        const label = name || code;
+        if (qtyN !== null && isNaN(qtyN)) { plan.skipped.push({ rowNo, label, why: 'the quantity isn’t a number' }); return; }
+
+        let existing = null;
+        if (!code) {
+            if (!autoCodes) { plan.skipped.push({ rowNo, label, why: 'no product code' }); return; }
+            existing = (autoByName.get(name.toLowerCase()) || []).shift() || null;
+            code = existing ? existing.sku : 'NEW-' + String(nextAuto++).padStart(4, '0');
+            plan.autoCoded++;
+        } else {
+            // Two rows sharing a code are two different parts, so the later ones keep
+            // their row but get -2, -3… added — scanning needs each code to be unique.
+            const key = normSku(code);
+            const count = (seen.get(key) || 0) + 1;
+            seen.set(key, count);
+            if (count > 1) { code = code + '-' + count; plan.repeats++; }
+            existing = bySku.get(normSku(code)) || null;
+        }
+
+        let qty = null;
+        if (qtyN !== null) {
+            qty = Math.max(0, Math.round(qtyN * 100) / 100);
+            if (qty !== Math.round(qty)) plan.fractions++; // e.g. half a roll — see sendChunk() for a whole-number database
+        }
+        let cost = null;
+        if (costN !== null) {
+            if (isNaN(costN)) plan.badPrices++;
+            else cost = Math.round(Math.max(0, costN) * 100) / 100;
+        }
+
+        const rec = { sku: code, name, location: cellStr(get('location')), qty, cost, rowNo };
+        const valueQty  = existing ? (importState.updateQty && qty !== null ? qty : existing.qty) : (qty || 0);
+        const valueCost = cost !== null ? cost : (existing ? Number(existing.cost) : 0);
+        plan.value += valueQty * valueCost;
+        if (existing) plan.update.push([existing, rec]); else plan.add.push(rec);
+    });
+    return plan;
 }
 
 function setImportMap(key, value) {
@@ -2121,32 +2199,40 @@ function renderImportMapping() {
         + s.headers.map((h, i) => `<option value="${i}"${sel === i ? ' selected' : ''}>${escapeHtml(h)}</option>`).join('');
     const field = (key, label, star) => `<div class="imp-row"><label>${label}${star ? ' *' : ''}</label>
         <select onchange="setImportMap('${key}', this.value)">${options(s.map[key])}</select></div>`;
+    const count = (n, one, many) => n + ' ' + (n === 1 ? one : many);
 
     const plan = computeImportPlan();
     const usable = plan.add.length + plan.update.length;
     const summary = s.map.sku < 0
         ? '<div class="imp-summary bad">Choose which column holds the product code — that is how parts are matched.</div>'
         : `<div class="imp-summary">
-            ${plan.add.length} new part${plan.add.length === 1 ? '' : 's'} will be added<br>
-            ${plan.update.length} part${plan.update.length === 1 ? '' : 's'} already in Stock Control will be updated<br>
-            ${plan.skipped ? plan.skipped + ' row' + (plan.skipped === 1 ? '' : 's') + ' skipped — no product code<br>' : ''}
-            ${plan.repeats ? plan.repeats + ' repeated product code' + (plan.repeats === 1 ? '' : 's') + ' in the file — the last row for each is used<br>' : ''}
-        </div>`;
+            ${count(plan.add.length, 'new part', 'new parts')} will be added<br>
+            ${count(plan.update.length, 'part', 'parts')} already in Stock Control will be updated<br>
+            ${plan.autoCoded ? count(plan.autoCoded, 'row', 'rows') + ' with no product code get an automatic one (NEW-0001…)<br>' : ''}
+            ${plan.repeats ? count(plan.repeats, 'repeated product code', 'repeated product codes') + ' — every row is kept, the extra ones get -2, -3… added (e.g. F16-2)<br>' : ''}
+            ${plan.fractions ? count(plan.fractions, 'row has', 'rows have') + ' a part-quantity (like 0.5) — kept exactly if the database allows it<br>' : ''}
+            ${plan.badPrices ? count(plan.badPrices, 'unit price isn’t', 'unit prices aren’t') + ' a number — left blank<br>' : ''}
+            Value of the parts in this file: £${plan.value.toFixed(2)} (quantity × unit cost)
+        </div>${plan.skipped.length ? `<div class="imp-summary bad">${count(plan.skipped.length, 'row', 'rows')} will be skipped — fix them in Excel, or add them by hand afterwards:<br>${
+            plan.skipped.slice(0, 8).map(x => `row ${x.rowNo}: ${escapeHtml(x.label)} — ${x.why}`).join('<br>')
+        }${plan.skipped.length > 8 ? `<br>…and ${plan.skipped.length - 8} more` : ''}</div>` : ''}`;
 
     const cols = [['sku', 'Product code'], ['name', 'Name'], ['location', 'Location'], ['qty', 'Qty'], ['cost', 'Unit cost']].filter(([k]) => s.map[k] >= 0);
     const preview = cols.length ? `<div class="table-scroll"><table class="imp-preview"><thead><tr>${cols.map(([, l]) => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
-        s.rows.slice(0, 5).map(r => `<tr>${cols.map(([k]) => `<td>${escapeHtml(cellStr(r[s.map[k]]))}</td>`).join('')}</tr>`).join('')
+        s.preview.map(r => `<tr>${cols.map(([k]) => `<td>${escapeHtml(cellStr(r[s.map[k]]))}</td>`).join('')}</tr>`).join('')
     }</tbody></table></div>` : '';
 
     document.getElementById('importBody').innerHTML = `
         <h3>Import from Excel</h3>
-        <p class="imp-note">${escapeHtml(s.fileName)} — ${s.rows.length} row${s.rows.length === 1 ? '' : 's'} found. Check the columns below match your spreadsheet.</p>
+        <p class="imp-note">${escapeHtml(s.fileName)} — ${count(s.rowCount, 'row', 'rows')} found. Check the columns below match your spreadsheet.</p>
         ${field('sku', 'Product code', true)}
         ${field('name', 'Name / description')}
         ${field('location', 'Location')}
         ${field('qty', 'Quantity')}
         ${field('cost', 'Unit cost (£)')}
-        ${s.map.qty >= 0 ? `<label class="imp-check"><input type="checkbox" ${s.updateQty ? 'checked' : ''} onchange="importState.updateQty = this.checked">
+        <label class="imp-check"><input type="checkbox" ${s.autoCodes ? 'checked' : ''} onchange="importState.autoCodes = this.checked; renderImportMapping()">
+            <span>Rows with no product code: still import them, giving each an automatic code (NEW-0001, NEW-0002…). Untick to skip them.</span></label>
+        ${s.map.qty >= 0 ? `<label class="imp-check"><input type="checkbox" ${s.updateQty ? 'checked' : ''} onchange="importState.updateQty = this.checked; renderImportMapping()">
             <span>For parts already in Stock Control, also replace their quantity with the number in the spreadsheet. (New parts always start with the spreadsheet's quantity.)</span></label>` : ''}
         <p class="imp-note">Blank cells never overwrite what is already in Stock Control.</p>
         ${preview}
@@ -2205,8 +2291,7 @@ async function runImport() {
             changed.push(row);
         }
         for (let i = 0; i < changed.length; i += 500) {
-            const { error } = await sbClient.from('stock').upsert(changed.slice(i, i + 500), { onConflict: 'id' });
-            if (error) throw new Error(error.message);
+            await sendChunk('stock', changed.slice(i, i + 500), c => sbClient.from('stock').upsert(c, { onConflict: 'id' }));
             done += Math.min(500, changed.length - i);
             progress('Updating');
         }
@@ -2220,7 +2305,7 @@ async function runImport() {
 
     await loadData();
     body.innerHTML = `<h3>Import finished</h3>
-        <div class="imp-summary">${plan.add.length} part${plan.add.length === 1 ? '' : 's'} added<br>${plan.update.length} part${plan.update.length === 1 ? '' : 's'} updated</div>
+        <div class="imp-summary">${plan.add.length} part${plan.add.length === 1 ? '' : 's'} added<br>${plan.update.length} part${plan.update.length === 1 ? '' : 's'} updated${plan.skipped.length ? '<br>' + plan.skipped.length + ' row' + (plan.skipped.length === 1 ? '' : 's') + ' skipped (listed before importing)' : ''}</div>${plan.fractions && wholeQtyTables.has('stock') ? '<p class="imp-note">Your database only stores whole-number quantities, so part-quantities like 0.5 were rounded.</p>' : ''}
         <div class="imp-actions"><button class="btn btn-primary" onclick="closeImport()">Done</button></div>`;
 }
 
@@ -2241,12 +2326,80 @@ function exportExcel() {
 async function exportBackup() {
     // The movement log isn't held in memory any more (it's fetched per item),
     // so a backup reads all of it now.
-    const allLogs = await fetchAllPages('stock_logs', [['date', false], ['id', true]]);
+    let allLogs;
+    try { allLogs = await fetchAllPages('stock_logs', [['date', false], ['id', true]], true); }
+    catch (e) { alert('Could not read the movement log for the backup: ' + e.message); return false; }
     const blob = new Blob([JSON.stringify({ stock, logs: allLogs }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'stock-backup.json';
     a.click();
+    return true;
+}
+
+// ═══ CLEAR ALL DATA ═══
+// For when the wrong spreadsheet went in. Owner-only like the other bulk tools, needs the
+// word DELETE typed, and downloads a backup first (ticked by default) so it can be undone
+// with Import Backup. Only stock and movement history go — the login, team and
+// subscription are untouched.
+
+function openClearDialog() {
+    if (currentRole !== 'owner') { alert('Only the workspace owner can clear the data.'); return; }
+    renderClearDialog();
+    document.getElementById('clearOverlay').classList.add('open');
+    document.getElementById('clearWord').focus();
+}
+
+function closeClearDialog() {
+    document.getElementById('clearOverlay').classList.remove('open');
+}
+
+function renderClearDialog(note) {
+    const n = stock.length;
+    document.getElementById('clearBody').innerHTML = `
+        <h3 style="color:var(--danger);">Clear all data?</h3>
+        ${note ? `<div class="imp-summary bad">${escapeHtml(note)}</div>` : ''}
+        <p style="font-size:13px;line-height:1.6;margin:10px 0 14px;">This permanently deletes <strong>all ${n} part${n === 1 ? '' : 's'}</strong> and the whole movement history, so you can start again with empty stock.
+            Your login, team members and subscription are <strong>not</strong> affected.</p>
+        <label class="imp-check"><input type="checkbox" id="clearBackup" checked>
+            <span>Download a backup file first (recommended). It can be put back later with <em>Import Backup</em>.</span></label>
+        <p class="imp-note" style="margin-bottom:6px;">Type <strong>DELETE</strong> to confirm:</p>
+        <input id="clearWord" class="clear-word" autocomplete="off" autocapitalize="characters" spellcheck="false" oninput="updateClearButton()">
+        <div class="imp-actions" style="margin-top:16px;">
+            <button class="btn btn-ghost" onclick="closeClearDialog()">Cancel</button>
+            <button class="btn btn-danger solid" id="clearGo" onclick="runClearAll()" disabled>Delete everything</button>
+        </div>`;
+}
+
+function updateClearButton() {
+    document.getElementById('clearGo').disabled = document.getElementById('clearWord').value.trim().toUpperCase() !== 'DELETE';
+}
+
+async function runClearAll() {
+    if (currentRole !== 'owner') { alert('Only the workspace owner can clear the data.'); return; }
+    if (document.getElementById('clearWord').value.trim().toUpperCase() !== 'DELETE') return;
+    const body = document.getElementById('clearBody');
+
+    if (document.getElementById('clearBackup').checked) {
+        body.innerHTML = '<h3>Saving a backup…</h3><p class="imp-note">Your backup file is downloading first. Nothing has been deleted yet.</p>';
+        if (!(await exportBackup())) { renderClearDialog('The backup could not be saved, so nothing was deleted.'); return; }
+    }
+
+    body.innerHTML = '<h3>Clearing…</h3><p class="imp-note">Please keep this page open.</p>';
+    // History first, then the parts: if it stops half-way, pressing the button again finishes the job.
+    const { error: logErr } = await sbClient.from('stock_logs').delete().eq('owner_id', ownerId);
+    const { error: stockErr } = logErr ? { error: null } : await sbClient.from('stock').delete().eq('owner_id', ownerId);
+    if (logErr || stockErr) {
+        await loadData();
+        renderClearDialog('Clearing stopped part-way: ' + (logErr || stockErr).message + ' You can press Delete everything again to finish.');
+        return;
+    }
+
+    stock = []; logs = [];
+    clearLogFilter();
+    render();
+    body.innerHTML = `<h3>All data cleared</h3><p style="font-size:13px;margin:10px 0 16px;">Stock Control is empty. Add parts one at a time, or use <strong>Import from Excel</strong>.</p>
+        <div class="imp-actions"><button class="btn btn-primary" onclick="closeClearDialog()">Done</button></div>`;
 }
 
 function importBackup(event) {
