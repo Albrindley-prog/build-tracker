@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice Notes</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#d93025">
+  <meta name="apple-mobile-web-app-title" content="Voice Notes">
+  <link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23d93025'/%3E%3Ccircle cx='16' cy='16' r='7' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <h1>Voice Notes</h1>
+      <p class="sub">Talk, and your words are typed for you.</p>
+    </header>
+
+    <div id="banner" class="banner" role="alert" hidden></div>
+
+    <section class="card recorder" aria-label="Recorder">
+      <button id="recordBtn" class="record-btn" type="button" aria-pressed="false">
+        <span class="rec-icon" aria-hidden="true"></span>
+        <span id="recordLabel">Record</span>
+      </button>
+
+      <div class="status-row">
+        <p id="status" class="status" data-kind="idle" role="status" aria-live="polite">Press Record and start talking.</p>
+        <span id="timer" class="timer" hidden>0:00</span>
+      </div>
+
+      <div id="live" class="live" aria-hidden="true">
+        <span class="live-hint">Your words will appear here as you speak.</span>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" id="saveAudio" checked>
+        Also save the audio so I can play it back
+      </label>
+    </section>
+
+    <section class="card editor" aria-label="Current note">
+      <div class="field">
+        <label for="title">Title</label>
+        <input id="title" type="text" autocomplete="off" maxlength="120">
+      </div>
+
+      <section class="summary" aria-label="Summary">
+        <div class="summary-head">
+          <h3>Summary</h3>
+          <div class="summary-controls">
+            <select id="modelSelect" aria-label="Ollama model to use"></select>
+            <button id="refreshModels" class="btn small" type="button" title="Check Ollama again" aria-label="Check Ollama again">&#8635;</button>
+            <button id="summariseBtn" class="btn small primary" type="button">Summarise</button>
+          </div>
+        </div>
+        <p id="ollamaStatus" class="ollama-status"></p>
+        <div id="summaryBody" class="summary-body" aria-live="polite"></div>
+      </section>
+
+      <div class="field">
+        <label for="body">Note <span class="hint">&mdash; click in the box to fix any mistakes</span></label>
+        <textarea id="body" rows="10" lang="en-GB" spellcheck="true" placeholder="Your note will appear here. You can also just type."></textarea>
+      </div>
+
+      <div id="audioList" class="audio-list"></div>
+
+      <div class="meta-row">
+        <span id="saveState" class="muted">Not saved yet</span>
+        <span id="wordCount" class="muted">0 words</span>
+      </div>
+
+      <div class="actions">
+        <button id="exportOneBtn" class="btn primary" type="button">Export to Word</button>
+        <button id="newBtn" class="btn" type="button">New note</button>
+      </div>
+    </section>
+
+    <section class="card notes" aria-label="Saved notes">
+      <div class="notes-head">
+        <h2>Saved notes <span id="noteCount" class="count">0</span></h2>
+        <button id="exportAllBtn" class="btn" type="button">Export all to Word</button>
+      </div>
+      <ul id="noteList" class="note-list"></ul>
+
+      <div class="backup">
+        <div class="backup-head">
+          <h3>Backup</h3>
+          <div class="backup-actions">
+            <button id="backupBtn" class="btn small" type="button">Back up</button>
+            <label class="btn small restore-label" for="restoreFile">Restore&hellip;</label>
+            <input id="restoreFile" class="visually-hidden" type="file" accept=".json,application/json">
+          </div>
+        </div>
+        <p id="backupInfo" class="backup-info"></p>
+        <p class="backup-help">A backup is a small file with your notes and summaries (not the audio). Keep it somewhere safe, such as iCloud Drive or email it to yourself. Restoring adds missing notes and never deletes anything; if a note is in both places, the more recently edited copy is kept.</p>
+      </div>
+    </section>
+
+    <footer class="foot">
+      Notes and audio are stored in this browser on this computer only.
+      Chrome and Edge send your voice to their own speech service to transcribe it, so live transcription needs an internet connection.
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="vendor/docx.js"></script>
+  <script src="export.js"></script>
+  <script src="backup.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
