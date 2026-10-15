@@ -39,7 +39,7 @@
       "@type": "Offer",
       "price": "32.00",
       "priceCurrency": "GBP",
-      "description": "30-day free trial, then £32 per month"
+      "description": "Tools from £3.99 per month. Main tools: 30-day free trial, then £32 per tool per month"
     },
     "featureList": "Car build tracking, workshop job logs, restoration progress, garage management, stock control, quotes"
   }
@@ -51,7 +51,7 @@
     "name": "Build Tracker Solutions",
     "description": "Software for car build tracking, workshop job logs, restoration progress tracking and garage management tools for UK garages and body shops.",
     "url": "https://build-tracker.co.uk",
-    "telephone": "+44 7540 799925",
+    "telephone": "+44 7931 095631",
     "email": "info@build-tracker.co.uk",
     "address": {
       "@type": "PostalAddress",
@@ -66,13 +66,7 @@
       "longitude": -2.3936
     },
     "areaServed": {"@type": "Country", "name": "United Kingdom"},
-    "openingHours": "Mo-Fr 09:00-17:00",
-    "sameAs": [
-      "https://www.yell.com/",
-      "https://www.freelindex.com/",
-      "https://trustpilot.com/",
-      "https://capterra.com/"
-    ]
+    "openingHours": "Mo-Fr 09:00-17:00"
   }
   </script>
 
@@ -93,140 +87,174 @@
   </script>
 
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family:'DM Sans', sans-serif; }
-    html, body { color:var(--text); background:var(--bg); line-height:1.6; }
+    /* Shared styles (nav, buttons, cards, footer, forms) live in style.css.
+       This block holds the homepage layout plus the sign-in, dashboard and popup UI. */
 
-    :root{
-      --bg:#0f1115;
-      --bg2:#171a22;
-      --bg3:#1e222c;
-      --bg4:#262c39;
-      --border:rgba(255,255,255,.08);
-      --border2:rgba(255,255,255,.16);
-      --text:#f3f4f8;
-      --text2:#9ba1b5;
-      --text3:#606782;
-      --accent:#f97316;
-      --accent-hover:#fb8a3c;
-      --accent-dim:rgba(249,115,22,.14);
-      --accent-border:rgba(249,115,22,.4);
-      --steel:#2c3546;
-      --radius:14px;
-      --radius-sm:8px;
-    }
-
-    h1,h2,h3,h4,.logo-word,.price-box .price { font-family:'Space Grotesk', sans-serif; letter-spacing:-.01em; }
-
-    .icon { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
-    .icon-sm { width:16px; height:16px; }
-    .icon-lg { width:30px; height:30px; }
-
-    nav {
-      background:var(--bg2);
-      color:var(--text);
-      padding:.7rem 5%;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:.5rem;
-      position:sticky;
-      top:0;
-      z-index:50;
-      border-bottom:1px solid var(--border);
-    }
-    .logo { display:flex; align-items:center; text-decoration:none; }
-    .logo svg { height:42px; width:auto; }
-    nav a { color:var(--text2); text-decoration:none; margin:0 .8rem; font-size:.92rem; transition:color .15s; }
-    nav a:hover { color:var(--accent); }
-    .nav-right { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
-
-    .dropdown { position:relative; display:inline-block; }
-    .dropbtn { background:transparent; color:var(--text2); border:none; padding:.6rem 1rem; font-size:.92rem; cursor:pointer; font-family:inherit; }
-    .dropdown-content { display:none; position:absolute; background:var(--bg2); border:1px solid var(--border2); min-width:230px; box-shadow:0 16px 32px rgba(0,0,0,.5); z-index:100; border-radius:var(--radius-sm); overflow:hidden; }
-    .dropdown-content a { color:var(--text2); padding:.7rem 1rem; text-decoration:none; display:block; margin:0; font-size:.9rem; }
-    .dropdown-content a:hover { background:var(--bg3); color:var(--accent); }
-    .dropdown:hover .dropdown-content { display:block; }
-    .dropdown:hover .dropbtn { color:var(--accent); }
-
-    .mkt-btn { display:inline-flex; align-items:center; gap:.5rem; background:var(--steel); color:var(--text); padding:.7rem 1.4rem; border-radius:var(--radius-sm); text-decoration:none; font-weight:600; margin:.5rem; transition:all .15s; border:1px solid var(--border2); cursor:pointer; font-size:.9rem; font-family:'DM Sans',sans-serif; }
-    .mkt-btn:hover { background:var(--bg4); border-color:var(--border2); }
-    .mkt-btn-blue, .mkt-btn-green { background:var(--accent); border-color:var(--accent); color:#14161d; font-weight:700; }
-    .mkt-btn-blue:hover, .mkt-btn-green:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
-    .mkt-btn-signin { background:transparent; border:1px solid var(--border2); color:var(--text); padding:.55rem 1.2rem; font-size:.9rem; margin:0; }
-    .mkt-btn-signin:hover { border-color:var(--accent); color:var(--accent); background:transparent; }
-    .mkt-btn-manage { background:transparent; border:1px solid var(--border2); color:var(--text2); }
-    .mkt-btn-manage:hover { color:var(--text); border-color:var(--border2); background:var(--bg4); }
-
-    .header-divider { height:2px; background:linear-gradient(90deg, transparent, var(--accent) 20%, var(--accent) 80%, transparent); opacity:.6; }
-
-    .hero { position:relative; overflow:hidden; color:var(--text); padding:5rem 5% 4.5rem; text-align:center;
-      background:
-        radial-gradient(ellipse 900px 500px at 12% -10%, rgba(249,115,22,.16), transparent 60%),
-        linear-gradient(165deg, #14161d 0%, #1b1f2a 55%, #12141a 100%);
-      border-bottom:1px solid var(--border);
-    }
-    .hero::before{ content:''; position:absolute; inset:0; pointer-events:none;
-      background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 1px, transparent 34px);
-    }
-    .hero > * { position:relative; z-index:1; }
-    .hero h1 { font-weight:700; font-size:2.6rem; margin-bottom:.6rem; }
-    .hero h2 { font-weight:500; font-size:1.2rem; color:var(--text2); margin-bottom:1.75rem; }
-    .hero-lede { font-size:1.05rem; max-width:800px; margin:0 auto 2rem; color:var(--text2); }
-    .hero-list { list-style:none; margin-bottom:2rem; font-size:1rem; display:inline-flex; flex-direction:column; gap:.5rem; text-align:left; color:var(--text2); }
-    .hero-list li { display:flex; align-items:center; gap:.6rem; }
-    .hero-list .icon { color:var(--accent); }
-
-    .section { padding:3.5rem 5%; max-width:1200px; margin:0 auto; }
-    .section h3 { font-size:1.7rem; font-weight:700; margin-bottom:.6rem; color:var(--text); text-align:center; }
-    .section-lede { text-align:center; color:var(--text2); max-width:640px; margin:0 auto 2rem; font-size:.98rem; }
-    .bg-alt { background:var(--bg2); }
-
-    #about p { text-align:center; max-width:800px; margin:0 auto 1.5rem; color:var(--text2); }
-
-    .mkt-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.5rem; margin:1.5rem 0; }
-    .mkt-card { background:var(--bg3); border:1px solid var(--border); padding:1.6rem; border-radius:var(--radius); transition:border-color .15s, transform .15s; }
-    .mkt-card:hover { border-color:var(--border2); transform:translateY(-2px); }
-    .card-icon { width:44px; height:44px; border-radius:10px; background:var(--accent-dim); border:1px solid var(--accent-border); display:flex; align-items:center; justify-content:center; color:var(--accent); margin-bottom:1rem; }
-    .mkt-card h4 { color:var(--text); margin-bottom:.5rem; font-size:1.08rem; font-weight:600; }
-    .mkt-card p { color:var(--text2); font-size:.92rem; }
-
-    .tool-group { margin-bottom:2.2rem; }
-    .tool-group-label { text-transform:uppercase; letter-spacing:.08em; font-size:.75rem; font-weight:600; color:var(--text3); margin-bottom:.9rem; }
-    .tool-featured { display:flex; align-items:center; gap:1.4rem; background:var(--bg3); border:1px solid var(--accent-border); border-radius:var(--radius); padding:1.8rem; margin-top:.5rem; }
-    .tool-featured .card-icon { width:56px; height:56px; margin-bottom:0; flex-shrink:0; }
+    /* ---------- Tools ---------- */
+    .tools-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:1.25rem; }
+    .tool-featured { grid-column:1 / -1; display:flex; align-items:center; gap:1.4rem; background:linear-gradient(135deg, var(--bg3), rgba(249,115,22,.08)); border:1px solid var(--accent-border); border-radius:var(--radius); padding:1.6rem 1.8rem; }
+    .tool-featured .card-icon { width:56px; height:56px; margin-bottom:0; }
     .tool-featured .card-icon .icon { width:28px; height:28px; }
-    .tool-featured h4 { font-size:1.15rem; margin-bottom:.35rem; }
-    .tool-featured p { color:var(--text2); font-size:.92rem; }
+    .tool-featured h3 { font-size:1.2rem; margin-bottom:.3rem; }
+    .tool-featured p { color:var(--text2); font-size:.95rem; }
+    .tag { display:inline-block; text-transform:uppercase; letter-spacing:.08em; font-size:.7rem; font-weight:700; color:var(--accent); margin-bottom:.3rem; }
 
-    .price-box { background:var(--bg3); border:1px solid var(--accent-border); border-radius:var(--radius); padding:2.5rem; text-align:center; max-width:500px; margin:0 auto; }
-    .price-box .price { font-size:3rem; color:var(--accent); font-weight:700; }
-    .price-box .price-usd { font-size:.95rem; color:var(--text3); margin-top:-.5rem; margin-bottom:.5rem; }
-    .price-box .price-period { font-size:1.15rem; margin-bottom:1rem; color:var(--text2); }
-    .price-box .price-period small { color:var(--text3); }
-    .price-disclaimer { font-size:.8rem; color:var(--text3); margin-bottom:1.5rem; }
-    .price-box ul { text-align:left; display:inline-block; margin-bottom:1.5rem; list-style:none; color:var(--text2); }
-    .price-box ul li { display:flex; align-items:center; gap:.6rem; padding:.25rem 0; }
-    .price-box ul li .icon { color:var(--accent); }
+    /* ---------- Pricing ---------- */
+    .pricing-grid { display:grid; grid-template-columns:1fr 1.15fr; gap:1.5rem; max-width:980px; margin:0 auto; }
+    .price-box { background:var(--bg3); border:1px solid var(--accent-border); border-radius:var(--radius); padding:2rem; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .trial-chip { display:inline-block; background:var(--accent-dim); border:1px solid var(--accent-border); color:var(--accent); border-radius:30px; padding:.3rem .9rem; font-size:.8rem; font-weight:600; margin-bottom:1rem; }
+    .price-box .price { font-family:'Space Grotesk', sans-serif; font-size:3.4rem; line-height:1; color:var(--accent); font-weight:700; }
+    .price-period { font-size:1.05rem; color:var(--text2); margin:.4rem 0 .2rem; }
+    .price-period .usd { display:block; font-size:.85rem; color:var(--text3); }
+    .price-box ul { list-style:none; text-align:left; margin:1.3rem 0 1.5rem; color:var(--text2); }
+    .price-box li { display:flex; align-items:center; gap:.6rem; padding:.25rem 0; }
+    .price-box li .icon { color:var(--accent); }
+    .price-box .mkt-btn { margin:0; width:100%; }
+    .price-note { font-size:.78rem; color:var(--text3); margin-top:1rem; }
+    .pricing-grid .price-box { grid-row:1 / span 2; }
+    .addon-prices { background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius); padding:1.6rem 1.8rem; }
+    .addon-prices h3 { font-size:1.15rem; margin-bottom:.3rem; }
+    .addon-prices > p { color:var(--text3); font-size:.85rem; margin-bottom:.9rem; }
+    .ap-list { list-style:none; }
+    .ap-list li { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:.75rem 0; border-top:1px solid var(--border); }
+    .ap-list strong { color:var(--text); display:block; }
+    .ap-list small { color:var(--text3); font-size:.8rem; }
+    .ap-price { font-family:'Space Grotesk', sans-serif; font-weight:700; color:var(--accent); white-space:nowrap; text-align:right; }
+    .ap-muted { color:var(--text3); font-weight:500; font-size:.88rem; }
+    .soon-box { border:1px dashed var(--border2); border-radius:var(--radius); padding:2rem; }
+    .soon-box h3 { display:flex; align-items:center; gap:.6rem; font-size:1.2rem; margin-bottom:1.3rem; }
+    .soon-box h3 .icon { color:var(--accent); }
+    .soon-list { list-style:none; display:grid; gap:1.1rem; }
+    .soon-list li { display:flex; gap:.8rem; }
+    .soon-list .icon { color:var(--accent); margin-top:.2rem; }
+    .soon-list strong { display:block; color:var(--text); }
+    .soon-list span { color:var(--text2); font-size:.92rem; }
+    .soon-note { margin-top:1.3rem; font-size:.85rem; color:var(--text3); }
 
-    .coming-soon-box { background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius); padding:2rem; max-width:800px; margin:2rem auto 0; text-align:center; }
-    .coming-soon-box h4 { color:var(--text); font-size:1.25rem; margin-bottom:1rem; display:flex; align-items:center; justify-content:center; gap:.6rem; font-family:'Space Grotesk',sans-serif; font-weight:600; }
-    .coming-soon-box > p { color:var(--text2); }
-    .coming-soon-box ul { list-style:none; padding:0; margin:1.2rem 0; font-size:1rem; }
-    .coming-soon-box li { padding:.55rem 0; display:flex; align-items:center; justify-content:center; gap:.7rem; text-align:left; color:var(--text2); }
-    .coming-soon-box li .icon { color:var(--accent); }
-    .coming-soon-box .cs-note { color:var(--text3); font-weight:500; margin-top:1rem; font-size:.9rem; }
+    /* ---------- Add-ons ---------- */
+    .subhead { margin:3rem 0 1.4rem; text-align:center; }
+    .subhead h3 { font-size:1.4rem; }
+    .subhead p { color:var(--text2); font-size:.95rem; margin-top:.3rem; }
+    .addon-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:1.25rem; }
+    .addon-card { display:flex; flex-direction:column; align-items:flex-start; }
+    .addon-card .card-icon { margin-bottom:.9rem; }
+    .addon-card p { margin-bottom:1.1rem; }
+    .addon-card .mkt-btn { margin:auto 0 0; }
 
-    .trust-section { text-align:center; }
-    .trust-badge { display:inline-flex; align-items:center; gap:.5rem; background:var(--accent-dim); border:1px solid var(--accent-border); color:var(--accent); padding:.45rem 1rem; border-radius:30px; font-size:.82rem; font-weight:600; margin-bottom:1.2rem; }
-    .trust-section p { max-width:680px; margin:0 auto 1rem; color:var(--text2); }
-    .trust-sub { color:var(--text3) !important; font-size:.92rem; }
+    /* ---------- "Get the app": top strip, Apps menu and section ---------- */
+    .app-strip { position:relative; display:flex; align-items:center; justify-content:center; padding:.5rem 3rem .5rem 1rem;
+      background:linear-gradient(90deg, rgba(249,115,22,.22), rgba(249,115,22,.09) 50%, rgba(249,115,22,.22)); border-bottom:1px solid var(--accent-border); }
+    .app-strip-link { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:.35rem .8rem; color:var(--text); text-decoration:none; font-size:.9rem; text-align:center; }
+    .app-strip-msg { display:inline-flex; align-items:center; gap:.5rem; }
+    .app-strip-short { display:none; }
+    .app-strip-link .icon { color:var(--accent); }
+    .app-strip-cta { display:inline-flex; align-items:center; background:var(--accent); color:#14161d; font-weight:700; padding:.22rem .85rem; border-radius:30px; font-size:.82rem; white-space:nowrap; transition:background .15s; }
+    .app-strip-link:hover .app-strip-cta { background:var(--accent-hover); }
+    .app-strip-close { position:absolute; right:.6rem; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; border-radius:50%; background:transparent; color:var(--text2); font-size:1.35rem; line-height:1; cursor:pointer; }
+    .app-strip-close:hover { color:var(--text); background:rgba(255,255,255,.08); }
+    .apps-dd .dropbtn { color:var(--accent); font-weight:600; display:inline-flex; align-items:center; gap:.35rem; }
+    .apps-dd:hover .dropbtn, .apps-dd.open .dropbtn { color:var(--accent-hover); }
+    .apps-dd .dropdown-content { min-width:320px; }
+    .dropdown-content a.app-dd-item { display:flex; align-items:center; gap:.75rem; padding:.8rem 1rem; }
+    .app-dd-item img { width:36px; height:36px; border-radius:9px; flex-shrink:0; }
+    .app-dd-item strong { display:block; color:var(--text); font-weight:600; font-size:.92rem; line-height:1.3; }
+    .app-dd-item small { display:block; color:var(--text3); font-size:.78rem; line-height:1.3; }
+    .dropdown-content a.app-dd-foot { border-top:1px solid var(--border); color:var(--accent); font-size:.85rem; }
+    .app-list { display:grid; grid-template-columns:repeat(2, 1fr); gap:1.25rem; max-width:860px; margin:0 auto 1rem; }
+    .app-item { display:flex; flex-direction:column; gap:1rem; background:var(--bg3); border:1px solid var(--accent-border); border-radius:var(--radius); padding:1.4rem 1.5rem; }
+    .app-item-top { display:flex; gap:1rem; align-items:flex-start; }
+    .app-item img { width:60px; height:60px; border-radius:14px; box-shadow:0 8px 24px rgba(249,115,22,.25); flex-shrink:0; }
+    .app-item h3 { font-size:1.1rem; margin-bottom:.25rem; }
+    .app-item p { color:var(--text2); font-size:.92rem; }
+    .app-item .app-item-price { color:var(--text3); font-size:.82rem; margin-top:.4rem; }
+    .app-item .mkt-btn { margin:auto 0 0; }
+    .app-more { text-align:center; color:var(--text3); font-size:.9rem; margin-bottom:2.2rem; }
+    .app-how { text-align:center; font-size:1.2rem; font-weight:600; }
+    .app-steps { display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1.2rem; margin:1.5rem 0; }
+    .app-card { position:relative; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; }
+    .app-card.this-device { border-color:var(--accent-border); order:-1; }
+    .app-card h4 { display:flex; align-items:center; gap:.5rem; font-size:1.05rem; font-weight:600; margin-bottom:.8rem; padding-right:5.5rem; font-family:'Space Grotesk', sans-serif; }
+    .app-card h4 .icon { color:var(--accent); }
+    .app-card ol { list-style:none; counter-reset:s; }
+    .app-card li { counter-increment:s; position:relative; padding:.35rem 0 .35rem 2.1rem; color:var(--text2); font-size:.92rem; }
+    .app-card li::before { content:counter(s); position:absolute; left:0; top:.42rem; width:1.5rem; height:1.5rem; border-radius:50%; background:var(--accent-dim); border:1px solid var(--accent-border); color:var(--accent); font-size:.78rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
+    .app-card li strong { color:var(--text); font-weight:600; }
+    .device-badge { display:none; position:absolute; top:1.35rem; right:1.2rem; background:var(--accent); color:#14161d; font-size:.72rem; font-weight:700; padding:.15rem .6rem; border-radius:30px; }
+    .this-device .device-badge { display:inline-block; }
+    .app-points { display:flex; flex-wrap:wrap; justify-content:center; gap:.6rem 1.6rem; list-style:none; color:var(--text2); font-size:.92rem; margin:0 0 1rem; }
+    .app-points li { display:flex; align-items:center; gap:.45rem; }
+    .app-points .icon { color:var(--accent); }
+    .app-note { text-align:center; font-size:.85rem; color:var(--text3); }
 
+    /* ---------- Trust, guides, about, FAQ, referral ---------- */
+    .trust-section { text-align:center; padding-top:3rem; padding-bottom:3rem; }
+    .trust-badge { display:inline-flex; align-items:center; gap:.5rem; background:var(--accent-dim); border:1px solid var(--accent-border); color:var(--accent); padding:.4rem 1rem; border-radius:30px; font-size:.82rem; font-weight:600; margin-bottom:1rem; }
+    .trust-section h2 { font-size:1.6rem; margin-bottom:.7rem; }
+    .trust-section p { color:var(--text2); }
+
+    .guides-grid { grid-template-columns:repeat(2, 1fr); max-width:860px; margin:0 auto; }
+    .guides-grid .mkt-card { display:flex; flex-direction:column; align-items:flex-start; }
+    .guides-grid .mkt-card p { margin-bottom:1rem; flex:1; }
+    .guide-signup { max-width:860px; margin:1.25rem auto 0; display:flex; align-items:center; justify-content:space-between; gap:1.2rem 2rem; flex-wrap:wrap; background:var(--bg3); border:1px dashed var(--border2); border-radius:var(--radius); padding:1.3rem 1.6rem; }
+    .guide-signup strong { color:var(--text); }
+    .guide-signup p { color:var(--text2); font-size:.9rem; max-width:420px; }
+    .guide-form { display:flex; gap:.6rem; flex-wrap:wrap; flex:1; justify-content:flex-end; min-width:280px; }
+    .guide-form .field { flex:1; min-width:200px; width:auto; }
+    .guide-form .mkt-btn { margin:0; }
+
+    .about-text { text-align:center; }
+    .about-text p { color:var(--text2); margin-bottom:.8rem; }
+    .about-text .founder { font-size:.88rem; color:var(--text3); }
+
+    .faq-list { display:grid; gap:.7rem; }
+    .faq-list details { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); }
+    .faq-list details[open] { border-color:var(--border2); }
+    .faq-list summary { cursor:pointer; list-style:none; padding:1rem 1.2rem; font-weight:600; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+    .faq-list summary::-webkit-details-marker { display:none; }
+    .faq-list summary::after { content:'+'; color:var(--accent); font-size:1.4rem; line-height:1; }
+    .faq-list details[open] summary::after { content:'\2212'; }
+    .faq-list details p { padding:0 1.2rem 1.1rem; color:var(--text2); }
+
+    .referral-card { max-width:980px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:1.2rem 2rem; flex-wrap:wrap; background:var(--accent-dim); border:1px solid var(--accent-border); border-radius:var(--radius); padding:1.6rem 2rem; }
+    .referral-card h2 { font-size:1.3rem; margin-bottom:.3rem; }
+    .referral-card p { color:var(--text2); max-width:560px; font-size:.95rem; }
+    .referral-card .mkt-btn { margin:0; }
+
+    /* ---------- Contact ---------- */
+    .contact-grid { display:grid; grid-template-columns:1fr 1.2fr; gap:2.5rem; max-width:960px; margin:0 auto; align-items:start; }
+    .contact-list { list-style:none; display:grid; gap:1.2rem; }
+    .contact-list li { display:flex; gap:.9rem; align-items:center; }
+    .contact-list .card-icon { width:42px; height:42px; margin-bottom:0; }
+    .contact-list small { display:block; color:var(--text3); font-size:.75rem; text-transform:uppercase; letter-spacing:.07em; }
+    .contact-list a, .contact-list span { color:var(--text); text-decoration:none; font-weight:500; }
+    .contact-list a:hover { color:var(--accent); }
+    #contactForm { display:flex; flex-direction:column; gap:.9rem; }
+    #contactForm .mkt-btn { margin:0; }
+    #form-status { display:none; font-weight:600; }
+    .success { color:#4ade80; }
+    .error { color:#f87171; }
+
+    /* ---------- Sign in / dashboard ---------- */
+    .auth-box { max-width:400px; margin:1rem auto; background:var(--bg3); border:1px solid var(--border2); padding:2rem; border-radius:var(--radius); text-align:center; }
+    .auth-box h2 { color:var(--text); margin-bottom:1rem; font-weight:700; }
+    .auth-box input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid var(--border2); background:var(--bg2); color:var(--text); border-radius:var(--radius-sm); font-size:1rem; }
+    .auth-box p { color:var(--text2); }
+    .auth-box a { color:var(--accent); text-decoration:none; }
+
+    .dashboard-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:1.5rem; margin:2rem 0; }
+    .dashboard-card { background:var(--bg3); border:1px solid var(--border); padding:1.8rem; border-radius:var(--radius); text-align:center; }
+    .dashboard-card .card-icon { margin:0 auto 1rem; }
+    .dashboard-card h3 { font-size:1.05rem; margin-bottom:.4rem; font-weight:600; }
+    .dashboard-card p { color:var(--text2); font-size:.9rem; }
+    .dashboard-card a, .dashboard-card button.mkt-btn { display:inline-flex; margin-top:1rem; }
+    .payment-note { font-size:.9rem; color:var(--text3); margin:1rem 0; }
+
+    /* ---------- Popups ---------- */
     .popup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,6,9,.75); z-index:999; align-items:center; justify-content:center; }
     .popup-content { background:var(--bg2); border:1px solid var(--border2); padding:2rem; border-radius:var(--radius); max-width:450px; width:90%; max-height:90vh; overflow-y:auto; color:var(--text); }
     .popup-content h4 { text-align:center; margin-bottom:1.5rem; color:var(--text); font-weight:600; }
-    .popup-content input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid var(--border2); border-radius:var(--radius-sm); background:var(--bg3); color:var(--text); font-family:inherit; }
-    .close-btn { text-align:right; margin-top:1rem; cursor:pointer; font-weight:bold; color:var(--text2); }
+    .popup-content input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid var(--border2); border-radius:var(--radius-sm); background:var(--bg3); color:var(--text); }
+    .close-btn { display:block; text-align:right; font-size:1.7rem; line-height:1; margin-bottom:.6rem; cursor:pointer; font-weight:bold; color:var(--text2); }
     .close-btn:hover { color:var(--text); }
     .option-item { display:flex; align-items:center; gap:.9rem; padding:1rem; margin-bottom:1rem; border:1px solid var(--border2); border-radius:var(--radius-sm); cursor:pointer; background:var(--bg3); transition:border-color .15s, background .15s; }
     .option-item:hover { border-color:var(--accent-border); background:var(--bg4); }
@@ -241,124 +269,34 @@
     #cancel-modal-list p { color:var(--text2) !important; }
     #cancel-modal-list .option-item { border-color:var(--border2) !important; background:var(--bg3) !important; color:var(--text) !important; }
 
-    footer { background:var(--bg2); color:var(--text2); padding:2rem 5%; text-align:center; margin-top:3rem; border-top:1px solid var(--border); }
-    footer strong { color:var(--text); }
-
-    .hidden { display:none !important; }
-    .auth-box { max-width:400px; margin:3rem auto; background:var(--bg3); border:1px solid var(--border2); padding:2rem; border-radius:var(--radius); text-align:center; }
-    .auth-box h2 { color:var(--text); margin-bottom:1rem; font-weight:700; }
-    .auth-box input { width:100%; padding:.8rem; margin:.5rem 0; border:1px solid var(--border2); background:var(--bg2); color:var(--text); border-radius:var(--radius-sm); font-family:inherit; font-size:1rem; }
-    .auth-box p { color:var(--text2); }
-    .auth-box a { color:var(--accent); text-decoration:none; }
-
-    .dashboard-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1.5rem; margin:2rem 0; }
-    .dashboard-card { background:var(--bg3); border:1px solid var(--border); padding:1.8rem; border-radius:var(--radius); text-align:center; }
-    .dashboard-card .card-icon { margin:0 auto 1rem; }
-    .dashboard-card h3 { font-size:1.05rem; margin-bottom:.4rem; font-weight:600; }
-    .dashboard-card p { color:var(--text2); font-size:.9rem; }
-    .dashboard-card a, .dashboard-card button.mkt-btn { display:inline-block; margin-top:1rem; }
-    .payment-note { font-size:.9rem; color:var(--text3); margin:1rem 0; }
-
-    #form-status { margin-top:1rem; font-weight:bold; display:none; }
-    .success { color:#4ade80; }
-    .error { color:#f87171; }
-
-    .contact-icon-row { display:flex; align-items:center; gap:.6rem; margin-bottom:1rem; color:var(--text); font-weight:600; font-family:'Space Grotesk',sans-serif; }
-    .contact-icon-row .icon { color:var(--accent); }
-    #contact p { color:var(--text2); }
-    #contact a { color:var(--accent); text-decoration:none; }
-    #contactMessage, #contactForm input, #contactForm textarea { background:var(--bg3); border:1px solid var(--border2); color:var(--text); padding:.8rem; border-radius:var(--radius-sm); font-family:inherit; }
-
-    #lead-magnet input, #referral input { background:var(--bg3); border:1px solid var(--border2); color:var(--text); }
-    #lead-magnet p, #referral p { color:var(--text2); }
-
-    #faq h4 { color:var(--accent); font-family:'Space Grotesk',sans-serif; font-weight:600; margin-bottom:.3rem; }
-    #faq p { color:var(--text2); }
-    #faq a { color:var(--accent); text-decoration:none; }
-
-    /* "Get the app": strip across the top, menu link and section */
-    .app-strip { position:relative; display:flex; align-items:center; justify-content:center; padding:.5rem 3rem .5rem 1rem;
-      background:linear-gradient(90deg, rgba(249,115,22,.22), rgba(249,115,22,.09) 50%, rgba(249,115,22,.22)); border-bottom:1px solid var(--accent-border); }
-    .app-strip-link { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:.35rem .8rem; color:var(--text); text-decoration:none; font-size:.9rem; text-align:center; }
-    .app-strip-msg { display:inline-flex; align-items:center; gap:.5rem; }
-    .app-strip-short { display:none; }
-    .app-strip-link .icon { color:var(--accent); }
-    .app-strip-cta { display:inline-flex; align-items:center; background:var(--accent); color:#14161d; font-weight:700; padding:.22rem .85rem; border-radius:30px; font-size:.82rem; white-space:nowrap; transition:background .15s; }
-    .app-strip-link:hover .app-strip-cta { background:var(--accent-hover); }
-    .app-strip-close { position:absolute; right:.6rem; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; border-radius:50%; background:transparent; color:var(--text2); font-size:1.35rem; line-height:1; cursor:pointer; }
-    .app-strip-close:hover { color:var(--text); background:rgba(255,255,255,.08); }
-    /* "Apps" dropdown in the top menu: one line per app */
-    .apps-dd .dropbtn { color:var(--accent); font-weight:600; display:inline-flex; align-items:center; gap:.35rem; }
-    .apps-dd:hover .dropbtn, .apps-dd.open .dropbtn { color:var(--accent-hover); }
-    .apps-dd.open .dropdown-content { display:block; }
-    @media (hover: none) { .apps-dd:not(.open) .dropdown-content { display:none; } }   /* phones: tap to open, no sticky hover */
-    .apps-dd .dropdown-content { min-width:320px; right:0; }
-    .dropdown-content a.app-dd-item { display:flex; align-items:center; gap:.75rem; padding:.8rem 1rem; }
-    .app-dd-item img { width:36px; height:36px; border-radius:9px; flex-shrink:0; }
-    .app-dd-item strong { display:block; color:var(--text); font-weight:600; font-size:.92rem; line-height:1.3; }
-    .app-dd-item small { display:block; color:var(--text3); font-size:.78rem; line-height:1.3; }
-    .dropdown-content a.app-dd-foot { border-top:1px solid var(--border); color:var(--accent); font-size:.85rem; }
-    #get-the-app { scroll-margin-top:80px; }
-    .app-list { display:grid; gap:1rem; max-width:860px; margin:0 auto .8rem; }
-    .app-item { display:flex; align-items:center; gap:1.2rem; background:var(--bg3); border:1px solid var(--accent-border); border-radius:var(--radius); padding:1.4rem 1.6rem; }
-    .app-item img { width:64px; height:64px; border-radius:15px; box-shadow:0 8px 24px rgba(249,115,22,.25); flex-shrink:0; }
-    .app-item-body { flex:1; min-width:0; }
-    .app-item-body .tool-group-label { margin-bottom:.1rem; color:var(--accent); }
-    .app-item h4 { font-size:1.15rem; font-weight:600; margin-bottom:.25rem; }
-    .app-item p { color:var(--text2); font-size:.92rem; }
-    .app-item .app-item-price { color:var(--text3); font-size:.82rem; margin-top:.3rem; }
-    .app-item .mkt-btn { margin:0; white-space:nowrap; flex-shrink:0; }
-    .app-more { text-align:center; color:var(--text3); font-size:.9rem; margin-bottom:2.2rem; }
-    .app-how { text-align:center; font-size:1.2rem; font-weight:600; }
-    .app-steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:1.2rem; margin:1.5rem 0; }
-    .app-card { position:relative; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; }
-    .app-card.this-device { border-color:var(--accent-border); order:-1; }
-    .app-card h4 { display:flex; align-items:center; gap:.5rem; font-size:1.05rem; font-weight:600; margin-bottom:.8rem; padding-right:5.5rem; }
-    .app-card h4 .icon { color:var(--accent); }
-    .app-card ol { list-style:none; counter-reset:s; }
-    .app-card li { counter-increment:s; position:relative; padding:.35rem 0 .35rem 2.1rem; color:var(--text2); font-size:.92rem; }
-    .app-card li::before { content:counter(s); position:absolute; left:0; top:.42rem; width:1.5rem; height:1.5rem; border-radius:50%; background:var(--accent-dim); border:1px solid var(--accent-border); color:var(--accent); font-size:.78rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
-    .app-card li strong { color:var(--text); font-weight:600; }
-    .device-badge { display:none; position:absolute; top:1.35rem; right:1.2rem; background:var(--accent); color:#14161d; font-size:.72rem; font-weight:700; padding:.15rem .6rem; border-radius:30px; }
-    .this-device .device-badge { display:inline-block; }
-    .app-points { display:flex; flex-wrap:wrap; justify-content:center; gap:.6rem 1.6rem; list-style:none; color:var(--text2); font-size:.92rem; margin:0 0 1rem; }
-    .app-points li { display:flex; align-items:center; gap:.45rem; }
-    .app-points .icon { color:var(--accent); }
-
-    /* Slightly tighter menu on smaller screens so "Get the App" fits without
-       adding a row: the menu is never taller than it was before the link. */
-    @media (max-width: 1180px) {
-      nav a { margin:0 .45rem; }
-      .dropbtn { padding:.6rem .5rem; }
-      .apps-dd .dropbtn .icon { display:none; }
-      #mainNav .mkt-btn { padding:.6rem 1rem; margin:.5rem .3rem; }
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1000px) {
+      .tools-grid { grid-template-columns:repeat(2, 1fr); }
+      .pricing-grid { grid-template-columns:1fr; max-width:560px; }
+      .addon-grid { grid-template-columns:1fr; max-width:620px; margin:0 auto; }
+      .pricing-grid .price-box { grid-row:auto; }
+      .app-strip-long { display:none; }
     }
-    @media (max-width: 1010px) {
-      nav a { margin:0 .3rem; }
-      .dropbtn { padding:.6rem .4rem; }
-      #mainNav .mkt-btn { padding:.6rem .9rem; }
-    }
-    @media (max-width: 840px) {
-      .dropbtn { padding:.3rem .4rem; }
-      #mainNav .mkt-btn { margin:.4rem .3rem; }
-    }
-    @media (max-width: 960px) { .app-strip-long { display:none; } }
-    @media (max-width: 400px) { .app-strip-msg .icon { display:none; } }
-
     @media (max-width: 768px) {
+      .tool-featured { flex-direction:column; text-align:center; }
+      .app-list { grid-template-columns:1fr; }
       .app-strip { padding:.45rem 2.6rem .45rem .8rem; }
       .app-strip-link { font-size:.85rem; flex-wrap:nowrap; }
       .app-strip-full { display:none; }
       .app-strip-short { display:inline; white-space:nowrap; }
-      .app-item { flex-direction:column; text-align:center; padding:1.4rem 1.2rem; }
-      .app-item .mkt-btn { width:100%; justify-content:center; }
-      .hero h1 { font-size:2rem; }
-      .hero h2 { font-size:1.05rem; }
-      .section { padding:2.5rem 6%; }
-      nav { padding:.6rem 4%; }
-      .logo svg { height:34px; }
-      .dropdown-content { position:static; box-shadow:none; width:100%; margin-top:.4rem; }
-      .tool-featured { flex-direction:column; text-align:center; }
+      .guides-grid { grid-template-columns:1fr; }
+      .guide-form { justify-content:stretch; }
+      .contact-grid { grid-template-columns:1fr; gap:2rem; }
+      .referral-card { text-align:center; justify-content:center; }
+      .referral-card p { margin:0 auto; }
+    }
+    @media (max-width: 560px) {
+      .tools-grid { grid-template-columns:1fr; gap:.9rem; }
+      .tools-grid .mkt-card { display:grid; grid-template-columns:44px 1fr; column-gap:.9rem; align-items:start; padding:1.1rem; }
+      .tools-grid .mkt-card .card-icon { grid-row:1 / span 2; margin-bottom:0; }
+    }
+    @media (max-width: 400px) {
+      .app-strip-msg .icon { display:none; }
     }
   </style>
 </head>
@@ -377,7 +315,7 @@
 </div>
 <script>try { if (localStorage.getItem('bt-app-strip-hidden') === '1') document.getElementById('appStrip').classList.add('hidden'); } catch (e) {}</script>
 <nav>
-  <a href="#" class="logo" onclick="showHome(); return false;">
+  <a href="#" class="logo" aria-label="Build Tracker home" onclick="showHome(); return false;">
     <svg width="320" height="100" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#64748B"/>
       <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#94A3B8"/>
@@ -392,6 +330,10 @@
     </svg>
   </a>
 
+  <button type="button" class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+    <svg class="icon" viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  </button>
+
   <div class="nav-right" id="mainNav">
     <a href="#home" onclick="showHome(); return false;">Home</a>
     <a href="#features">Features</a>
@@ -399,15 +341,15 @@
     <a href="#about">About</a>
     <a href="#contact">Contact</a>
     <div class="dropdown">
-      <button class="dropbtn">Open Software ▾</button>
+      <button type="button" class="dropbtn" aria-haspopup="true">Open Software ▾</button>
       <div class="dropdown-content">
         <a href="build-tracker/index.html">Build Tracker</a>
         <a href="body-shop-pro/index.html">Body Shop Pro</a>
-        <a href="workshop-scheduler-diary/index.html">Workshop Scheduler & Diary</a>
+        <a href="workshop-scheduler-diary/index.html">Workshop Scheduler &amp; Diary</a>
         <a href="electronics-repair/index.html">Electronics Repair</a>
         <a href="stock-control/index.html">Stock Control</a>
-        <a href="supplier-purchase-order-system/index.html">Supplier & Purchase Order System</a>
-        <a href="job-card-workshop-log-system/index.html">Job Card & Workshop Log System</a>
+        <a href="supplier-purchase-order-system/index.html">Supplier &amp; Purchase Order System</a>
+        <a href="job-card-workshop-log-system/index.html">Job Card &amp; Workshop Log System</a>
         <a href="quoting-tool/quotebuilder.html">Quote Builder</a>
         <a href="courtesy-car-manager/index.html">Courtesy Car Manager</a>
         <a href="https://bms-system.onrender.com" target="_blank" rel="noopener">Workshop Tracker</a>
@@ -442,147 +384,142 @@
 <div class="header-divider"></div>
 
 <section id="home" class="hero">
-  <h1>Workshop & Business Management Software UK</h1>
-  <h2>Tools for car builds, repairs, scheduling, stock control, quotes and more</h2>
-  <p class="hero-lede">Simple, reliable UK‑built software. All plans include a <strong style="color:var(--text)">30‑day free trial</strong>, then just £32 per month <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span>.</p>
-  <ul class="hero-list">
-    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Full access for 30 days — no card required to start</li>
-    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Car build & restoration progress tracker</li>
-    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Workshop job log system</li>
-    <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cancel anytime, no long‑term contracts</li>
-  </ul>
-  <br>
-  <button class="mkt-btn mkt-btn-blue" onclick="openSelection()">Choose Software & Start Trial</button>
+  <div class="hero-inner">
+    <h1>Workshop &amp; Business Management Software UK</h1>
+    <h2>Simple, UK‑built tools for car builds, repairs, scheduling, stock control, quotes and more</h2>
+    <ul class="hero-points">
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 30‑day free trial on our main tools — no card required</li>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Tools from £3.99/month</li>
+      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cancel anytime, no contracts</li>
+    </ul>
+    <div class="hero-actions">
+      <button class="mkt-btn mkt-btn-blue mkt-btn-lg" onclick="openSelection()">Choose Software &amp; Start Trial</button>
+      <a href="#features" class="mkt-btn mkt-btn-ghost mkt-btn-lg">See the tools</a>
+    </div>
+  </div>
 </section>
 
 <section id="features" class="section">
-  <h3>Our Software Tools</h3>
-  <p class="section-lede">Nine focused tools built for UK trade businesses — pick what your workshop actually needs.</p>
+  <div class="section-head">
+    <h2>Our Software Tools</h2>
+    <p>Nine focused tools built for UK trade businesses — pick what your workshop actually needs.</p>
+  </div>
 
-  <div class="tool-group">
-    <p class="tool-group-label">Build &amp; Repair</p>
-    <div class="mkt-grid">
-      <div class="mkt-card">
-        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="8" width="13" height="7" rx="1"/><path d="M15 10h3l3 3v2h-6z"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/></svg></div>
-        <h4>Build Tracker</h4>
-        <p>Car build tracking software and restoration progress log — keep every stage documented.</p>
+  <div class="tools-grid">
+    <div class="tool-featured">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+      <div>
+        <span class="tag">All‑in‑one</span>
+        <h3>Workshop Tracker</h3>
+        <p>All-in-one workshop management system for jobs, scheduling and records.</p>
       </div>
-      <div class="mkt-card">
-        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12l1.5-4.5A2 2 0 0 1 6.4 6h11.2a2 2 0 0 1 1.9 1.5L21 12"/><rect x="2" y="12" width="20" height="5" rx="1.5"/><circle cx="7" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg></div>
-        <h4>Body Shop Pro</h4>
-        <p>Garage management tool for repairs, estimates, parts and job records.</p>
-      </div>
-      <div class="mkt-card">
-        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.3"/><circle cx="15" cy="15" r="1.3"/><path d="M9 10.3V13a2 2 0 0 0 2 2h1.7"/><path d="M15 13.7V11a2 2 0 0 0-2-2h-1.7"/></svg></div>
-        <h4>Electronics Repair</h4>
-        <p>Log faults, parts used and repair history for phones, laptops and appliances.</p>
-      </div>
+    </div>
+
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="8" width="13" height="7" rx="1"/><path d="M15 10h3l3 3v2h-6z"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/></svg></div>
+      <h3>Build Tracker</h3>
+      <p>Car build tracking software and restoration progress log — every stage documented.</p>
+    </div>
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12l1.5-4.5A2 2 0 0 1 6.4 6h11.2a2 2 0 0 1 1.9 1.5L21 12"/><rect x="2" y="12" width="20" height="5" rx="1.5"/><circle cx="7" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg></div>
+      <h3>Body Shop Pro</h3>
+      <p>Garage management tool for repairs, estimates, parts and job records.</p>
+    </div>
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.3"/><circle cx="15" cy="15" r="1.3"/><path d="M9 10.3V13a2 2 0 0 0 2 2h1.7"/><path d="M15 13.7V11a2 2 0 0 0-2-2h-1.7"/></svg></div>
+      <h3>Electronics Repair</h3>
+      <p>Log faults, parts used and repair history for phones, laptops and appliances.</p>
+    </div>
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+      <h3>Stock Control</h3>
+      <p>Inventory, reorder levels, suppliers and costs for all your parts.</p>
+    </div>
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
+      <h3>Purchase Order System</h3>
+      <p>Manage suppliers, create orders and track deliveries easily.</p>
+    </div>
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="7" y1="13.5" x2="9" y2="13.5"/><line x1="11" y1="13.5" x2="13" y2="13.5"/><line x1="15" y1="13.5" x2="17" y2="13.5"/></svg></div>
+      <h3>Workshop Scheduler &amp; Diary</h3>
+      <p>Plan jobs, manage bays and technicians, and see your whole workshop calendar at a glance.</p>
+    </div>
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><polyline points="9 13 11 15 15 10"/></svg></div>
+      <h3>Job Card &amp; Workshop Log</h3>
+      <p>Workshop job log system — track time, materials and costs for every job.</p>
+    </div>
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>
+      <h3>Quote Builder</h3>
+      <p>Create professional quotes, send them by link and convert straight to jobs.</p>
     </div>
   </div>
 
-  <div class="tool-group">
-    <p class="tool-group-label">Operations</p>
-    <div class="mkt-grid">
-      <div class="mkt-card">
-        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
-        <h4>Stock Control</h4>
-        <p>Manage inventory, reorder levels, suppliers and costs for all your parts.</p>
-      </div>
-      <div class="mkt-card">
-        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
-        <h4>Purchase Order System</h4>
-        <p>Manage suppliers, create orders and track deliveries easily.</p>
-      </div>
-      <div class="mkt-card">
-        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="7" y1="13.5" x2="9" y2="13.5"/><line x1="11" y1="13.5" x2="13" y2="13.5"/><line x1="15" y1="13.5" x2="17" y2="13.5"/></svg></div>
-        <h4>Workshop Scheduler & Diary</h4>
-        <p>Plan jobs, manage bays, track technicians and view your full workshop calendar at a glance.</p>
-      </div>
-    </div>
+  <div class="subhead">
+    <h3>Add‑ons &amp; new</h3>
+    <p>Smaller tools from £3.99/month that sit alongside the main tools — each has its own price and free trial length.</p>
   </div>
 
-  <div class="tool-group">
-    <p class="tool-group-label">Admin &amp; Sales</p>
-    <div class="mkt-grid">
-      <div class="mkt-card">
-        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><polyline points="9 13 11 15 15 10"/></svg></div>
-        <h4>Job Card & Workshop Log</h4>
-        <p>Workshop job log system — track time, materials and costs for every job.</p>
-      </div>
-      <div class="mkt-card">
-        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>
-        <h4>Quote Builder</h4>
-        <p>Create professional quotes, send via link and convert straight to jobs.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="tool-featured">
-    <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
-    <div>
-      <p class="tool-group-label" style="margin-bottom:.3rem">All‑in‑one</p>
-      <h4>Workshop Tracker</h4>
-      <p>All-in-one workshop management system for jobs, scheduling and records.</p>
-    </div>
-  </div>
-
-  <div class="tool-featured" style="margin-top:1rem">
-    <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg></div>
-    <div>
-      <p class="tool-group-label" style="margin-bottom:.3rem">Add‑on · from £3.99/month</p>
-      <h4>Build Tracker Cloud</h4>
+  <div class="addon-grid">
+    <div class="mkt-card addon-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg></div>
+      <span class="tag">Add‑on · from £3.99/month</span>
+      <h3>Build Tracker Cloud</h3>
       <p>Secure cloud storage for plans, photos and job records, with the same login as your Build Tracker software. Separate from the £32 plan, with its own 14‑day free trial.</p>
-      <a href="https://build-tracker-cloud.onrender.com" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue" style="margin-top:.8rem;display:inline-block">Try Cloud Storage</a>
+      <a href="https://build-tracker-cloud.onrender.com" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue">Try Cloud Storage</a>
     </div>
-  </div>
-
-  <div class="tool-featured" style="margin-top:1rem">
-    <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M5 17h-.5A1.5 1.5 0 0 1 3 15.5V12l2.2-5.1A2 2 0 0 1 7 5.7h10a2 2 0 0 1 1.8 1.2L21 12v3.5a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M3 12h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></div>
-    <div>
-      <p class="tool-group-label" style="margin-bottom:.3rem">Add‑on · £9.99/month</p>
-      <h4>Courtesy Car Manager</h4>
+    <div class="mkt-card addon-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M5 17h-.5A1.5 1.5 0 0 1 3 15.5V12l2.2-5.1A2 2 0 0 1 7 5.7h10a2 2 0 0 1 1.8 1.2L21 12v3.5a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M3 12h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></div>
+      <span class="tag">Add‑on · £9.99/month</span>
+      <h3>Courtesy Car Manager</h3>
       <p>Keep track of your loan cars: MOT, tax and insurance checks, phone‑friendly hand‑overs with photos, damage marks and an on‑screen signature, and returns that work out mileage, fuel and late charges. Separate from the £32 plan, with its own 30‑day free trial.</p>
-      <a href="courtesy-car-manager/index.html" class="mkt-btn mkt-btn-blue" style="margin-top:.8rem;display:inline-block">Try Courtesy Car Manager</a>
+      <a href="courtesy-car-manager/index.html" class="mkt-btn mkt-btn-blue">Try Courtesy Car Manager</a>
     </div>
-  </div>
-  <div class="tool-featured" style="margin-top:1rem">
-    <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></div>
-    <div>
-      <p class="tool-group-label" style="margin-bottom:.3rem">New · Payroll, invoicing &amp; HR</p>
-      <h4>BuildOS</h4>
+    <div class="mkt-card addon-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></div>
+      <span class="tag">New · £9.99/month</span>
+      <h3>BuildOS</h3>
       <p>Payroll, invoicing, expenses and HR admin for small UK businesses, in one place. Work out PAYE, National Insurance and pension with payslips that show every step, raise invoices with VAT and recurring schedules, log expenses and receipts, and keep onboarding, leave, sick pay and contract drafts together. Figures and documents are drafts for you to review — BuildOS doesn't file with HMRC or make payments. Separate login from your Build Tracker software, with its own 30‑day free trial — no card needed to start.</p>
-      <a href="https://buildos-saas.vercel.app" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue" style="margin-top:.8rem;display:inline-block">Try BuildOS</a>
+      <a href="https://buildos-saas.vercel.app" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue">Try BuildOS</a>
     </div>
   </div>
 </section>
 
-<section id="get-the-app" class="section">
-  <h3>Build Tracker Apps</h3>
-  <p class="section-lede">Download our apps to your phone, tablet or computer straight from this website — no app store needed. They sit on your home screen and open full screen, just like any other app.</p>
+<section id="get-the-app" class="section bg-alt">
+  <div class="section-head">
+    <h2>Build Tracker Apps</h2>
+    <p>Download our apps to your phone, tablet or computer straight from this website — no app store needed. They sit on your home screen and open full screen, just like any other app.</p>
+  </div>
   <!-- One .app-item per app. Add new apps here and in the "Apps" menu at the top. -->
   <div class="app-list">
     <div class="app-item">
-      <img src="courtesy-car-manager/icons/icon-192.png" alt="Courtesy Cars app icon" width="64" height="64">
-      <div class="app-item-body">
-        <p class="tool-group-label">New</p>
-        <h4>Courtesy Car Manager</h4>
-        <p>Loan cars, hand‑overs with photos and signatures, and returns — one tap from your home screen.</p>
-        <p class="app-item-price">£9.99/month after a 30‑day free trial</p>
+      <div class="app-item-top">
+        <img src="courtesy-car-manager/icons/icon-192.png" alt="Courtesy Cars app icon" width="60" height="60">
+        <div>
+          <span class="tag">New</span>
+          <h3>Courtesy Car Manager</h3>
+          <p>Loan cars, hand‑overs with photos and signatures, and returns — one tap from your home screen.</p>
+          <p class="app-item-price">£9.99/month after a 30‑day free trial</p>
+        </div>
       </div>
       <a href="courtesy-car-manager/?install" class="mkt-btn mkt-btn-blue">Download the app</a>
     </div>
     <div class="app-item">
-      <img src="voice-notes/icon-192.png" alt="Voice Notes app icon" width="64" height="64">
-      <div class="app-item-body">
-        <p class="tool-group-label">New</p>
-        <h4>Voice Notes</h4>
-        <p>Talk and your words are typed for you. Edit your notes, keep them on your phone and export them to Word. Works in Chrome, Edge and Safari.</p>
+      <div class="app-item-top">
+        <img src="voice-notes/icon-192.png" alt="Voice Notes app icon" width="60" height="60">
+        <div>
+          <span class="tag">New</span>
+          <h3>Voice Notes</h3>
+          <p>Talk and your words are typed for you. Edit your notes, keep them on your phone and export them to Word. Works in Chrome, Edge and Safari.</p>
+        </div>
       </div>
       <a href="voice-notes/" class="mkt-btn mkt-btn-blue">Download the app</a>
     </div>
   </div>
   <p class="app-more">More Build Tracker apps are on the way.</p>
-  <h4 class="app-how">How to install</h4>
+  <h3 class="app-how">How to install</h3>
   <div class="app-steps">
     <div class="app-card" id="app-android">
       <span class="device-badge">This device</span>
@@ -617,137 +554,163 @@
     <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Updates itself automatically</li>
     <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Same login and records as on the website</li>
   </ul>
-  <p style="text-align:center;font-size:.85rem;color:var(--text3)">Apps need an internet connection.</p>
+  <p class="app-note">Apps need an internet connection.</p>
 </section>
 
-<section id="pricing" class="section bg-alt">
-  <h3>Simple Pricing</h3>
-  <div class="price-box">
-    <div class="price">£32.00</div>
-    <div class="price-usd">(approx. $43 USD)</div>
-    <div class="price-period">per month<br><small>30‑day free trial included</small></div>
-    <p class="price-disclaimer">All payments are processed in GBP. USD prices shown are for guidance and may differ slightly from your bank's exchange rate.</p>
-    <ul>
-      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Choose the tool you need</li>
-      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Unlimited jobs & customers</li>
-      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Access from any device</li>
-      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cancel anytime</li>
-    </ul>
-    <br>
-    <button class="mkt-btn mkt-btn-green" onclick="openSelection()">Start Your Free Trial</button>
+<section id="pricing" class="section">
+  <div class="section-head">
+    <h2>Simple Pricing</h2>
+    <p>Our tools start from £3.99 a month. Our main tools are £32 a month with a 30‑day free trial; smaller tools cost less and may have a shorter free trial — each one shows its own.</p>
   </div>
 
-  <div class="coming-soon-box">
-    <h4><svg class="icon" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> New Features Currently in Development</h4>
-    <p>We are constantly improving and adding new tools to make running your workshop even easier. Coming soon to Build Tracker:</p>
-    <ul>
-      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> <span><strong style="color:var(--text)">Clocking On & Job Time Tracking System</strong> – Log start/finish times, track hours worked per job, calculate labour costs and generate timesheets</span></li>
-      <li><svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="8"/><line x1="16" y1="20" x2="16" y2="4"/></svg> <span>Advanced reporting, stock value tracking and more useful tools</span></li>
-    </ul>
-    <p class="cs-note">These updates are being built right now and will be added as soon as they are ready.</p>
-  </div>
-</section>
+  <div class="pricing-grid">
+    <div class="price-box">
+      <span class="trial-chip">Main tools · 30‑day free trial</span>
+      <div class="price">£32.00</div>
+      <div class="price-period">per tool, per month <span class="usd">(approx. $43 USD)</span></div>
+      <ul>
+        <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Choose the tools you need — £32/month each</li>
+        <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Unlimited jobs &amp; customers</li>
+        <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Access from any device</li>
+        <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cancel anytime</li>
+      </ul>
+      <button class="mkt-btn mkt-btn-green mkt-btn-lg" onclick="openSelection()">Start Your Free Trial</button>
+      <p class="price-note">All payments are processed in GBP. USD prices shown are for guidance and may differ slightly from your bank's exchange rate.</p>
+    </div>
 
-<section id="about" class="section">
-  <h3>About Build Tracker Solutions</h3>
-  <p>Based in Cheshire East, we create UK‑made software for trade and service businesses. Our car build tracking, workshop job log and garage management tools are built to save you time and reduce paperwork every day.</p>
-  <p style="font-size:.85rem;color:var(--text3);">Founded by Alan Brindley.</p>
-</section>
+    <div class="addon-prices">
+      <h3>Smaller tools — from £3.99/month</h3>
+      <p>Priced separately from the £32 tools. Each has its own price and free trial length — some are shorter than 30 days.</p>
+      <ul class="ap-list">
+        <li><div><strong>Build Tracker Cloud</strong><small>14‑day free trial</small></div><span class="ap-price">from £3.99/month</span></li>
+        <li><div><strong>Courtesy Car Manager</strong><small>30‑day free trial</small></div><span class="ap-price">£9.99/month</span></li>
+        <li><div><strong>BuildOS</strong><small>30‑day free trial — no card needed</small></div><span class="ap-price">£9.99/month</span></li>
+      </ul>
+    </div>
 
-<section id="faq" class="section bg-alt">
-  <h3>Frequently Asked Questions</h3>
-  <div style="max-width:800px;margin:0 auto;">
-    <div style="margin-bottom:1.5rem;">
-      <h4>Do I need to install anything?</h4>
-      <p>No — everything runs in your web browser. Access from any computer, tablet or phone. Courtesy Car Manager can also be downloaded to your phone or computer as an app — see <a href="#get-the-app" onclick="return appLink()">Build Tracker Apps</a>.</p>
-    </div>
-    <div style="margin-bottom:1.5rem;">
-      <h4>How does the free trial work?</h4>
-      <p>Full access for 30 days completely free. Pay only £32/month <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span> if you want to continue.</p>
-    </div>
-    <div style="margin-bottom:1.5rem;">
-      <h4>Can I add more tools later?</h4>
-      <p>Yes — switch or add any software package whenever you need.</p>
-    </div>
-    <div style="margin-bottom:1.5rem;">
-      <h4>Can I cancel anytime?</h4>
-      <p>No long‑term contracts — cancel whenever you want, no questions asked.</p>
+    <div class="soon-box">
+      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> Coming soon to Build Tracker</h3>
+      <ul class="soon-list">
+        <li>
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+          <div><strong>Clocking On &amp; Job Time Tracking</strong><span>Log start and finish times, track hours per job, calculate labour costs and generate timesheets.</span></div>
+        </li>
+        <li>
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="8"/><line x1="16" y1="20" x2="16" y2="4"/></svg>
+          <div><strong>Advanced reporting</strong><span>Stock value tracking and more useful tools.</span></div>
+        </li>
+      </ul>
+      <p class="soon-note">These updates are being built right now and will be added as soon as they are ready.</p>
     </div>
   </div>
 </section>
 
-<section id="lead-magnet" class="section">
-  <h3>Save Time in Your Workshop</h3>
-  <div style="max-width:600px;margin:0 auto;text-align:center;">
-    <p style="font-size:1.1rem;margin-bottom:1.5rem;">Get our free guide: <strong style="color:var(--text)">"5 Ways to Cut Workshop Admin Time"</strong> — simple steps to reduce paperwork and get more work done.</p>
-    <div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;">
-      <input type="email" id="guide-email" placeholder="Your email address" style="padding:.8rem;flex:1;min-width:220px;border-radius:var(--radius-sm);">
+<section id="reviews" class="section bg-alt trust-section">
+  <div class="narrow">
+    <div class="trust-badge"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> Newly launched</div>
+    <h2>Fresh out the gate — no fake reviews here</h2>
+    <p>Build Tracker Solutions is a genuinely new UK company, so we haven't padded this page with review badges. What we do have is a straightforward 30‑day free trial: put the software through its paces on a real job before you pay a penny, then judge it on that.</p>
+  </div>
+</section>
+
+<section id="guides" class="section">
+  <div class="section-head">
+    <h2>Workshop Guides &amp; Tips</h2>
+  </div>
+  <div class="mkt-grid guides-grid">
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg></div>
+      <h3>How to Track a Full Restoration</h3>
+      <p>Keep parts, costs and progress organised with a simple restoration progress tracker.</p>
+      <a href="guides/restoration-tracking.html" class="text-link">Read the guide →</a>
+    </div>
+    <div class="mkt-card">
+      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div>
+      <h3>5 Ways to Cut Workshop Admin Time</h3>
+      <p>Cut paperwork using a proper workshop job log system and save hours every week.</p>
+      <a href="guides/cut-workshop-admin-time.html" class="text-link">Read the guide →</a>
+    </div>
+  </div>
+  <div class="guide-signup">
+    <div>
+      <strong>Get the admin-time guide by email</strong>
+      <p>"5 Ways to Cut Workshop Admin Time" — simple steps to reduce paperwork. No spam, unsubscribe anytime.</p>
+    </div>
+    <div class="guide-form">
+      <input type="email" id="guide-email" class="field" placeholder="Your email address" aria-label="Your email address" autocomplete="email">
       <button class="mkt-btn mkt-btn-blue" onclick="sendGuide()">Send Me the Guide</button>
     </div>
-    <p style="font-size:.85rem;color:var(--text3);margin-top:.8rem;">We respect your privacy — no spam, unsubscribe anytime.</p>
+  </div>
+</section>
+
+<section id="about" class="section bg-alt">
+  <div class="narrow about-text">
+    <div class="section-head" style="margin-bottom:1rem;"><h2>About Build Tracker Solutions</h2></div>
+    <p>Based in Cheshire East, we create UK‑made software for trade and service businesses. Our car build tracking, workshop job log and garage management tools are built to save you time and reduce paperwork every day.</p>
+    <p class="founder">Founded by Alan Brindley.</p>
+  </div>
+</section>
+
+<section id="faq" class="section">
+  <div class="section-head">
+    <h2>Frequently Asked Questions</h2>
+  </div>
+  <div class="narrow faq-list">
+    <details>
+      <summary>Do I need to install anything?</summary>
+      <p>No — everything runs in your web browser. Access from any computer, tablet or phone. Courtesy Car Manager can also be downloaded to your phone or computer as an app — see <a href="#get-the-app" onclick="return appLink()">Build Tracker Apps</a>.</p>
+    </details>
+    <details>
+      <summary>How does the free trial work?</summary>
+      <p>Full access for 30 days completely free on our main tools. Pay only £32/month per tool <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span> if you want to continue. Smaller tools start from £3.99/month and may have a shorter free trial — each one shows its own price and trial length.</p>
+    </details>
+    <details>
+      <summary>Can I add more tools later?</summary>
+      <p>Yes — switch or add any software package whenever you need.</p>
+    </details>
+    <details>
+      <summary>Can I cancel anytime?</summary>
+      <p>No long‑term contracts — cancel whenever you want, no questions asked.</p>
+    </details>
   </div>
 </section>
 
 <section id="referral" class="section bg-alt">
-  <h3>Refer a Friend & Save</h3>
-  <div style="max-width:700px;margin:0 auto;text-align:center;">
-    <p style="font-size:1.1rem;margin-bottom:1.5rem;">Our simple referral plan: <strong style="color:var(--text)">Give 1 month free, Get 1 month free</strong></p>
-    <p>When someone you refer signs up and pays for their first month, both of you get your next month completely free.</p>
-    <br>
+  <div class="referral-card">
+    <div>
+      <h2>Refer a friend &amp; save</h2>
+      <p><strong style="color:var(--text)">Give 1 month free, get 1 month free.</strong> When someone you refer signs up and pays for their first month, you both get your next month completely free.</p>
+    </div>
     <button class="mkt-btn mkt-btn-green" onclick="alert('Once logged in, your unique referral link will appear in your dashboard.');">Get My Referral Link</button>
   </div>
 </section>
 
-<section id="reviews" class="section trust-section">
-  <div class="trust-badge"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> Newly launched</div>
-  <h3>Fresh out the gate — no fake reviews here</h3>
-  <p>Build Tracker Solutions is a genuinely new UK company. We haven't padded this page with review badges because we don't have a stack of them yet — what we do have is a straightforward 30‑day free trial, so you can put the software through its paces on a real job before you pay a penny.</p>
-  <p class="trust-sub">Sign up, try it, and judge it on that.</p>
-</section>
-
-<section id="guides" class="section bg-alt">
-  <h3>Workshop Guides & Tips</h3>
-  <div class="mkt-grid">
-    <div class="mkt-card">
-      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg></div>
-      <h4>How to Track a Full Restoration</h4>
-      <p>Keep parts, costs and progress organised with a simple restoration progress tracker.</p>
-      <a href="/guides/restoration-tracking.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
-    </div>
-    <div class="mkt-card">
-      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div>
-      <h4>5 Ways to Cut Workshop Admin Time</h4>
-      <p>Cut paperwork using a proper workshop job log system and save hours every week.</p>
-      <a href="/guides/cut-workshop-admin-time.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
-    </div>
-    <div class="mkt-card">
-      <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
-      <h4>Why Use a Garage Management Tool?</h4>
-      <p>Estimates, stock, jobs and invoices all in one place — built for UK garages.</p>
-      <a href="/guides/cut-workshop-admin-time.html" class="mkt-btn mkt-btn-blue">Read Guide</a>
-    </div>
-  </div>
-</section>
-
 <section id="contact" class="section">
-  <h3>Get in touch</h3>
-  <div class="mkt-grid">
-    <div>
-      <div class="contact-icon-row"><svg class="icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> Contact Details</div>
-      <p><strong style="color:var(--text)">Location</strong>: Cheshire East, UK<br>
-      <strong style="color:var(--text)">Phone</strong>: 07931095631<br>
-      <strong style="color:var(--text)">Email</strong>: <a href="mailto:info@build-tracker.co.uk">info@build-tracker.co.uk</a></p>
-    </div>
-    <div>
-      <div class="contact-icon-row"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22 6 12 13 2 6"/></svg> Send us a message</div>
-      <form id="contactForm" style="display:flex;flex-direction:column;gap:1rem;">
-        <input type="text" id="contactName" placeholder="Your Name" required>
-        <input type="email" id="contactEmail" placeholder="Your Email" required>
-        <textarea id="contactMessage" placeholder="Message" rows="4" required></textarea>
-        <button type="submit" class="mkt-btn mkt-btn-blue">Send Message</button>
-        <div id="form-status"></div>
-      </form>
-    </div>
+  <div class="section-head">
+    <h2>Get in touch</h2>
+  </div>
+  <div class="contact-grid">
+    <ul class="contact-list">
+      <li>
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <div><small>Location</small><span>Cheshire East, UK</span></div>
+      </li>
+      <li>
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <div><small>Phone</small><a href="tel:07931095631">07931095631</a></div>
+      </li>
+      <li>
+        <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22 6 12 13 2 6"/></svg></div>
+        <div><small>Email</small><a href="mailto:info@build-tracker.co.uk">info@build-tracker.co.uk</a></div>
+      </li>
+    </ul>
+    <form id="contactForm">
+      <input type="text" id="contactName" class="field" placeholder="Your Name" aria-label="Your name" autocomplete="name" required>
+      <input type="email" id="contactEmail" class="field" placeholder="Your Email" aria-label="Your email" autocomplete="email" required>
+      <textarea id="contactMessage" class="field" placeholder="Message" aria-label="Message" rows="4" required></textarea>
+      <button type="submit" class="mkt-btn mkt-btn-blue">Send Message</button>
+      <div id="form-status"></div>
+    </form>
   </div>
 </section>
 
@@ -836,7 +799,7 @@
     <div class="dashboard-card">
       <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>
       <h3>BuildOS</h3>
-      <p>Payroll, invoicing, expenses & HR</p>
+      <p>Payroll, invoicing, expenses & HR · £9.99/month</p>
       <a href="https://buildos-saas.vercel.app" target="_blank" rel="noopener" class="mkt-btn mkt-btn-blue">Open</a>
     </div>
     <div class="dashboard-card">
@@ -929,19 +892,35 @@
 </div>
 
 <footer>
-  <p><strong>Build Tracker Solutions</strong> — Alan Brindley | Cheshire East, UK | info@build-tracker.co.uk | 07931095631</p>
-  <p style="margin-top:1rem;font-size:.9rem;">© 2026 All rights reserved</p>
+  <div class="footer-inner">
+    <div>
+      <strong>Build Tracker Solutions</strong>
+      <p>UK‑built workshop and business software from Cheshire East.</p>
+    </div>
+    <div class="footer-links">
+      <a href="#features">Tools</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#guides">Guides</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div class="footer-links">
+      <a href="mailto:info@build-tracker.co.uk">info@build-tracker.co.uk</a>
+      <a href="tel:07931095631">07931095631</a>
+      <span>Cheshire East, UK</span>
+    </div>
+  </div>
+  <p class="footer-copy">© 2026 Build Tracker Solutions — Alan Brindley. All rights reserved.</p>
 </footer>
 </div>
 
 <script>
 // Navigation
-function hideAllSections() { document.querySelectorAll('.section').forEach(s => s.classList.add('hidden')); }
+function hideAllSections() { document.querySelectorAll('.section, .hero').forEach(s => s.classList.add('hidden')); }
 function showLogin() { hideAllSections(); document.getElementById('loginForm').classList.remove('hidden'); window.scrollTo(0,0); }
 function showSignup() { hideAllSections(); document.getElementById('signupForm').classList.remove('hidden'); window.scrollTo(0,0); }
 function showDashboard() { hideAllSections(); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('mainNav').classList.add('hidden'); document.getElementById('loggedInNav').classList.remove('hidden'); window.scrollTo(0,0); }
 function showDashboardLock() { hideAllSections(); document.getElementById('dashboardLock').classList.remove('hidden'); document.getElementById('mainNav').classList.add('hidden'); document.getElementById('loggedInNav').classList.remove('hidden'); window.scrollTo(0,0); }
-function showHome() { hideAllSections(); document.querySelectorAll('.section:not(#loginForm):not(#signupForm):not(#dashboard):not(#dashboardLock)').forEach(s => s.classList.remove('hidden')); document.getElementById('mainNav').classList.remove('hidden'); document.getElementById('loggedInNav').classList.add('hidden'); window.scrollTo(0,0); }
+function showHome() { hideAllSections(); document.querySelectorAll('.hero, .section:not(#loginForm):not(#signupForm):not(#dashboard):not(#dashboardLock)').forEach(s => s.classList.remove('hidden')); document.getElementById('mainNav').classList.remove('hidden'); document.getElementById('loggedInNav').classList.add('hidden'); window.scrollTo(0,0); }
 
 // Popups
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
@@ -958,7 +937,7 @@ function sendGuide() {
     return;
   }
   const subject = 'Your Guide: 5 Ways to Cut Workshop Admin Time';
-  const body = `Hi,\n\nThanks for requesting our guide. You can download it here: https://build-tracker.co.uk/guides/cut-workshop-admin-time.pdf\n\nBest regards,\nBuild Tracker Solutions`;
+  const body = `Hi,\n\nThanks for requesting our guide. You can download it here: https://build-tracker.co.uk/guides/cut-workshop-admin-time.html\n\nBest regards,\nBuild Tracker Solutions`;
   window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   alert('Check your inbox — we’ve sent the guide straight to you!');
 }
@@ -1120,6 +1099,7 @@ window.addEventListener('click', function(e) {
 // form) go straight to Courtesy Car Manager, which has its own Install button.
 function appLink() {
   document.querySelectorAll('.apps-dd.open').forEach(dd => dd.classList.remove('open'));   // close the Apps menu first
+  document.querySelector('nav').classList.remove('open');   // and the phone menu, so the scroll offset below is measured with it shut
   const sec = document.getElementById('get-the-app');
   if (sec.classList.contains('hidden')) { location.href = 'courtesy-car-manager/?install'; return false; }
   // Scroll to the section clear of the menu bar, which stays pinned at the
@@ -1129,6 +1109,29 @@ function appLink() {
   try { history.replaceState(null, '', '#get-the-app'); } catch (e) {}
   return false;
 }
+// Phone menu (hamburger) and the touch-friendly "Open Software" dropdown.
+// The "Apps" dropdowns have their own handlers just below.
+(function () {
+  const nav = document.querySelector('nav');
+  const toggle = document.getElementById('navToggle');
+  const mainNav = document.getElementById('mainNav');
+  const dropdown = document.querySelector('.dropdown:not(.apps-dd)');
+  toggle.addEventListener('click', () => {
+    const open = nav.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open);
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  });
+  dropdown.querySelector('.dropbtn').addEventListener('click', e => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+  // Close the menu once a link or button inside it has been used
+  mainNav.addEventListener('click', e => {
+    if (e.target.closest('a, .mkt-btn')) { nav.classList.remove('open'); dropdown.classList.remove('open'); }
+  });
+  document.addEventListener('click', () => dropdown.classList.remove('open'));
+})();
+
 // "Apps" menu opens on a tap or click as well as on hover (phones have no hover).
 document.querySelectorAll('.apps-dd').forEach(dd => {
   dd.querySelector('.dropbtn').addEventListener('click', (e) => { e.stopPropagation(); dd.classList.toggle('open'); });
