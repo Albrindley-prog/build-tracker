@@ -2496,11 +2496,38 @@ async function runImport() {
 
 function exportExcel() {
     if (typeof XLSX === 'undefined') { alert('The Excel writer could not load — check your internet connection and refresh.'); return; }
-    const sheet = XLSX.utils.json_to_sheet(stock.map(i => ({
-        'Product code': i.sku, 'Name': i.name, 'Location': i.location || '',
-        'Quantity': i.qty, 'Unit cost': Number(i.cost), 'Value': Math.round(i.qty * i.cost * 100) / 100
-    })), { header: ['Product code', 'Name', 'Location', 'Quantity', 'Unit cost', 'Value'] });
-    sheet['!cols'] = [{ wch: 18 }, { wch: 38 }, { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+
+    // Real Excel formulas, not pasted numbers: each part's Value is Quantity × Unit cost and the
+    // totals add everything up, so they stay right when someone edits the sheet. The title and
+    // totals sit ABOVE the headings (Import from Excel skips lines above the headings), so the
+    // file can be edited and imported again without the totals turning into a part. Each
+    // formula also carries its calculated value, for viewers that don't recalculate.
+    const HEAD = 4, FIRST = HEAD + 1, LAST = HEAD + stock.length;
+    const END = Math.max(50000, LAST + 1000); // totals also count parts typed in below the list
+    const money = '£#,##0.00';
+    const text = v => ({ t: 's', v });
+    const sheet = {};
+    sheet.A1 = text('PD Stevens & Sons Ltd — Stock list, ' + new Date().toLocaleDateString('en-GB'));
+    sheet.A2 = text('Total parts');
+    sheet.B2 = { t: 'n', v: stock.length, f: `COUNTA(A${FIRST}:A${END})` };
+    sheet.C2 = text('Total quantity');
+    sheet.D2 = { t: 'n', v: +stock.reduce((t, i) => t + Number(i.qty), 0).toFixed(2), f: `SUM(D${FIRST}:D${END})` };
+    sheet.E2 = text('Total value');
+    sheet.F2 = { t: 'n', v: stock.reduce((t, i) => t + i.qty * i.cost, 0), f: `SUMPRODUCT(D${FIRST}:D${END},E${FIRST}:E${END})`, z: money };
+    sheet.A3 = text('Value = Quantity × Unit cost. Change a quantity or a cost and the totals update by themselves.');
+    ['Product code', 'Name', 'Location', 'Quantity', 'Unit cost', 'Value'].forEach((h, c) => { sheet[String.fromCharCode(65 + c) + HEAD] = text(h); });
+    stock.forEach((i, k) => {
+        const r = FIRST + k;
+        sheet['A' + r] = text(String(i.sku));
+        sheet['B' + r] = text(String(i.name));
+        sheet['C' + r] = text(i.location || '');
+        sheet['D' + r] = { t: 'n', v: Number(i.qty) };
+        sheet['E' + r] = { t: 'n', v: Number(i.cost), z: money };
+        sheet['F' + r] = { t: 'n', v: i.qty * i.cost, f: `D${r}*E${r}`, z: money };
+    });
+    sheet['!ref'] = `A1:F${Math.max(LAST, HEAD)}`;
+    sheet['!autofilter'] = { ref: `A${HEAD}:F${Math.max(LAST, HEAD)}` };
+    sheet['!cols'] = [{ wch: 18 }, { wch: 38 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, 'Stock');
     XLSX.writeFile(wb, 'stock-list.xlsx');
