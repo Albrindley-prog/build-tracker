@@ -1999,7 +1999,13 @@ function showBarcodeModal(id) {
     qrBox.innerHTML = '';
     const hasQr = typeof QRCode !== 'undefined';
     document.getElementById('bcQrRow').style.display = hasQr ? '' : 'none';
-    if (hasQr) new QRCode(qrBox, { text: `${window.location.origin}${window.location.pathname}?item=${item.id}`, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+    // The link has to open on the PHONE, so when this page is being viewed from a
+    // test address ("localhost" or a PC's own network address, which a phone can't
+    // reach) the QR points at the real website instead.
+    const onTestAddress = location.protocol === 'file:' || location.hostname.endsWith('.local')
+        || /^(localhost|127\.|\[::1\]|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
+    const scanBase = onTestAddress ? 'https://build-tracker.co.uk/stock-control-pd-stevens/' : window.location.origin + window.location.pathname;
+    if (hasQr) new QRCode(qrBox, { text: `${scanBase}?item=${item.id}`, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
     document.getElementById('barcodeOverlay').classList.add('open');
 }
 
