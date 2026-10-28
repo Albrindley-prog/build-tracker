@@ -11,6 +11,8 @@
      which the browser's own BarcodeDetector does not). -->
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- ExcelJS writes the exported spreadsheet (it can do the colours and borders); SheetJS above reads imports -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <!-- qrcodejs draws the small QR code in the barcode pop-up, so a phone's own camera app can open the part -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -2253,7 +2255,7 @@ function guessColumns(headers) {
     const rules = {
         sku:      [/^(product|part|item|stock)\s*(code|no\.?|number|num|ref)/i, /^sku$/i, /part\s*(no|number)/i, /barcode|ean|upc/i, /^code$/i, /code/i, /^ref/i],
         location: [/loc/i, /\b(bin|shelf|rack|aisle|bay|position)\b/i],
-        name:     [/desc/i, /^(product\s*|item\s*|part\s*)?name$/i, /title/i, /^(product|item|part)$/i],
+        name:     [/desc/i, /^(product\s*|item\s*|part\s*)?name$/i, /title/i, /^(product|item|part)$/i, /\bname\b/i], // last: "Name of item"
         qty:      [/^(qty|quantity)\b/i, /on\s*hand|in\s*stock|stock\s*level|^stock$/i, /qty|quantity/i],
         cost:     [/unit\s*(price|cost)/i, /cost/i, /price/i] // "Unit Price" before a "Price (£)" that is really the row total
     };
@@ -2308,7 +2310,7 @@ async function onExcelFile(event) {
 // nothing is dropped silently: a row is either imported, or listed in `skipped` with why.
 function computeImportPlan() {
     const { rows, map, firstRow, autoCodes } = importState;
-    const plan = { add: [], update: [], skipped: [], repeats: 0, autoCoded: 0, fractions: 0, badPrices: 0, value: 0 };
+    const plan = { add: [], update: [], skipped: [], repeats: 0, autoCoded: 0, fractions: 0, badPrices: 0, totalRows: 0, value: 0 };
     if (map.sku < 0) return plan;
 
     const bySku = new Map(stock.map(i => [normSku(i.sku), i]));
@@ -2334,6 +2336,8 @@ function computeImportPlan() {
         const name = cellStr(get('name'));
         const qtyN = numOf(get('qty')), costN = numOf(get('cost'));
         if (!code && !name && !qtyN) return; // an empty row (or a stray heading) — nothing worth reporting
+        // A "Total" line at the bottom of a sheet (like the one Export to Excel writes) is not a part.
+        if (!code && r.some(c => /^(grand\s+)?totals?\s*:?$/i.test(cellStr(c)))) { plan.totalRows++; return; }
         const label = name || code;
         if (qtyN !== null && isNaN(qtyN)) { plan.skipped.push({ rowNo, label, why: 'the quantity isn’t a number' }); return; }
 
@@ -2397,6 +2401,7 @@ function renderImportMapping() {
             ${plan.repeats ? count(plan.repeats, 'repeated product code', 'repeated product codes') + ' — every row is kept, the extra ones get -2, -3… added (e.g. F16-2)<br>' : ''}
             ${plan.fractions ? count(plan.fractions, 'row has', 'rows have') + ' a part-quantity (like 0.5) — kept exactly if the database allows it<br>' : ''}
             ${plan.badPrices ? count(plan.badPrices, 'unit price isn’t', 'unit prices aren’t') + ' a number — left blank<br>' : ''}
+            ${plan.totalRows ? 'The “Total” line at the bottom is ignored — it isn’t a part<br>' : ''}
             Value of the parts in this file: £${plan.value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (quantity × unit cost)
         </div>${plan.skipped.length ? `<div class="imp-summary bad">${count(plan.skipped.length, 'row', 'rows')} will be skipped — fix them in Excel, or add them by hand afterwards:<br>${
             plan.skipped.slice(0, 8).map(x => `row ${x.rowNo}: ${escapeHtml(x.label)} — ${x.why}`).join('<br>')
@@ -2494,43 +2499,88 @@ async function runImport() {
         <div class="imp-actions"><button class="btn btn-primary" onclick="closeImport()">Done</button></div>`;
 }
 
-function exportExcel() {
-    if (typeof XLSX === 'undefined') { alert('The Excel writer could not load — check your internet connection and refresh.'); return; }
+// Same layout as the Stock_Sheet.xlsx the owner supplied as the model: a title, the headings in
+// row 4 (frozen), one row per part, and a Total line at the bottom. Qty and Unit Cost are blue
+// (the cells you edit); Value is a real formula (Qty × Unit Cost) and the Total line adds each
+// column up with SUM, so it all stays right when the sheet is edited. Each formula also carries
+// its calculated value, for viewers that don't recalculate. ExcelJS rather than SheetJS here
+// because it is the one that can write the colours and borders (SheetJS still does the import).
+async function exportExcel() {
+    if (typeof ExcelJS === 'undefined') { alert('The Excel writer could not load — check your internet connection and refresh.'); return; }
+    try {
+        const HEAD = 4, FIRST = HEAD + 1, LAST = HEAD + stock.length, TOTAL = LAST + 1;
+        const wb = new ExcelJS.Workbook();
+        wb.calcProperties.fullCalcOnLoad = true; // Excel works every formula out afresh when the file opens
+        const ws = wb.addWorksheet('Stock', {
+            views: [{ state: 'frozen', ySplit: HEAD, topLeftCell: 'A' + FIRST }],
+            pageSetup: { paperSize: 9, orientation: 'portrait' }
+        });
+        // 9.01, not 9: ExcelJS skips a width equal to its own default, which would leave Qty a touch narrower than the sample
+        ws.columns = [{ width: 34 }, { width: 14 }, { width: 9.01 }, { width: 12 }, { width: 13 }, { width: 22 }];
 
-    // Real Excel formulas, not pasted numbers: each part's Value is Quantity × Unit cost and the
-    // totals add everything up, so they stay right when someone edits the sheet. The title and
-    // totals sit ABOVE the headings (Import from Excel skips lines above the headings), so the
-    // file can be edited and imported again without the totals turning into a part. Each
-    // formula also carries its calculated value, for viewers that don't recalculate.
-    const HEAD = 4, FIRST = HEAD + 1, LAST = HEAD + stock.length;
-    const END = Math.max(50000, LAST + 1000); // totals also count parts typed in below the list
-    const money = '£#,##0.00';
-    const text = v => ({ t: 's', v });
-    const sheet = {};
-    sheet.A1 = text('PD Stevens & Sons Ltd — Stock list, ' + new Date().toLocaleDateString('en-GB'));
-    sheet.A2 = text('Total parts');
-    sheet.B2 = { t: 'n', v: stock.length, f: `COUNTA(A${FIRST}:A${END})` };
-    sheet.C2 = text('Total quantity');
-    sheet.D2 = { t: 'n', v: +stock.reduce((t, i) => t + Number(i.qty), 0).toFixed(2), f: `SUM(D${FIRST}:D${END})` };
-    sheet.E2 = text('Total value');
-    sheet.F2 = { t: 'n', v: stock.reduce((t, i) => t + i.qty * i.cost, 0), f: `SUMPRODUCT(D${FIRST}:D${END},E${FIRST}:E${END})`, z: money };
-    sheet.A3 = text('Value = Quantity × Unit cost. Change a quantity or a cost and the totals update by themselves.');
-    ['Product code', 'Name', 'Location', 'Quantity', 'Unit cost', 'Value'].forEach((h, c) => { sheet[String.fromCharCode(65 + c) + HEAD] = text(h); });
-    stock.forEach((i, k) => {
-        const r = FIRST + k;
-        sheet['A' + r] = text(String(i.sku));
-        sheet['B' + r] = text(String(i.name));
-        sheet['C' + r] = text(i.location || '');
-        sheet['D' + r] = { t: 'n', v: Number(i.qty) };
-        sheet['E' + r] = { t: 'n', v: Number(i.cost), z: money };
-        sheet['F' + r] = { t: 'n', v: i.qty * i.cost, f: `D${r}*E${r}`, z: money };
-    });
-    sheet['!ref'] = `A1:F${Math.max(LAST, HEAD)}`;
-    sheet['!autofilter'] = { ref: `A${HEAD}:F${Math.max(LAST, HEAD)}` };
-    sheet['!cols'] = [{ wch: 18 }, { wch: 38 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, sheet, 'Stock');
-    XLSX.writeFile(wb, 'stock-list.xlsx');
+        const ARIAL = { name: 'Arial', size: 11 };
+        const BLUE = { ...ARIAL, color: { argb: 'FF0000FF' } };
+        const line = { style: 'thin', color: { argb: 'FFBFBFBF' } };
+        const box = { top: line, left: line, bottom: line, right: line };
+        const money = '\\£#,##0.00';
+        const qtyFmt = n => Number.isInteger(n) ? '#,##0' : '#,##0.0#'; // a part-quantity like 4.5 must not be shown rounded
+        const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+
+        ws.getCell('A1').value = 'Stock Sheet';
+        ws.getCell('A1').font = { name: 'Arial', size: 14, bold: true };
+        ws.getRow(1).height = 17.35;
+        ws.getCell('A2').value = 'PD Stevens & Sons Ltd — exported ' + new Date().toLocaleDateString('en-GB') + '. Edit Qty and Unit Cost (blue); Value calculates automatically.';
+        ws.getCell('A2').font = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF666666' } };
+
+        ['Name of item', 'Product Code', 'Qty', 'Unit Cost', 'Value', 'Location'].forEach((h, c) => {
+            const cell = ws.getCell(HEAD, c + 1);
+            cell.value = h;
+            cell.font = { ...ARIAL, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = fill('FF1F4E78');
+            cell.border = box;
+            cell.alignment = { horizontal: 'center' };
+        });
+
+        let totalQty = 0, totalValue = 0;
+        stock.forEach((i, k) => {
+            const r = FIRST + k, qty = Number(i.qty), cost = Number(i.cost);
+            totalQty += qty; totalValue += qty * cost;
+            [
+                [String(i.name), null, ARIAL],
+                [String(i.sku), null, ARIAL],
+                [qty, qtyFmt(qty), BLUE],
+                [cost, money, BLUE],
+                [{ formula: `C${r}*D${r}`, result: qty * cost }, money, ARIAL],
+                [i.location || '', null, ARIAL]
+            ].forEach(([value, fmt, font], c) => {
+                const cell = ws.getCell(r, c + 1);
+                cell.value = value; cell.font = font; cell.border = box;
+                if (fmt) cell.numFmt = fmt;
+                if (k % 2 === 1) cell.fill = fill('FFF2F2F2'); // every other row shaded, like the sample
+            });
+        });
+
+        // The Total line: bold, a line above and a double line below.
+        const totalBorder = { top: { style: 'medium' }, bottom: { style: 'double' } };
+        for (let c = 1; c <= 6; c++) { const cell = ws.getCell(TOTAL, c); cell.font = { ...ARIAL, bold: true }; cell.border = totalBorder; }
+        ws.getCell(TOTAL, 1).value = 'Total';
+        const sum = (col, result) => stock.length ? { formula: `SUM(${col}${FIRST}:${col}${LAST})`, result } : 0;
+        ws.getCell(TOTAL, 3).value = sum('C', totalQty);
+        ws.getCell(TOTAL, 3).numFmt = qtyFmt(+totalQty.toFixed(2));
+        ws.getCell(TOTAL, 5).value = sum('E', totalValue);
+        ws.getCell(TOTAL, 5).numFmt = money;
+
+        ws.autoFilter = `A${HEAD}:F${Math.max(LAST, HEAD)}`;
+
+        const buffer = await wb.xlsx.writeBuffer();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        a.download = 'Stock_Sheet.xlsx';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    } catch (e) {
+        alert('Could not make the Excel file: ' + (e && e.message ? e.message : e));
+    }
 }
 
 // ═══ BACKUP (JSON) ═══
