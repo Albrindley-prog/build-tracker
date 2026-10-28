@@ -12,6 +12,8 @@
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- qrcodejs draws the small QR code in the barcode pop-up, so a phone's own camera app can open the part -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <script>
@@ -636,6 +638,11 @@ td.mono { color: #3a4470; }
 .bc-box .bc-loc { font-size: 13px; font-weight: 600; color: var(--accent2); margin-bottom: 14px; min-height: 18px; }
 .bc-wrap { display: inline-block; max-width: 100%; padding: 10px; background: #fff; border: 1px solid var(--border); border-radius: 14px; margin-bottom: 18px; }
 .bc-wrap svg { display: block; max-width: 100%; height: auto; }
+.qr-row { display: flex; align-items: center; gap: 16px; text-align: left; background: var(--input-bg); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin-bottom: 16px; }
+.qr-box { flex: none; width: 194px; height: 194px; padding: 7px; background: #fff; border: 1px solid var(--border); border-radius: 12px; }
+.qr-box img, .qr-box canvas { display: block; width: 180px; height: 180px; }
+.qr-text { font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.qr-text strong { display: block; font-size: 14px; color: var(--text); margin-bottom: 4px; }
 .bc-box .btn { width: 100%; margin-bottom: 8px; }
 .bc-box.wide .btn { width: auto; margin-bottom: 0; }
 #camReader { width: 100%; border-radius: 14px; overflow: hidden; background: #0e1230; min-height: 120px; }
@@ -693,6 +700,8 @@ td.mono { color: #3a4470; }
     body:not(.printing-labels) .bc-box .bc-sku,
     body:not(.printing-labels) .bc-box .bc-loc { color: #000 !important; }
     body:not(.printing-labels) .bc-box .btn { display: none !important; }
+    body:not(.printing-labels) .qr-row { background: #fff !important; border: none !important; justify-content: center; }
+    body:not(.printing-labels) .qr-text { display: none !important; }
     body.printing-labels > #labelSheet { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 4mm; padding: 6mm; background: #fff; }
     #labelSheet .lbl { border: 1px dashed #999; border-radius: 2mm; padding: 3mm; text-align: center; color: #000; background: #fff; break-inside: avoid; page-break-inside: avoid; }
     #labelSheet .lbl-name { font: 600 11pt 'IBM Plex Sans', sans-serif; margin-bottom: 1mm; overflow-wrap: anywhere; }
@@ -861,6 +870,7 @@ td.mono { color: #3a4470; }
     .stat-ico .ico { width: 19px; height: 19px; }
     .stat-value { font-size: 21px; }
     .card { padding: 18px; border-radius: 18px; }
+    .qr-row { flex-direction: column; text-align: center; }
     .add-grid { grid-template-columns: 1fr 1fr; }
     .add-grid .btn-primary { grid-column: span 2; }
     .search-input { width: 100%; }
@@ -1148,6 +1158,10 @@ td.mono { color: #3a4470; }
         <div class="bc-loc" id="bcItemLoc"></div>
         <div class="bc-wrap"><svg id="bcSvg"></svg></div>
         <p id="bcError" style="display:none;font-size:12px;color:var(--danger);margin-bottom:12px;">This product code has characters that can't be made into a barcode.</p>
+        <div class="qr-row" id="bcQrRow">
+            <div class="qr-box" id="bcQr"></div>
+            <div class="qr-text"><strong>Scan this with your phone's camera</strong>It opens this part so you can book it in or out. You need to be signed in to Stock Control on your phone.</div>
+        </div>
         <button class="btn btn-primary" onclick="window.print()"><svg class="ico" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9M7 17H5.5a1 1 0 0 1-1-1v-5.5a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H17M7 14h10v5.5H7z"/></svg>Print</button>
         <button class="btn btn-ghost" onclick="closeBarcodeModal()">Close</button>
     </div>
@@ -1973,10 +1987,19 @@ function showBarcodeModal(id) {
     let ok = false;
     for (const barWidth of [4, 3, 2]) {
         svg.innerHTML = '';
-        ok = drawBarcode(svg, item.sku, { width: barWidth, height: 100, margin: 16 });
+        ok = drawBarcode(svg, item.sku, { width: barWidth, height: 80, margin: 16 });
         if (!ok || parseFloat(svg.getAttribute('width')) <= 450) break;
     }
     document.getElementById('bcError').style.display = ok ? 'none' : 'block';
+
+    // A phone's own camera app can't read a Code 128 barcode, but it can read a
+    // QR code — this one opens the same ?item=<id> page the scan box uses
+    // (whoever opens it still has to sign in, see checkAccess()).
+    const qrBox = document.getElementById('bcQr');
+    qrBox.innerHTML = '';
+    const hasQr = typeof QRCode !== 'undefined';
+    document.getElementById('bcQrRow').style.display = hasQr ? '' : 'none';
+    if (hasQr) new QRCode(qrBox, { text: `${window.location.origin}${window.location.pathname}?item=${item.id}`, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
     document.getElementById('barcodeOverlay').classList.add('open');
 }
 
