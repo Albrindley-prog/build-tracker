@@ -36,6 +36,10 @@ const CURRENCY = 'gbp';
 const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
 const PRODUCT_ID = 'stock-control';
+// Stamped onto the QR code's link (&v=…). A phone may keep a saved copy of this page for 10 minutes
+// without checking for a newer one; a link it hasn't seen before is always fetched fresh, so scanning
+// a QR code opens the newest version. Change it (MMDD + a letter) each time an update is published.
+const APP_VERSION = '1029b';
 </script>
 
 <style>
@@ -713,6 +717,7 @@ td.mono { color: #3a4470; }
     body.printing-sale > #saleDoc { display: block !important; background: #fff; color: #000; padding: 12mm; font: 11pt/1.45 Arial, sans-serif; }
     #saleDoc .sd-co { font-size: 16pt; font-weight: 700; }
     #saleDoc h2 { font-size: 14pt; margin: 8mm 0 3mm; }
+    #saleDoc h3 { font-size: 11.5pt; margin: 5mm 0 1.5mm; }
     #saleDoc .sd-meta { display: flex; flex-wrap: wrap; gap: 2mm 8mm; margin-bottom: 5mm; }
     #saleDoc table { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
     #saleDoc thead th { background: none; color: #000; text-transform: none; letter-spacing: 0; font-size: 10.5pt; border: 0; border-bottom: 0.4mm solid #000; border-radius: 0; padding: 1.5mm 2mm; text-align: left; }
@@ -928,12 +933,29 @@ td.mono { color: #3a4470; }
 .sell-totals > div { display: flex; justify-content: space-between; }
 .sell-gross { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
 .sell-complete { width: 100%; padding: 15px; font-size: 15px; }
+/* ───── DASHBOARD ACTION TILES + REORDER ───── */
+.action-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px; }
+.action-cards > .card { margin-bottom: 0; display: flex; flex-direction: column; }
+.action-cards .st-card-row { flex: 1; flex-direction: column; align-items: flex-start; gap: 12px; }
+.action-cards .st-card-text { min-width: 0; flex: 1 1 auto; }
+.action-cards .st-card-actions { margin-top: auto; }
+.st-ico.reorder { background: #fff3d9; color: #b86e00; }
+#reorderScreen { display: none; }
+.rd-group td { background: #f5f7fd; font-weight: 800; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+.rd-group:hover { background: #f5f7fd !important; }
+.rd-total td { font-weight: 800; border-top: 2px solid var(--text); border-bottom: 0; }
+.rd-bulk { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; font-size: 14px; }
+.sup-cell { font-family: var(--sans) !important; min-width: 150px; }
 .imp-select, .imp-text { width: 100%; padding: 10px 12px; background: var(--input-bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-family: var(--sans); font-size: 14px; outline: none; }
 .imp-text { resize: vertical; }
 
 .app-foot { text-align: center; font-size: 12px; color: var(--muted); padding: 6px 0 4px; }
 
 /* ───── RESPONSIVE ───── */
+@media (max-width: 960px) {
+    .action-cards { grid-template-columns: minmax(0, 1fr); }
+    .action-cards .st-card-row { flex-direction: row; align-items: center; }
+}
 @media (max-width: 860px) {
     .auth-shell { grid-template-columns: 1fr; max-width: 460px; }
     .auth-aside { padding: 26px 28px 78px; }
@@ -1133,12 +1155,13 @@ td.mono { color: #3a4470; }
             <div class="stat-card low">
                 <div class="stat-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.2M12 17.4v.1"/></svg></div>
                 <div>
-                    <div class="stat-label">Low Stock ≤5</div>
+                    <div class="stat-label">Low stock</div>
                     <div class="stat-value" id="lowStock">0</div>
                 </div>
             </div>
         </div>
 
+        <div class="action-cards">
         <!-- Sell at the counter -->
         <div class="card" id="sellCard">
             <div class="st-card-row">
@@ -1167,6 +1190,21 @@ td.mono { color: #3a4470; }
                     <button class="btn btn-ghost" id="stockTakeCancelBtn" style="display:none;" onclick="cancelStockTake()">Cancel it</button>
                 </div>
             </div>
+        </div>
+
+        <!-- Reorder -->
+        <div class="card" id="reorderCard">
+            <div class="st-card-row">
+                <div class="st-ico reorder"><svg class="ico" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/><path d="M9.5 12.2l1.8 1.8 3.2-3.6"/></svg></div>
+                <div class="st-card-text">
+                    <h3>Reorder</h3>
+                    <p id="reorderBlurb"></p>
+                </div>
+                <div class="st-card-actions">
+                    <button class="btn btn-primary" id="reorderBtn" onclick="openReorder()">Reorder levels</button>
+                </div>
+            </div>
+        </div>
         </div>
 
         <!-- Add Item -->
@@ -1333,6 +1371,50 @@ td.mono { color: #3a4470; }
 <!-- ═══ CLEAR ALL DATA ═══ -->
 <div id="clearOverlay" class="bc-overlay">
     <div class="bc-box wide" id="clearBody" style="max-width:520px;"></div>
+</div>
+
+<!-- ═══ REORDER ═══ -->
+<div id="reorderScreen">
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="2" height="14" rx=".5"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="3" height="14"/><rect x="15" y="5" width="1" height="14"/><rect x="18" y="5" width="3" height="14" rx=".5"/></svg></div>
+            <div>
+                <div class="brand-name">Reorder</div>
+                <div class="brand-sub">PD Stevens &amp; Sons Ltd</div>
+            </div>
+        </div>
+        <div class="topbar-user">
+            <button class="logout-btn" onclick="leaveReorder()">← Back to dashboard</button>
+        </div>
+    </div>
+
+    <div class="app-body">
+        <div class="card">
+            <h3 class="stock-head" style="margin:0;">
+                <span class="auth-tabs" style="margin:0;">
+                    <button class="auth-tab" id="rdTab-order" onclick="rdSetTab('order')">To order</button>
+                    <button class="auth-tab" id="rdTab-levels" onclick="rdSetTab('levels')">Set levels</button>
+                </span>
+                <span class="stock-tools">
+                    <input id="rdSearch" class="search-input" placeholder="Search part, code or supplier…" oninput="rdOnSearch(this.value)" autocomplete="off">
+                    <span id="rdOrderTools" class="stock-tools">
+                        <button class="btn btn-ghost btn-sm" onclick="printOrderList()">Print</button>
+                        <button class="btn btn-primary btn-sm" onclick="downloadOrderList()">Download order list (Excel)</button>
+                    </span>
+                </span>
+            </h3>
+        </div>
+        <div class="stats-grid flat" id="rdStats"></div>
+        <div class="card" id="rdBulk" style="display:none;"></div>
+        <div class="card">
+            <div class="table-scroll stock-scroll">
+                <table>
+                    <thead id="rdHead"></thead>
+                    <tbody id="rdBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- ═══ SELLING ═══ -->
@@ -1843,7 +1925,8 @@ async function doLogout() {
     filteredItemId = null; filteredItemName = null; filteredLogs = [];
     stockTake = null; stRestored = false; stSelectedId = null; // the count in progress stays saved in this browser, for next sign-in
     sale = sellNew(); sellRestored = false; sellSuggest = []; salesRows = []; hasSalesDb = true; hasSellCol = true; // so does a sale in progress
-    ['stockTakeScreen', 'sellScreen', 'salesScreen'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+    hasReorderCols = true; rdQtyOverride.clear();
+    ['stockTakeScreen', 'sellScreen', 'salesScreen', 'reorderScreen'].forEach(id => { document.getElementById(id).style.display = 'none'; });
     ['stockTakeOverlay', 'sellOverlay'].forEach(id => document.getElementById(id).classList.remove('open'));
     document.getElementById('appScreen').style.display  = 'none';
     document.getElementById('billingScreen').style.display = 'none';
@@ -1899,6 +1982,7 @@ async function checkLocationColumn() {
     hasLocationCol = !(error && /location/i.test(error.message));
     document.getElementById('dbWarn').style.display = hasLocationCol ? 'none' : 'block';
     checkSalesDb(); // is the selling set-up (migration-sales.sql) in place too?
+    checkReorderCols(); // and the reorder levels (migration-reorder.sql)?
 }
 
 // A quantity like 0.5 (half a roll) is sent as it is. If that table's qty column only
@@ -1935,6 +2019,7 @@ async function saveData() {
         const row = { ...i, owner_id: ownerId, user_id: currentUser.id };
         if (!hasLocationCol) delete row.location;
         if (!hasSellCol) delete row.sell_price;
+        if (!hasReorderCols) { delete row.reorder_level; delete row.reorder_qty; delete row.supplier; }
         return row;
     });
     await sbClient.from('stock').delete().eq('owner_id', ownerId);
@@ -2065,8 +2150,9 @@ function render() {
     document.getElementById('totalItems').textContent  = stock.length;
     document.getElementById('totalQty').textContent    = (+stock.reduce((t, i) => t + Number(i.qty), 0).toFixed(2)).toLocaleString('en-GB');
     document.getElementById('stockValue').textContent  = '£' + (+stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
+    document.getElementById('lowStock').textContent    = stock.filter(isLowStock).length; // each part's own reorder level, else 5 or fewer
     renderSellCard();
+    renderReorderCard();
     renderStockTakeCard();
 }
 
@@ -2109,7 +2195,7 @@ function renderStock() {
             <td class="mono">${escapeHtml(item.sku)}</td>
             <td><input class="loc-input" value="${escapeHtml(item.location || '')}" placeholder="Add location" autocomplete="off"
                 onclick="event.stopPropagation()" onchange="updateLocation('${item.id}', this.value)" onkeydown="if(event.key==='Enter')this.blur()"></td>
-            <td><span class="qty-badge${item.qty <= 5 ? ' low' : ''}">${item.qty}</span></td>
+            <td><span class="qty-badge${isLowStock(item) ? ' low' : ''}">${item.qty}</span></td>
             <td class="mono">£${Number(item.cost).toFixed(2)}</td>
             <td><input class="price-cell" type="number" step="0.01" min="0" inputmode="decimal" value="${item.sell_price === null || item.sell_price === undefined ? '' : item.sell_price}" placeholder="Add price" autocomplete="off"
                 onclick="event.stopPropagation()" onchange="updateSellPrice('${item.id}', this.value)" onkeydown="if(event.key==='Enter')this.blur()"></td>
@@ -2310,7 +2396,7 @@ function showBarcodeModal(id) {
     const onTestAddress = location.protocol === 'file:' || location.hostname.endsWith('.local')
         || /^(localhost|127\.|\[::1\]|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
     const scanBase = onTestAddress ? 'https://build-tracker.co.uk/stock-control-pd-stevens/' : window.location.origin + window.location.pathname;
-    if (hasQr) new QRCode(qrBox, { text: `${scanBase}?item=${item.id}`, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+    if (hasQr) new QRCode(qrBox, { text: `${scanBase}?item=${item.id}&v=${APP_VERSION}`, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
     document.getElementById('barcodeOverlay').classList.add('open');
 }
 
@@ -2564,9 +2650,14 @@ function guessColumns(headers) {
         sell:     [/sell/i, /retail|rrp/i, /list\s*price/i], // only an explicit selling-price heading — never "Unit Price"
         cost:     [/unit\s*(price|cost)/i, /cost/i, /price/i] // "Unit Price" before a "Price (£)" that is really the row total
     };
-    const map = { sku: -1, name: -1, qty: -1, cost: -1, location: -1, sell: -1 };
+    rules.reorder  = [/re-?order\s*(level|point|at)/i, /min(imum)?\s*(stock|level|qty|quantity)/i];
+    rules.orderQty = [/re-?order\s*(qty|quantity)/i, /order\s*(qty|quantity)/i];
+    rules.supplier = [/supplier|vendor/i];
+    const map = { sku: -1, name: -1, qty: -1, cost: -1, location: -1, sell: -1, reorder: -1, orderQty: -1, supplier: -1 };
     const used = new Set();
-    for (const key of ['sku', 'location', 'name', 'qty', 'sell', 'cost']) {
+    // The reorder, supplier and selling-price columns are claimed before the plain quantity / name / cost ones,
+    // so a heading like "Order qty" or "Supplier name" is never mistaken for the stock quantity or the part name.
+    for (const key of ['sku', 'location', 'supplier', 'reorder', 'orderQty', 'name', 'qty', 'sell', 'cost']) {
         search: for (const re of rules[key]) {
             for (let i = 0; i < headers.length; i++) {
                 if (!used.has(i) && re.test(headers[i])) { map[key] = i; used.add(i); break search; }
@@ -2675,7 +2766,8 @@ function computeImportPlan() {
 
         const sellN = numOf(get('sell'));
         const sell = sellN === null || isNaN(sellN) ? null : Math.round(Math.max(0, sellN) * 100) / 100;
-        const rec = { sku: code, name, location: cellStr(get('location')), qty, cost, sell, rowNo };
+        const nonNeg = v => { const n = numOf(v); return n === null || isNaN(n) ? null : Math.round(Math.max(0, n) * 100) / 100; };
+        const rec = { sku: code, name, location: cellStr(get('location')), qty, cost, sell, reorder: nonNeg(get('reorder')), orderQty: nonNeg(get('orderQty')), supplier: cellStr(get('supplier')), rowNo };
         const valueQty  = existing ? (importState.updateQty && qty !== null ? qty : existing.qty) : (qty || 0);
         const valueCost = cost !== null ? cost : (existing ? Number(existing.cost) : 0);
         plan.value += valueQty * valueCost;
@@ -2714,7 +2806,7 @@ function renderImportMapping() {
             plan.skipped.slice(0, 8).map(x => `row ${x.rowNo}: ${escapeHtml(x.label)} — ${x.why}`).join('<br>')
         }${plan.skipped.length > 8 ? `<br>…and ${plan.skipped.length - 8} more` : ''}</div>` : ''}`;
 
-    const cols = [['sku', 'Product code'], ['name', 'Name'], ['location', 'Location'], ['qty', 'Qty'], ['cost', 'Unit cost'], ['sell', 'Sell price']].filter(([k]) => s.map[k] >= 0);
+    const cols = [['sku', 'Product code'], ['name', 'Name'], ['location', 'Location'], ['qty', 'Qty'], ['cost', 'Unit cost'], ['sell', 'Sell price'], ['reorder', 'Reorder level'], ['orderQty', 'Order qty'], ['supplier', 'Supplier']].filter(([k]) => s.map[k] >= 0);
     const preview = cols.length ? `<div class="table-scroll"><table class="imp-preview"><thead><tr>${cols.map(([, l]) => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
         s.preview.map(r => `<tr>${cols.map(([k]) => `<td>${escapeHtml(cellStr(r[s.map[k]]))}</td>`).join('')}</tr>`).join('')
     }</tbody></table></div>` : '';
@@ -2728,6 +2820,9 @@ function renderImportMapping() {
         ${field('qty', 'Quantity')}
         ${field('cost', 'Unit cost (£)')}
         ${field('sell', 'Selling price (£ ex VAT)')}
+        ${field('reorder', 'Reorder level')}
+        ${field('orderQty', 'Usual order quantity')}
+        ${field('supplier', 'Supplier')}
         <label class="imp-check"><input type="checkbox" ${s.autoCodes ? 'checked' : ''} onchange="importState.autoCodes = this.checked; renderImportMapping()">
             <span>Rows with no product code: still import them, giving each an automatic code (NEW-0001, NEW-0002…). Untick to skip them.</span></label>
         ${s.map.qty >= 0 ? `<label class="imp-check"><input type="checkbox" ${s.updateQty ? 'checked' : ''} onchange="importState.updateQty = this.checked; renderImportMapping()">
@@ -2766,6 +2861,11 @@ async function runImport() {
                 name: rec.name || rec.sku, sku: rec.sku, qty: rec.qty || 0, cost: rec.cost || 0 };
             if (hasLocationCol) row.location = rec.location || null;
             if (hasSellCol && rec.sell !== null) row.sell_price = rec.sell;
+            if (hasReorderCols) {
+                if (rec.reorder !== null) row.reorder_level = rec.reorder;
+                if (rec.orderQty !== null) row.reorder_qty = rec.orderQty;
+                if (rec.supplier) row.supplier = rec.supplier;
+            }
             return row;
         });
         for (let i = 0; i < newRows.length; i += 500) {
@@ -2784,6 +2884,11 @@ async function runImport() {
             if (rec.cost !== null) row.cost = rec.cost;
             if (hasLocationCol && rec.location) row.location = rec.location;
             if (hasSellCol && rec.sell !== null) row.sell_price = rec.sell;
+            if (hasReorderCols) {
+                if (rec.reorder !== null) row.reorder_level = rec.reorder;
+                if (rec.orderQty !== null) row.reorder_qty = rec.orderQty;
+                if (rec.supplier) row.supplier = rec.supplier;
+            }
             if (s.updateQty && rec.qty !== null && rec.qty !== ex.qty) {
                 changeLogs.push(logRow(row.name, rec.qty > ex.qty ? 'IN' : 'OUT', Math.abs(rec.qty - ex.qty)));
                 row.qty = rec.qty;
@@ -2891,6 +2996,281 @@ async function exportExcel() {
     } catch (e) {
         alert('Could not make the Excel file: ' + (e && e.message ? e.message : e));
     }
+}
+
+// ═══ REORDER (levels, suppliers, what to order) ═══
+// Each part can have a reorder level (order when stock is at or below it), a usual order quantity
+// and a supplier (migration-reorder.sql). The Reorder screen shows what is at or below its level,
+// grouped by supplier, with a quantity to order you can adjust, an estimated cost, and the list
+// to download (Excel) or print. The same level feeds the dashboard's Low stock figure; a part
+// with no level keeps the old rule (5 or fewer).
+//
+// This is the list you take to your supplier. It does not yet remember what has been ordered —
+// a part stays on it until its stock goes back up.
+
+let hasReorderCols = true;   // false until migration-reorder.sql has been run — see checkReorderCols()
+let rdTab = 'order';
+let rdSearch = '';
+let rdSearchTimer = null;
+const rdQtyOverride = new Map(); // part id -> order quantity typed on the list (this session only)
+
+const rdNum = v => (v === null || v === undefined || v === '') ? null : Number(v);
+const rdLevel = i => rdNum(i.reorder_level);
+const rdIsOpen = () => document.getElementById('reorderScreen').style.display === 'block';
+const isLowStock = i => Number(i.qty) <= (rdLevel(i) ?? 5);
+const rdOnList = () => stock.filter(i => rdLevel(i) !== null && Number(i.qty) <= rdLevel(i));
+const rdSupplier = i => String(i.supplier || '').trim();
+
+// How many to order: the part's usual order quantity, or failing that enough to top up to twice its level.
+function rdSuggest(i) {
+    const usual = rdNum(i.reorder_qty);
+    if (usual !== null && usual > 0) return usual;
+    return Math.max(1, Math.ceil(rdLevel(i) * 2 - Number(i.qty)));
+}
+const rdQtyFor = i => rdQtyOverride.has(i.id) ? rdQtyOverride.get(i.id) : rdSuggest(i);
+
+async function checkReorderCols() {
+    const { error } = await sbClient.from('stock').select('reorder_level, reorder_qty, supplier').limit(1);
+    hasReorderCols = !(error && /reorder_level|reorder_qty|supplier|does not exist|schema cache/i.test(error.message || ''));
+    render();
+}
+
+// ── the dashboard card
+function renderReorderCard() {
+    const blurb = document.getElementById('reorderBlurb');
+    if (!blurb) return;
+    const btn = document.getElementById('reorderBtn');
+    if (!hasReorderCols) {
+        blurb.innerHTML = 'One-off set-up needed: run <code>migration-reorder.sql</code> in Supabase (SQL Editor), then refresh this page.';
+        btn.disabled = true; btn.textContent = 'Reorder';
+        return;
+    }
+    btn.disabled = false;
+    const withLevel = stock.filter(i => rdLevel(i) !== null).length, n = rdOnList().length;
+    const s = k => k === 1 ? '' : 's';
+    blurb.textContent = !stock.length ? 'Add some parts first, then give each a reorder level.'
+        : !withLevel ? 'Give each part a reorder level and Stock Control will tell you what to order, grouped by supplier.'
+        : n ? `${n} part${s(n)} ${n === 1 ? 'is' : 'are'} at or below ${n === 1 ? 'its' : 'their'} reorder level — time to order.`
+        : `Nothing needs ordering. ${withLevel} part${s(withLevel)} ${withLevel === 1 ? 'has' : 'have'} a reorder level.`;
+    btn.textContent = !withLevel ? 'Set reorder levels' : n ? 'See what to order' : 'Reorder levels';
+}
+
+// ── opening / leaving
+function openReorder() {
+    if (!hasReorderCols) { alert('Reordering needs a one-off database step first: run migration-reorder.sql in Supabase (SQL Editor), then refresh this page.'); return; }
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('reorderScreen').style.display = 'block';
+    rdTab = stock.some(i => rdLevel(i) !== null) ? 'order' : 'levels';
+    rdSearch = ''; document.getElementById('rdSearch').value = '';
+    window.scrollTo(0, 0);
+    renderReorder();
+}
+function leaveReorder() {
+    document.getElementById('reorderScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    render();
+}
+function rdSetTab(tab) { rdTab = tab; renderReorder(); }
+function rdOnSearch(v) { rdSearch = v; clearTimeout(rdSearchTimer); rdSearchTimer = setTimeout(renderReorder, 120); }
+
+// ── the To order list, grouped by supplier
+function rdMatches(i) {
+    const q = rdSearch.trim().toLowerCase();
+    return !q || [i.name, i.sku, i.location, i.supplier].some(v => String(v || '').toLowerCase().includes(q));
+}
+
+function rdGroups() {
+    const groups = new Map();
+    rdOnList().filter(rdMatches).forEach(item => {
+        const key = rdSupplier(item) || 'No supplier set';
+        const qty = rdQtyFor(item);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push({ item, qty, est: sellR2(qty * Number(item.cost)) });
+    });
+    return [...groups.entries()]
+        .sort((a, b) => (a[0] === 'No supplier set') - (b[0] === 'No supplier set') || collator.compare(a[0], b[0]))
+        .map(([supplier, rows]) => ({ supplier, rows: rows.sort((x, y) => collator.compare(x.item.name, y.item.name)) }));
+}
+
+function rdSetOrderQty(id, v) {
+    const n = Number(v);
+    if (v.trim() === '' || !isFinite(n) || n < 0) { renderReorder(); return; }
+    rdQtyOverride.set(id, sellR2(n));
+    renderReorder();
+}
+
+function renderReorder() {
+    ['order', 'levels'].forEach(t => document.getElementById('rdTab-' + t).classList.toggle('active', rdTab === t));
+    document.getElementById('rdOrderTools').style.display = rdTab === 'order' ? '' : 'none';
+    const head = document.getElementById('rdHead'), body = document.getElementById('rdBody'), bulk = document.getElementById('rdBulk');
+    const CAP = 100;
+    const stat = (cls, label, value, svg) => `<div class="stat-card ${cls}"><div class="stat-ico"><svg class="ico" viewBox="0 0 24 24">${svg}</svg></div><div><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div></div>`;
+    const box = '<path d="M3.5 7.8L12 3.5l8.5 4.3v8.4L12 20.5l-8.5-4.3z"/><path d="M3.8 7.9L12 12l8.2-4.1M12 12v8.3"/>';
+    const lay = '<path d="M12 3.5l8.5 4.7-8.5 4.7-8.5-4.7z"/><path d="M3.5 12.2l8.5 4.7 8.5-4.7M3.5 16.2l8.5 4.7 8.5-4.7"/>';
+    const pound = '<path d="M16.5 6.8a4.3 4.3 0 0 0-8 2.2v3.2m0 0H6.5m2 0v3.6c0 1.6-.9 2.8-2.3 3.4h11.3M8.5 12.2h6"/>';
+
+    if (rdTab === 'order') {
+        bulk.style.display = 'none';
+        const groups = rdGroups();
+        const all = groups.flatMap(g => g.rows).filter(r => r.qty > 0);
+        const total = sellR2(all.reduce((t, r) => t + r.est, 0));
+        document.getElementById('rdStats').innerHTML =
+            stat('low', 'Parts to order', all.length, '<path d="M12 4l9 16H3z"/><path d="M12 10v4.2M12 17.4v.1"/>') +
+            stat('qty', 'Suppliers', groups.filter(g => g.supplier !== 'No supplier set').length, lay) +
+            stat('value', 'Estimated cost', sellMoney(total), pound);
+        head.innerHTML = '<tr><th>Name</th><th>Product Code</th><th>Location</th><th>In stock</th><th>Level</th><th>Order qty</th><th>Unit cost</th><th>Est. cost</th></tr>';
+        if (!groups.length) {
+            const any = stock.some(i => rdLevel(i) !== null);
+            body.innerHTML = `<tr><td colspan="8"><div class="empty-state">${rdSearch.trim() ? 'No part to order matches “' + escapeHtml(rdSearch.trim()) + '”.'
+                : any ? 'Nothing is at or below its reorder level — nothing to order.' : 'No part has a reorder level yet. Open the “Set levels” tab to give them one.'}</div></td></tr>`;
+            return;
+        }
+        let shown = 0;
+        body.innerHTML = groups.map(g => {
+            const sub = sellR2(g.rows.filter(r => r.qty > 0).reduce((t, r) => t + r.est, 0));
+            const rows = g.rows.map(({ item, qty, est }) => {
+                if (shown >= CAP) return '';
+                shown++;
+                return `<tr${qty === 0 ? ' style="opacity:.5"' : ''}>
+                    <td>${escapeHtml(item.name)}</td><td class="mono">${escapeHtml(item.sku)}</td><td>${escapeHtml(item.location || '')}</td>
+                    <td><span class="qty-badge low">${stQty(item.qty)}</span></td><td class="mono">${stQty(rdLevel(item))}</td>
+                    <td><input class="price-cell" type="number" min="0" step="any" value="${qty}" title="0 leaves it off the order" onchange="rdSetOrderQty('${item.id}', this.value)"></td>
+                    <td class="mono">${sellMoney(Number(item.cost))}</td><td class="mono">${sellMoney(qty > 0 ? est : 0)}</td></tr>`;
+            }).join('');
+            return `<tr class="rd-group"><td colspan="7">${escapeHtml(g.supplier)} <span class="sl-sub">· ${g.rows.length} part${g.rows.length === 1 ? '' : 's'}</span></td><td class="mono">${sellMoney(sub)}</td></tr>${rows}`;
+        }).join('') + `<tr class="rd-total"><td colspan="7">Total estimated cost</td><td class="mono">${sellMoney(total)}</td></tr>`
+            + (all.length > CAP ? `<tr><td colspan="8"><div class="empty-state">Showing the first ${CAP} — type in the search box to narrow it down. The download and print include everything.</div></td></tr>` : '');
+        return;
+    }
+
+    // Set levels
+    const list = stock.filter(rdMatches);
+    const withLevel = stock.filter(i => rdLevel(i) !== null).length;
+    const sups = new Set(stock.map(rdSupplier).filter(Boolean));
+    document.getElementById('rdStats').innerHTML =
+        stat('', 'Parts with a level', withLevel, box) + stat('low', 'Without a level', stock.length - withLevel, '<path d="M12 4l9 16H3z"/><path d="M12 10v4.2M12 17.4v.1"/>') + stat('qty', 'Suppliers', sups.size, lay);
+    head.innerHTML = '<tr><th>Name</th><th>Product Code</th><th>In stock</th><th>Reorder level</th><th>Usual order qty</th><th>Supplier</th></tr>';
+    const supOptions = [...sups].sort(collator.compare).map(s => `<option value="${escapeHtml(s)}">`).join('');
+    body.innerHTML = list.length
+        ? list.slice(0, CAP).map(i => `<tr>
+            <td>${escapeHtml(i.name)}</td><td class="mono">${escapeHtml(i.sku)}</td>
+            <td><span class="qty-badge${isLowStock(i) ? ' low' : ''}">${stQty(i.qty)}</span></td>
+            <td><input class="price-cell" type="number" min="0" step="any" value="${rdLevel(i) === null ? '' : rdLevel(i)}" placeholder="none" onchange="rdUpdate('${i.id}', 'reorder_level', this.value)"></td>
+            <td><input class="price-cell" type="number" min="0" step="any" value="${rdNum(i.reorder_qty) === null ? '' : i.reorder_qty}" placeholder="optional" onchange="rdUpdate('${i.id}', 'reorder_qty', this.value)"></td>
+            <td><input class="price-cell sup-cell" list="rdSuppliers" value="${escapeHtml(i.supplier || '')}" placeholder="Add supplier" autocomplete="off" onchange="rdUpdate('${i.id}', 'supplier', this.value)"></td></tr>`).join('')
+            + (list.length > CAP ? `<tr><td colspan="6"><div class="empty-state">Showing the first ${CAP} of ${list.length} — type in the search box to narrow it down.</div></td></tr>` : '')
+        : `<tr><td colspan="6"><div class="empty-state">No part matches “${escapeHtml(rdSearch.trim())}”.</div></td></tr>`;
+    bulk.style.display = '';
+    const missing = list.filter(i => rdLevel(i) === null).length;
+    bulk.innerHTML = `<div class="rd-bulk"><div><strong>Quick set-up:</strong> give every part shown that has no level a reorder level of
+        <input id="rdBulkLevel" class="price-cell" type="number" min="0" step="any" value="5" style="width:80px;display:inline-block;border-color:var(--border);background:#fff">
+        <span class="sl-sub">(${missing} part${missing === 1 ? '' : 's'} shown ${missing === 1 ? 'has' : 'have'} none)</span></div>
+        <button class="btn btn-ghost btn-sm" onclick="rdApplyLevel()">Apply</button></div><datalist id="rdSuppliers">${supOptions}</datalist>`;
+}
+
+// ── changing a part's reorder level, usual order quantity or supplier
+async function rdUpdate(id, field, raw) {
+    const item = stock.find(i => i.id === id); if (!item) return;
+    let value;
+    if (field === 'supplier') value = String(raw).trim() || null;
+    else {
+        const t = String(raw).trim(), n = t === '' ? null : Number(t);
+        if (n !== null && (!isFinite(n) || n < 0)) { alert('Type a number, for example 10.'); renderReorder(); return; }
+        value = n === null ? null : sellR2(n);
+    }
+    const old = field === 'supplier' ? (item.supplier || null) : rdNum(item[field]);
+    if (old === value) return;
+    if (!hasReorderCols) { alert('Reorder settings can’t be saved yet — the one-off database step (migration-reorder.sql) still needs running.'); renderReorder(); return; }
+    const { error } = await sbClient.from('stock').update({ [field]: value }).eq('id', id).eq('owner_id', ownerId);
+    if (error) { alert('Could not save that: ' + error.message); renderReorder(); return; }
+    item[field] = value;
+    if (field === 'reorder_level') rdQtyOverride.delete(id);
+    renderReorder();
+}
+
+async function rdApplyLevel() {
+    const n = Number(document.getElementById('rdBulkLevel').value);
+    if (!isFinite(n) || n < 0) { alert('Type a number, for example 5.'); return; }
+    const targets = stock.filter(rdMatches).filter(i => rdLevel(i) === null);
+    if (!targets.length) { alert('Every part shown already has a reorder level.'); return; }
+    if (!confirm(`Give ${targets.length} part${targets.length === 1 ? '' : 's'} a reorder level of ${n}?\n\nParts that already have a level are not changed.`)) return;
+    try {
+        for (let i = 0; i < targets.length; i += 100) {
+            const chunk = targets.slice(i, i + 100);
+            const { error } = await sbClient.from('stock').update({ reorder_level: sellR2(n) }).eq('owner_id', ownerId).in('id', chunk.map(p => p.id));
+            if (error) throw new Error(error.message);
+            chunk.forEach(p => { p.reorder_level = sellR2(n); });
+        }
+    } catch (e) { alert('Could not set the levels: ' + e.message); }
+    renderReorder();
+}
+
+// ── taking the list away: Excel and print
+async function downloadOrderList() {
+    const groups = rdGroups().map(g => ({ ...g, rows: g.rows.filter(r => r.qty > 0) })).filter(g => g.rows.length);
+    if (!groups.length) { alert('There is nothing to order.'); return; }
+    if (typeof ExcelJS === 'undefined') { alert('The Excel writer could not load — check your internet connection and refresh.'); return; }
+    try {
+        const rows = groups.flatMap(g => g.rows.map(r => ({ ...r, supplier: g.supplier })));
+        const HEAD = 4, FIRST = 5, LAST = HEAD + rows.length, TOTAL = LAST + 1;
+        const wb = new ExcelJS.Workbook();
+        wb.calcProperties.fullCalcOnLoad = true;
+        const ws = wb.addWorksheet('Order list', { views: [{ state: 'frozen', ySplit: HEAD, topLeftCell: 'A' + FIRST }], pageSetup: { paperSize: 9, orientation: 'landscape' } });
+        ws.columns = [{ width: 24 }, { width: 14 }, { width: 36 }, { width: 18 }, { width: 10 }, { width: 10 }, { width: 11 }, { width: 14 }];
+        const ARIAL = { name: 'Arial', size: 11 }, BLUE = { ...ARIAL, color: { argb: 'FF0000FF' } };
+        const line = { style: 'thin', color: { argb: 'FFBFBFBF' } }, box = { top: line, left: line, bottom: line, right: line };
+        const money = '\\£#,##0.00';
+        const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+        ws.getCell('A1').value = 'Order List';
+        ws.getCell('A1').font = { name: 'Arial', size: 14, bold: true };
+        ws.getRow(1).height = 17.35;
+        ws.getCell('A2').value = 'PD Stevens & Sons Ltd — ' + new Date().toLocaleDateString('en-GB') + '. Parts at or below their reorder level. Edit Order qty (blue); Est. cost calculates automatically.';
+        ws.getCell('A2').font = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF666666' } };
+        ['Supplier', 'Product Code', 'Name of item', 'Location', 'In stock', 'Order qty', 'Unit Cost', 'Est. cost'].forEach((h, c) => {
+            const cell = ws.getCell(HEAD, c + 1);
+            cell.value = h; cell.font = { ...ARIAL, bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = fill('FF1F4E78'); cell.border = box; cell.alignment = { horizontal: 'center' };
+        });
+        let total = 0;
+        rows.forEach((r, k) => {
+            const n = FIRST + k, cost = Number(r.item.cost);
+            total += r.qty * cost;
+            [[r.supplier, null, ARIAL], [String(r.item.sku), null, ARIAL], [String(r.item.name), null, ARIAL], [r.item.location || '', null, ARIAL],
+             [Number(r.item.qty), '#,##0.##', ARIAL], [r.qty, '#,##0.##', BLUE], [cost, money, ARIAL], [{ formula: `F${n}*G${n}`, result: r.qty * cost }, money, ARIAL]
+            ].forEach(([value, fmt, font], c) => {
+                const cell = ws.getCell(n, c + 1);
+                cell.value = value; cell.font = font; cell.border = box;
+                if (fmt) cell.numFmt = fmt;
+                if (k % 2 === 1) cell.fill = fill('FFF2F2F2');
+            });
+        });
+        const tb = { top: { style: 'medium' }, bottom: { style: 'double' } };
+        for (let c = 1; c <= 8; c++) { const cell = ws.getCell(TOTAL, c); cell.font = { ...ARIAL, bold: true }; cell.border = tb; }
+        ws.getCell(TOTAL, 1).value = 'Total';
+        ws.getCell(TOTAL, 8).value = { formula: `SUM(H${FIRST}:H${LAST})`, result: total };
+        ws.getCell(TOTAL, 8).numFmt = money;
+        ws.autoFilter = `A${HEAD}:H${LAST}`;
+        const buffer = await wb.xlsx.writeBuffer();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        a.download = 'Order_List.xlsx';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    } catch (e) { alert('Could not make the Excel file: ' + (e && e.message ? e.message : e)); }
+}
+
+function printOrderList() {
+    const groups = rdGroups().map(g => ({ ...g, rows: g.rows.filter(r => r.qty > 0) })).filter(g => g.rows.length);
+    if (!groups.length) { alert('There is nothing to order.'); return; }
+    const company = String(saleSettings().company || '').split('\n')[0];
+    const total = sellR2(groups.reduce((t, g) => t + g.rows.reduce((s, r) => s + r.est, 0), 0));
+    document.getElementById('saleDoc').innerHTML = `
+        <div class="sd-head"><div class="sd-co">${escapeHtml(company)}</div></div>
+        <h2>Order list — ${new Date().toLocaleDateString('en-GB')}</h2>
+        ${groups.map(g => `<h3>${escapeHtml(g.supplier)}</h3><table><thead><tr><th>Code</th><th>Part</th><th>Location</th><th class="r">In stock</th><th class="r">Order qty</th><th class="r">Est. cost</th></tr></thead><tbody>${
+            g.rows.map(r => `<tr><td>${escapeHtml(r.item.sku)}</td><td>${escapeHtml(r.item.name)}</td><td>${escapeHtml(r.item.location || '')}</td><td class="r">${stQty(r.item.qty)}</td><td class="r">${stQty(r.qty)}</td><td class="r">${sellMoney(r.est)}</td></tr>`).join('')}</tbody></table>`).join('')}
+        <div class="sd-tot"><div class="g"><span>Estimated total</span><span>${sellMoney(total)}</span></div></div>`;
+    document.body.classList.add('printing-sale');
+    window.print();
 }
 
 // ═══ SELLING (counter sales) ═══
