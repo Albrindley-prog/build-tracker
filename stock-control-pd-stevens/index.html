@@ -25,21 +25,19 @@ const HDR = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorizati
 const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
 
 // --------------------------
-// PAYMENT & TRIAL CONFIG
+// TRIAL & ACCESS CONFIG
 // --------------------------
+// 30 days free from sign-up; after that the page only opens for a workspace that has an
+// active row in bt_subscriptions (rows are scoped by (user_id, product)). PD Stevens pay by
+// arrangement, so there is no price and no online checkout in this copy: a subscription row is
+// added by hand when they pay, and set to anything other than 'active' to stop access.
 const TRIAL_DAYS = 30;
-const MONTHLY_PRICE = 32.00;
-const CURRENCY = 'gbp';
-// Same Supabase project as Body Shop Pro / Workshop Scheduler & Diary, so
-// reusing its bt_trials/bt_subscriptions tables and create-checkout-session
-// function. Each app bills separately — rows are scoped by (user_id, product).
-const STRIPE_PRICE_ID = 'price_1TgOwNICF2fQjVNyZi4seWgw';
 const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';
 const PRODUCT_ID = 'stock-control';
 // Stamped onto the QR code's link (&v=…). A phone may keep a saved copy of this page for 10 minutes
 // without checking for a newer one; a link it hasn't seen before is always fetched fresh, so scanning
 // a QR code opens the newest version. Change it (MMDD + a letter) each time an update is published.
-const APP_VERSION = '1029c';
+const APP_VERSION = '1029d';
 </script>
 
 <style>
@@ -1049,7 +1047,7 @@ td.mono { color: #3a4470; }
         <div class="auth-title">Welcome back</div>
         <div class="auth-sub">Sign in to manage your stock</div>
 
-        <div class="trial-note">✅ 30 Days Free Trial — then £32.00 per month</div>
+        <div class="trial-note">✅ 30 days free trial</div>
         <div class="trial-note" id="inviteBanner" style="display:none;">You've been invited to join a team's Stock Control workspace — sign in or create an account below to accept.</div>
 
         <div class="auth-tabs">
@@ -1095,11 +1093,8 @@ td.mono { color: #3a4470; }
 <!-- ═══ BILLING SCREEN ═══ -->
 <div id="billingScreen">
     <div class="billing-box">
-        <h2>Subscription Required</h2>
+        <h2>Your free trial has ended</h2>
         <div id="billingMessage"></div>
-        <button class="auth-btn" id="subscribeBtn">Subscribe £32.00/month</button>
-        <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;">(approx. $43 USD)</p>
-        <p id="paymentMsg" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;"></p>
         <button class="btn btn-ghost" onclick="doLogout()" style="margin-top:12px;width:100%;">Sign Out</button>
     </div>
 </div>
@@ -1734,57 +1729,19 @@ function showBilling() {
     document.getElementById('billingScreen').style.display = 'flex';
 
     const msgEl = document.getElementById('billingMessage');
-    const subscribeBtn = document.getElementById('subscribeBtn');
+    const contact = `<p style="margin-bottom:6px;">To carry on using Stock Control, please get in touch with Build Tracker Solutions and we will get you set up.</p>
+        <p style="margin-bottom:16px;"><strong>info@build-tracker.co.uk</strong><br>07931 095631</p>`;
 
-    // Only the workspace owner can actually pay — an invited staff member
-    // hitting a lapsed trial/subscription sees the same lock (the whole
-    // workspace is paused either way) but with no way to start checkout
-    // themselves, and a message pointing at who can.
+    // An invited staff member hitting a lapsed trial/subscription sees the same lock (the whole
+    // workspace is paused either way), with a message pointing at who can sort it out.
     if (currentRole !== 'owner') {
-        subscribeBtn.style.display = 'none';
-        msgEl.innerHTML = `<p style="color:var(--danger);margin-bottom:16px;">❌ This workspace's free trial has ended.<br>Ask ${escapeHtml(userData?.email || 'the workspace owner')} to subscribe to continue.</p>`;
+        msgEl.innerHTML = `<p style="margin-bottom:16px;">This workspace's free trial has ended.<br>Ask ${escapeHtml(userData?.email || 'the workspace owner')} to get in touch with Build Tracker Solutions to carry on.</p>`;
         return;
     }
-    subscribeBtn.style.display = '';
 
-    if(days > 0) {
-        msgEl.innerHTML = `<p style="color:var(--accent2);margin-bottom:16px;">✅ ${days} days of free trial remaining</p>`;
-    } else {
-        msgEl.innerHTML = `<p style="color:var(--danger);margin-bottom:16px;">❌ Your free trial has ended. Subscribe now to continue.</p>`;
-    }
-
-    subscribeBtn.onclick = startSubscription;
-}
-
-// Redirects to a real Stripe Checkout session (created server-side by the
-// existing 'create-checkout-session' Edge Function), instead of taking card
-// details directly in the browser.
-async function startSubscription() {
-    const msgEl = document.getElementById('paymentMsg');
-    if(msgEl) msgEl.textContent = 'Redirecting to secure checkout…';
-    try {
-        const { data: { session } } = await sbClient.auth.getSession();
-        const res = await fetch(`${SB_URL}/functions/v1/create-checkout-session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({
-                price_id: STRIPE_PRICE_ID,
-                product: PRODUCT_ID,
-                user_id: ownerId,
-                email: currentUser.email,
-                success_url: window.location.origin + window.location.pathname + '?payment=success',
-                cancel_url: window.location.origin + window.location.pathname + '?payment=cancel'
-            })
-        });
-        const { url, error } = await res.json();
-        if(error || !url) throw new Error(error || 'No checkout URL returned');
-        window.location.href = url;
-    } catch(err) {
-        if(msgEl) msgEl.textContent = 'Could not start checkout: ' + err.message;
-    }
+    msgEl.innerHTML = days > 0
+        ? `<p style="color:var(--accent2);margin-bottom:16px;">✅ ${days} days of free trial remaining</p>`
+        : contact;
 }
 
 // Checks for ?payment=success/cancel on the URL after redirect back from Stripe.
