@@ -840,6 +840,46 @@ td.mono { color: #3a4470; }
 .clear-word { width: 100%; padding: 11px 13px; background: var(--input-bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-family: var(--mono); font-size: 15px; letter-spacing: 0.08em; outline: none; }
 .clear-word:focus { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(222,48,73,0.12); }
 
+/* ───── STOCK TAKE ───── */
+#stockTakeScreen { display: none; }
+.st-card-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.st-ico { width: 50px; height: 50px; border-radius: 15px; background: #efeaff; color: var(--violet); display: flex; align-items: center; justify-content: center; flex: none; }
+.st-ico .ico { width: 25px; height: 25px; }
+.st-card-text { flex: 1; min-width: 240px; }
+.st-card-text h3 { margin-bottom: 4px; }
+.st-card-text p { font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.st-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.st-bar { height: 10px; max-width: 520px; background: rgba(255,255,255,0.25); border-radius: 6px; overflow: hidden; margin: 2px 0 20px; }
+.st-bar > div { height: 100%; width: 0; background: #fff; border-radius: 6px; transition: width 0.3s; }
+.stock-head .auth-tab { flex: none; white-space: nowrap; padding: 9px 16px; }
+.st-input::-webkit-outer-spin-button, .st-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.st-input { -moz-appearance: textfield; appearance: textfield; }
+.st-blind { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; font-weight: 600; opacity: 0.92; cursor: pointer; }
+.st-blind input { accent-color: #00d4aa; width: 16px; height: 16px; }
+
+.st-count { position: relative; z-index: 2; margin: -50px 22px 18px; box-shadow: var(--shadow-md); }
+.st-empty { display: flex; align-items: center; gap: 14px; color: var(--muted); font-size: 14px; line-height: 1.5; padding: 6px 2px; }
+.st-empty strong { color: var(--text); }
+.st-empty .ico { width: 30px; height: 30px; color: var(--accent); flex: none; }
+.st-part { display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: wrap; }
+.st-part-info { flex: 1; min-width: 230px; }
+.st-part-name { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.2; }
+.st-part-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.st-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px; padding: 4px 11px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.st-pill strong { color: var(--text); }
+.st-pill.mono { font-family: var(--mono); color: var(--text); }
+.st-pill.warn { background: #fff3d9; border-color: #f3d9a0; color: #9a6200; }
+.st-pill .ico { width: 14px; height: 14px; }
+.st-entry { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.st-entry label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 7px; }
+.st-input { width: 190px; padding: 11px 14px; font: 800 30px var(--sans); color: var(--text); background: #fff; border: 2px solid var(--accent); border-radius: 14px; outline: none; box-shadow: 0 0 0 5px rgba(22,93,255,0.12); }
+.st-diff { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.st-diff.ok { background: #e5f7f0; color: #0a7a58; }
+.st-diff.short { background: #fde9ec; color: #c42a41; }
+.st-diff.over { background: #fff3d9; color: #9a6200; }
+.st-finish { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin: 4px 0 8px; }
+
 .app-foot { text-align: center; font-size: 12px; color: var(--muted); padding: 6px 0 4px; }
 
 /* ───── RESPONSIVE ───── */
@@ -873,6 +913,11 @@ td.mono { color: #3a4470; }
     .stat-value { font-size: 21px; }
     .card { padding: 18px; border-radius: 18px; }
     .qr-row { flex-direction: column; text-align: center; }
+    .st-count { margin: -50px 6px 18px; }
+    .st-entry { width: 100%; }
+    .st-entry > div { flex: 1 1 100%; }
+    .st-input { width: 100%; }
+    .st-finish .btn { flex: 1 1 100%; }
     .add-grid { grid-template-columns: 1fr 1fr; }
     .add-grid .btn-primary { grid-column: span 2; }
     .search-input { width: 100%; }
@@ -1024,6 +1069,21 @@ td.mono { color: #3a4470; }
                 <div>
                     <div class="stat-label">Low Stock ≤5</div>
                     <div class="stat-value" id="lowStock">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock take -->
+        <div class="card" id="stockTakeCard">
+            <div class="st-card-row">
+                <div class="st-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M9.5 3h5a1 1 0 0 1 1 1v1.5h2a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1h2V4a1 1 0 0 1 1-1z"/><path d="M9 14l2 2 4-4.5"/></svg></div>
+                <div class="st-card-text">
+                    <h3>Stock take</h3>
+                    <p id="stockTakeBlurb"></p>
+                </div>
+                <div class="st-card-actions">
+                    <button class="btn btn-primary" id="stockTakeStartBtn" onclick="openStockTake()">Start a stock take</button>
+                    <button class="btn btn-ghost" id="stockTakeCancelBtn" style="display:none;" onclick="cancelStockTake()">Cancel it</button>
                 </div>
             </div>
         </div>
@@ -1187,6 +1247,65 @@ td.mono { color: #3a4470; }
 <!-- ═══ CLEAR ALL DATA ═══ -->
 <div id="clearOverlay" class="bc-overlay">
     <div class="bc-box wide" id="clearBody" style="max-width:520px;"></div>
+</div>
+
+<!-- ═══ STOCK TAKE ═══ -->
+<div id="stockTakeOverlay" class="bc-overlay">
+    <div class="bc-box wide" id="stockTakeBody" style="max-width:640px;"></div>
+</div>
+
+<div id="stockTakeScreen">
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="2" height="14" rx=".5"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="3" height="14"/><rect x="15" y="5" width="1" height="14"/><rect x="18" y="5" width="3" height="14" rx=".5"/></svg></div>
+            <div>
+                <div class="brand-name">Stock take</div>
+                <div class="brand-sub" id="stScope"></div>
+            </div>
+        </div>
+        <div class="topbar-user">
+            <button class="logout-btn" onclick="leaveStockTake()">← Back to dashboard</button>
+        </div>
+    </div>
+
+    <div class="app-body">
+        <section class="hero">
+            <div class="hero-kicker">Counting</div>
+            <h1 id="stProgressTitle">0 of 0 counted</h1>
+            <div class="st-bar"><div id="stBarFill"></div></div>
+            <div class="scanbar-row">
+                <input id="stScanBox" placeholder="Scan a part, or type its product code and press Enter" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <button type="button" class="btn btn-glass" onclick="openCamera()"><svg class="ico" viewBox="0 0 24 24"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.5" r="3.4"/></svg>Use camera</button>
+            </div>
+            <div class="scanbar-msg" id="stScanMsg"></div>
+            <label class="st-blind"><input type="checkbox" id="stBlind" onchange="stSetBlind(this.checked)"> Hide what the system says while I count</label>
+        </section>
+
+        <div class="card st-count" id="stCountCard"><div id="stCountBody"></div></div>
+
+        <div class="card">
+            <h3 class="stock-head">
+                <span class="auth-tabs" style="margin:0;">
+                    <button class="auth-tab active" id="stTabTodo" onclick="stSetTab('todo')">Still to count</button>
+                    <button class="auth-tab" id="stTabCounted" onclick="stSetTab('counted')">Counted</button>
+                </span>
+                <span class="stock-tools">
+                    <input id="stSearch" class="search-input" placeholder="Search code, name or location…" oninput="onStSearch(this.value)" autocomplete="off">
+                </span>
+            </h3>
+            <div class="table-scroll stock-scroll">
+                <table>
+                    <thead id="stHead"></thead>
+                    <tbody id="stBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="st-finish">
+            <button class="btn btn-ghost" onclick="cancelStockTake()">Cancel this stock take</button>
+            <button class="btn btn-primary" onclick="reviewStockTake()">Finish stock take…</button>
+        </div>
+    </div>
 </div>
 
 <!-- Filled and printed by printLabels() -->
@@ -1553,6 +1672,9 @@ async function doLogout() {
     currentRole = 'owner';
     stock = []; logs = []; stockLoaded = false;
     filteredItemId = null; filteredItemName = null; filteredLogs = [];
+    stockTake = null; stRestored = false; stSelectedId = null; // the count in progress stays saved in this browser, for next sign-in
+    document.getElementById('stockTakeScreen').style.display = 'none';
+    document.getElementById('stockTakeOverlay').classList.remove('open');
     document.getElementById('appScreen').style.display  = 'none';
     document.getElementById('billingScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
@@ -1767,6 +1889,7 @@ function render() {
     document.getElementById('totalQty').textContent    = (+stock.reduce((t, i) => t + Number(i.qty), 0).toFixed(2)).toLocaleString('en-GB');
     document.getElementById('stockValue').textContent  = '£' + (+stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
+    renderStockTakeCard();
 }
 
 function visibleStock() {
@@ -2115,7 +2238,7 @@ async function openCamera() {
                 // A wide, short box suits a barcode and uses most of the picture.
                 qrbox: (w, h) => ({ width: Math.floor(w * 0.92), height: Math.floor(Math.min(h * 0.6, w * 0.4)) })
             },
-            text => { if (navigator.vibrate) navigator.vibrate(60); closeCamera(); handleScannedCode(text); }, () => {});
+            text => { if (navigator.vibrate) navigator.vibrate(60); closeCamera(); onCameraCode(text); }, () => {});
         msg.textContent = 'Hold the barcode inside the box, about 20 cm away, and keep still for a second.';
     } catch (e) {
         msg.textContent = 'Could not start the camera: ' + (e && e.message ? e.message : e) + ' — check this site is allowed to use the camera.';
@@ -2581,6 +2704,449 @@ async function exportExcel() {
     } catch (e) {
         alert('Could not make the Excel file: ' + (e && e.message ? e.message : e));
     }
+}
+
+// ═══ STOCK TAKE ═══
+// Count the shelves, then put the system right. A stock take is: pick what to count
+// (everything, or one place such as "Aisle A"), scan each part and type how many are there,
+// review the differences, then press Update. Nothing in Stock Control changes until Update,
+// and parts that weren't counted are never touched.
+//
+// The count in progress is kept in this browser (localStorage, one per workspace) so a phone
+// going to sleep, or a page refresh, doesn't lose an hour of counting. Each part remembers what
+// the system said when it was counted. Update applies (counted − that) on top of the quantity at
+// that moment, so a sale made while counting is not wiped out by the count.
+
+const ST_VERSION = 1;
+let stockTake = null;   // the count in progress, or null: { v, startedAt, scopeLabel, scopeIds, counts: { partId: { counted, systemQty, at } }, blind }
+let stRestored = false;
+let stTab = 'todo';
+let stSearch = '';
+let stSelectedId = null; // the part being counted right now
+let stSearchTimer = null;
+let stApplying = false;
+
+const stRound = n => Math.round(n * 100) / 100;
+const stQty = n => (+Number(n).toFixed(2)).toLocaleString('en-GB');
+const stMoney = n => (n < 0 ? '−' : '') + '£' + Math.abs(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const stKey = () => 'pdsc_stocktake_v1_' + ownerId;
+const stIsOpen = () => document.getElementById('stockTakeScreen').style.display === 'block';
+const stFocusScan = () => { if (window.matchMedia('(pointer: fine)').matches) document.getElementById('stScanBox').focus(); };
+const stPin = '<svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+
+function stSave() {
+    try { stockTake ? localStorage.setItem(stKey(), JSON.stringify(stockTake)) : localStorage.removeItem(stKey()); } catch (e) { /* private window — the count just won't survive a refresh */ }
+}
+
+function stRestore() {
+    if (stRestored || !ownerId) return;
+    stRestored = true;
+    try {
+        const t = JSON.parse(localStorage.getItem(stKey()) || 'null');
+        if (t && t.v === ST_VERSION && t.counts && Array.isArray(t.scopeIds)) stockTake = t;
+    } catch (e) { stockTake = null; }
+}
+
+// How far through are we? Parts that have since been deleted don't count.
+function stProgress() {
+    const exists = new Set(stock.map(i => i.id));
+    const scope = new Set(stockTake.scopeIds);
+    const counted = Object.keys(stockTake.counts).filter(id => exists.has(id));
+    const inScope = counted.filter(id => scope.has(id)).length;
+    return { total: stockTake.scopeIds.filter(id => exists.has(id)).length, inScope, outside: counted.length - inScope, counted: counted.length };
+}
+
+// ── the dashboard card
+function renderStockTakeCard() {
+    const btn = document.getElementById('stockTakeStartBtn');
+    if (!btn) return;
+    stRestore();
+    const blurb = document.getElementById('stockTakeBlurb'), cancel = document.getElementById('stockTakeCancelBtn');
+    if (!stockTake) {
+        blurb.textContent = 'Count what is on the shelves and put the system right. Scan each part, type how many you counted, then update. Nothing changes until you press Update.';
+        btn.textContent = 'Start a stock take';
+        cancel.style.display = 'none';
+        return;
+    }
+    const p = stProgress();
+    blurb.textContent = `A stock take is in progress (${stockTake.scopeLabel}): ${p.inScope} of ${p.total} parts counted so far. Started ${new Date(stockTake.startedAt).toLocaleDateString('en-GB')}.`;
+    btn.textContent = 'Continue counting';
+    cancel.style.display = '';
+}
+
+// ── starting one
+function stLocations() {
+    const seen = new Map();
+    stock.forEach(i => { const l = (i.location || '').trim(); if (l && !seen.has(l.toLowerCase())) seen.set(l.toLowerCase(), l); });
+    return [...seen.values()].sort(collator.compare);
+}
+function stIdsFor(place) {
+    const q = place.trim().toLowerCase();
+    return stock.filter(i => !q || (i.location || '').toLowerCase().includes(q)).map(i => i.id);
+}
+
+function openStockTake() {
+    if (!stockLoaded) { alert('Your stock is still loading — try again in a moment.'); return; }
+    stRestore();
+    if (stockTake) { showStockTakeScreen(); return; }
+    document.getElementById('stockTakeBody').innerHTML = `
+        <h3>Start a stock take</h3>
+        <p class="imp-note">Walk the shelves, scan each part and type how many you count. Nothing in Stock Control changes until you press Update at the end, and any part you don’t count is left alone.</p>
+        <label class="imp-check"><input type="radio" name="stMode" value="all" checked onchange="stStartChange()"><span>Everything — ${stock.length} part${stock.length === 1 ? '' : 's'}</span></label>
+        <label class="imp-check"><input type="radio" name="stMode" value="place" onchange="stStartChange()"><span>Just one place (an aisle, bay, rack…)</span></label>
+        <div id="stPlaceRow" style="display:none;margin:0 0 12px 24px;">
+            <input id="stPlace" class="search-input" style="width:100%" list="stPlaces" placeholder="e.g. Aisle A" autocomplete="off" oninput="stStartChange()">
+            <datalist id="stPlaces">${stLocations().map(l => `<option value="${escapeHtml(l)}">`).join('')}</datalist>
+            <p class="imp-note" id="stPlaceCount" style="margin:8px 0 0;"></p>
+        </div>
+        <label class="imp-check"><input type="checkbox" id="stBlindChk"><span>Hide what the system says while I count (a “blind” count — the most accurate way)</span></label>
+        <div class="imp-actions">
+            <button class="btn btn-ghost" onclick="closeStockTakeDialog()">Cancel</button>
+            <button class="btn btn-primary" id="stGoBtn" onclick="startStockTake()">Start counting</button>
+        </div>`;
+    document.getElementById('stockTakeOverlay').classList.add('open');
+    stStartChange();
+}
+
+function stStartChange() {
+    const place = document.querySelector('input[name="stMode"]:checked').value === 'place';
+    document.getElementById('stPlaceRow').style.display = place ? '' : 'none';
+    const text = document.getElementById('stPlace').value.trim();
+    const n = place ? stIdsFor(text).length : stock.length;
+    document.getElementById('stPlaceCount').textContent = !place ? '' : !text ? 'Type part of a location, for example Aisle A.' : `${n} part${n === 1 ? ' has' : 's have'} a location containing “${text}”.`;
+    const go = document.getElementById('stGoBtn');
+    go.disabled = !n || (place && !text);
+    go.textContent = n && !(place && !text) ? `Start counting ${n} part${n === 1 ? '' : 's'}` : 'Start counting';
+}
+
+function startStockTake() {
+    const place = document.querySelector('input[name="stMode"]:checked').value === 'place';
+    const text = document.getElementById('stPlace').value.trim();
+    const ids = place ? stIdsFor(text) : stock.map(i => i.id);
+    if (!ids.length || (place && !text)) return;
+    stockTake = {
+        v: ST_VERSION, startedAt: new Date().toISOString(),
+        scopeLabel: place ? `locations containing “${text}”` : 'whole shop',
+        scopeIds: ids, counts: {}, blind: document.getElementById('stBlindChk').checked
+    };
+    stSave();
+    closeStockTakeDialog();
+    showStockTakeScreen();
+}
+
+function closeStockTakeDialog() {
+    if (stApplying) return;
+    document.getElementById('stockTakeOverlay').classList.remove('open');
+}
+
+// ── the counting screen
+function showStockTakeScreen() {
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('stockTakeScreen').style.display = 'block';
+    stSelectedId = null;
+    stSearch = ''; document.getElementById('stSearch').value = '';
+    stTab = Object.keys(stockTake.counts).length ? 'counted' : 'todo';
+    document.getElementById('stScanMsg').textContent = '';
+    window.scrollTo(0, 0);
+    renderStockTake();
+    stFocusScan();
+}
+
+function leaveStockTake() {
+    document.getElementById('stockTakeScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    stSelectedId = null;
+    render();
+    focusScanBox();
+}
+
+function renderStockTake() {
+    if (!stockTake) return;
+    const p = stProgress();
+    const label = stockTake.scopeLabel;
+    document.getElementById('stScope').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    document.getElementById('stProgressTitle').textContent = `${p.inScope} of ${p.total} counted` + (p.outside ? ` (+${p.outside} outside this list)` : '');
+    document.getElementById('stBarFill').style.width = (p.total ? Math.round(p.inScope / p.total * 100) : 0) + '%';
+    document.getElementById('stBlind').checked = stockTake.blind;
+    renderStCount();
+    renderStLists();
+}
+
+function stSetBlind(on) { stockTake.blind = !!on; stSave(); renderStockTake(); }
+function stMsg(text, isError) {
+    const el = document.getElementById('stScanMsg');
+    el.textContent = text;
+    el.className = 'scanbar-msg' + (isError ? ' error' : '');
+}
+
+function renderStCount() {
+    const body = document.getElementById('stCountBody');
+    const item = stSelectedId ? stock.find(i => i.id === stSelectedId) : null;
+    if (!item) {
+        body.innerHTML = `<div class="st-empty"><svg class="ico solid" viewBox="0 0 24 24"><rect x="3" y="5" width="2" height="14" rx=".5"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="3" height="14"/><rect x="15" y="5" width="1" height="14"/><rect x="18" y="5" width="3" height="14" rx=".5"/></svg>
+            <div><strong>Scan a part, or type its product code above and press Enter.</strong><br>Then type how many you can count.</div></div>`;
+        return;
+    }
+    const prev = stockTake.counts[item.id];
+    body.innerHTML = `
+        <div class="st-part">
+            <div class="st-part-info">
+                <div class="st-part-name">${escapeHtml(item.name)}</div>
+                <div class="st-part-meta">
+                    <span class="st-pill mono">${escapeHtml(item.sku)}</span>
+                    ${item.location ? `<span class="st-pill">${stPin}${escapeHtml(item.location)}</span>` : ''}
+                    ${stockTake.blind ? '' : `<span class="st-pill">System says: <strong>${stQty(item.qty)}</strong></span>`}
+                    ${prev ? `<span class="st-pill warn">Already counted: <strong>${stQty(prev.counted)}</strong> — saving replaces it</span>` : ''}
+                </div>
+            </div>
+            <div class="st-entry">
+                <div>
+                    <label for="stCountInput">How many did you count?</label>
+                    <input id="stCountInput" class="st-input" type="number" inputmode="decimal" step="any" min="0" value="${prev ? prev.counted : ''}" autocomplete="off"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();stSaveCount()}">
+                </div>
+                <button class="btn btn-primary" onclick="stSaveCount()">Save count</button>
+                <button class="btn btn-ghost" onclick="stSelect(null)">Cancel</button>
+            </div>
+        </div>`;
+}
+
+function stSelect(id) {
+    stSelectedId = id;
+    renderStCount();
+    if (id) {
+        const input = document.getElementById('stCountInput');
+        input.focus(); input.select();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else stFocusScan();
+}
+
+function stSaveCount() {
+    const item = stock.find(i => i.id === stSelectedId);
+    const input = document.getElementById('stCountInput');
+    if (!item || !input) return;
+    const raw = input.value.trim();
+    const n = raw === '' ? NaN : Number(raw);
+    if (!isFinite(n) || n < 0) { stMsg('Type how many you counted (0 or more).', true); input.focus(); return; }
+    const counted = stRound(n);
+    stockTake.counts[item.id] = { counted, systemQty: Number(item.qty), at: new Date().toISOString() };
+    stSave();
+    const diff = stRound(counted - Number(item.qty));
+    stMsg(stockTake.blind
+        ? `Saved: ${item.name} — counted ${stQty(counted)}.`
+        : `Saved: ${item.name} — counted ${stQty(counted)}, the system says ${stQty(item.qty)}${diff ? ' (' + (diff > 0 ? '+' : '−') + stQty(Math.abs(diff)) + ')' : ' ✓'}.`);
+    stSelectedId = null;
+    renderStockTake();
+    stFocusScan();
+}
+
+function stRemove(id) {
+    delete stockTake.counts[id];
+    if (stSelectedId === id) stSelectedId = null;
+    stSave();
+    renderStockTake();
+}
+
+function stockTakeScan(raw) {
+    const code = String(raw || '').trim();
+    if (!code) return;
+    const item = findBySku(code);
+    if (!item) { stMsg(`Nothing in stock with the code “${code}”. Add it on the dashboard first, then scan it again.`, true); return; }
+    stMsg('');
+    stSelect(item.id);
+}
+
+document.getElementById('stScanBox').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = e.target.value;
+    e.target.value = '';
+    stockTakeScan(code);
+});
+
+// The camera scanner is shared with the dashboard — a code it reads goes wherever you are.
+function onCameraCode(text) { if (stIsOpen()) stockTakeScan(text); else handleScannedCode(text); }
+
+// ── the two lists: Counted / Still to count
+function stSetTab(tab) { stTab = tab; renderStLists(); }
+function onStSearch(v) { stSearch = v; clearTimeout(stSearchTimer); stSearchTimer = setTimeout(renderStLists, 120); }
+
+function stDiffBadge(diff) {
+    return diff === 0 ? '<span class="st-diff ok">✓ matches</span>'
+        : diff > 0 ? `<span class="st-diff over">+${stQty(diff)} over</span>`
+        : `<span class="st-diff short">−${stQty(-diff)} short</span>`;
+}
+
+function renderStLists() {
+    if (!stockTake) return;
+    const CAP = 100;
+    const byId = new Map(stock.map(i => [i.id, i]));
+    const q = stSearch.trim().toLowerCase();
+    const match = i => !q || [i.name, i.sku, i.location].some(v => String(v || '').toLowerCase().includes(q));
+    const counted = Object.entries(stockTake.counts).map(([id, c]) => ({ item: byId.get(id), c })).filter(r => r.item)
+        .sort((a, b) => b.c.at.localeCompare(a.c.at));
+    // walking order: by location, parts with no location last
+    const todo = stockTake.scopeIds.filter(id => !(id in stockTake.counts)).map(id => byId.get(id)).filter(Boolean)
+        .sort((a, b) => (a.location ? 0 : 1) - (b.location ? 0 : 1) || collator.compare(a.location || '', b.location || '') || collator.compare(a.sku, b.sku));
+
+    document.getElementById('stTabCounted').textContent = `Counted (${counted.length})`;
+    document.getElementById('stTabTodo').textContent = `Still to count (${todo.length})`;
+    document.getElementById('stTabCounted').classList.toggle('active', stTab === 'counted');
+    document.getElementById('stTabTodo').classList.toggle('active', stTab === 'todo');
+
+    const blind = stockTake.blind;
+    const head = document.getElementById('stHead'), body = document.getElementById('stBody');
+    let rows, empty, total;
+    if (stTab === 'counted') {
+        head.innerHTML = '<tr><th>Name</th><th>Product Code</th><th>Location</th><th>System</th><th>Counted</th><th>Difference</th><th></th></tr>';
+        const list = counted.filter(r => match(r.item)); total = list.length;
+        rows = list.slice(0, CAP).map(({ item, c }) => `<tr>
+            <td>${escapeHtml(item.name)}</td><td class="mono">${escapeHtml(item.sku)}</td><td>${escapeHtml(item.location || '')}</td>
+            <td class="mono">${blind ? '—' : stQty(c.systemQty)}</td><td class="mono"><strong>${stQty(c.counted)}</strong></td>
+            <td>${blind ? '<span class="imp-note" style="margin:0">shown at the end</span>' : stDiffBadge(stRound(c.counted - c.systemQty))}</td>
+            <td><div class="action-btns"><button class="btn-icon bar" title="Count it again" onclick="stSelect('${item.id}')">✎</button><button class="btn-icon del" title="Remove this count" onclick="stRemove('${item.id}')">✕</button></div></td></tr>`);
+        empty = counted.length ? `No counted part matches “${escapeHtml(stSearch.trim())}”.` : 'Nothing counted yet — scan a part to start.';
+    } else {
+        head.innerHTML = `<tr><th>Name</th><th>Product Code</th><th>Location</th>${blind ? '' : '<th>System</th>'}<th></th></tr>`;
+        const list = todo.filter(match); total = list.length;
+        rows = list.slice(0, CAP).map(item => `<tr>
+            <td>${escapeHtml(item.name)}</td><td class="mono">${escapeHtml(item.sku)}</td><td>${escapeHtml(item.location || '')}</td>
+            ${blind ? '' : `<td class="mono">${stQty(item.qty)}</td>`}
+            <td><button class="btn btn-ghost btn-sm" onclick="stSelect('${item.id}')">Count</button></td></tr>`);
+        empty = todo.length ? `No part matches “${escapeHtml(stSearch.trim())}”.` : 'Every part in this stock take has been counted. Press Finish when you are ready.';
+    }
+    const cols = stTab === 'counted' ? 7 : (blind ? 4 : 5);
+    body.innerHTML = rows.length
+        ? rows.join('') + (total > CAP ? `<tr><td colspan="${cols}"><div class="empty-state">Showing the first ${CAP} of ${total} — type in the search box to narrow it down.</div></td></tr>` : '')
+        : `<tr><td colspan="${cols}"><div class="empty-state">${empty}</div></td></tr>`;
+}
+
+function cancelStockTake() {
+    if (!stockTake) return;
+    if (!confirm('Cancel this stock take? The counts you have entered will be thrown away. Nothing in Stock Control has been changed.')) return;
+    stockTake = null; stSave(); stSelectedId = null;
+    if (stIsOpen()) leaveStockTake(); else renderStockTakeCard();
+}
+
+// ── reviewing and applying
+// What each counted part would change. Uses today's quantity (after a fresh load) plus the
+// difference found when it was counted.
+function stPlan() {
+    const byId = new Map(stock.map(i => [i.id, i]));
+    const rows = [];
+    for (const [id, c] of Object.entries(stockTake.counts)) {
+        const item = byId.get(id);
+        if (!item) continue;
+        const delta = stRound(c.counted - c.systemQty);
+        const now = Number(item.qty);
+        rows.push({ item, c, delta, now, target: Math.max(0, stRound(now + delta)), moved: stRound(now - c.systemQty) !== 0 });
+    }
+    const diffs = rows.filter(r => r.delta !== 0);
+    return { rows, diffs, matches: rows.length - diffs.length, moved: diffs.filter(r => r.moved).length };
+}
+
+async function reviewStockTake() {
+    if (!stockTake || stApplying) return;
+    if (!Object.keys(stockTake.counts).length) { alert('You have not counted anything yet.'); return; }
+    document.getElementById('stockTakeBody').innerHTML = '<h3>Checking the latest stock…</h3><p class="imp-note">One moment.</p>';
+    document.getElementById('stockTakeOverlay').classList.add('open');
+    await loadData(); // fresh quantities, in case something was sold while counting
+    renderStReview();
+}
+
+function renderStReview() {
+    const plan = stPlan(), p = stProgress();
+    const short = plan.diffs.filter(r => r.delta < 0), over = plan.diffs.filter(r => r.delta > 0);
+    const value = rs => rs.reduce((t, r) => t + Math.abs(r.delta) * Number(r.item.cost), 0);
+    const shortVal = value(short), overVal = value(over);
+    const toChange = plan.diffs.filter(r => r.target !== r.now);
+    const uncounted = p.total - p.inScope;
+    const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+    const biggest = plan.diffs.slice().sort((a, b) => Math.abs(b.delta) * b.item.cost - Math.abs(a.delta) * a.item.cost);
+
+    document.getElementById('stockTakeBody').innerHTML = `
+        <h3>Finish stock take</h3>
+        <div class="imp-summary">
+            Counted: <strong>${plural(plan.rows.length, 'part', 'parts')}</strong><br>
+            Matched the system: ${plan.matches}<br>
+            ${plan.diffs.length
+                ? `Different: <strong>${plan.diffs.length}</strong> (${short.length} short, ${over.length} over)<br>
+                   Value of the differences: ${stMoney(-shortVal)} short, ${stMoney(overVal)} over — net <strong>${stMoney(overVal - shortVal)}</strong>`
+                : 'Everything you counted matched the system.'}
+        </div>
+        ${uncounted > 0 ? `<p class="imp-note"><strong>${plural(uncounted, 'part', 'parts')}</strong> in this stock take ${uncounted === 1 ? 'was' : 'were'} not counted. ${uncounted === 1 ? 'It stays' : 'They stay'} exactly as ${uncounted === 1 ? 'it is' : 'they are'}.</p>` : ''}
+        ${plan.moved ? `<p class="imp-note">${plural(plan.moved, 'part has', 'parts have')} had stock movements since you counted ${plan.moved === 1 ? 'it' : 'them'}. The difference is applied on top of today’s quantity, so those movements are kept.</p>` : ''}
+        ${plan.diffs.length ? `<div class="table-scroll"><table class="imp-preview"><thead><tr><th>Name</th><th>System</th><th>Counted</th><th>Difference</th><th>Value</th></tr></thead><tbody>${
+            biggest.slice(0, 15).map(r => `<tr><td>${escapeHtml(r.item.name)}</td><td>${stQty(r.c.systemQty)}</td><td>${stQty(r.c.counted)}</td><td>${stDiffBadge(r.delta)}</td><td>${stMoney(r.delta * Number(r.item.cost))}</td></tr>`).join('')
+        }</tbody></table></div>${biggest.length > 15 ? `<p class="imp-note">…and ${biggest.length - 15} more, smaller differences.</p>` : ''}` : ''}
+        <div class="imp-actions">
+            <button class="btn btn-ghost" onclick="closeStockTakeDialog()">Keep counting</button>
+            <button class="btn btn-primary" onclick="applyStockTake()">${toChange.length ? 'Update ' + plural(toChange.length, 'part', 'parts') : 'Finish stock take'}</button>
+        </div>`;
+}
+
+async function applyStockTake() {
+    if (stApplying || !stockTake) return;
+    stApplying = true;
+    const body = document.getElementById('stockTakeBody');
+    const changes = stPlan().diffs.filter(r => r.target !== r.now);
+    const applied = [], failures = [];
+    let done = 0;
+    const progress = () => { body.innerHTML = `<h3>Updating stock…</h3><div class="imp-bar"><div style="width:${changes.length ? Math.round(done / changes.length * 100) : 100}%"></div></div><p class="imp-note">${done} of ${changes.length} parts. Please keep this page open.</p>`; };
+    progress();
+
+    for (let i = 0; i < changes.length; i += 8) {
+        await Promise.all(changes.slice(i, i + 8).map(async r => {
+            try {
+                await sendChunk('stock', [{ qty: r.target }], c => sbClient.from('stock').update({ qty: c[0].qty }).eq('id', r.item.id).eq('owner_id', ownerId));
+                applied.push(r);
+                // This count is now used up, so if Update has to be pressed again for other parts, this one isn't applied twice.
+                stockTake.counts[r.item.id].counted = r.target;
+                stockTake.counts[r.item.id].systemQty = r.target;
+            } catch (e) { failures.push({ r, why: e.message }); }
+            done++;
+        }));
+        progress();
+        stSave();
+    }
+
+    // The Movement Log: COUNT IN / COUNT OUT. (If the database only accepts plain IN / OUT, fall back to those.)
+    let logNote = '';
+    if (applied.length) {
+        const now = new Date().toISOString();
+        const rows = plain => applied.map(r => ({
+            id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id, date: now, item: r.item.name,
+            action: (plain ? '' : 'COUNT ') + (r.target > r.now ? 'IN' : 'OUT'), qty: Math.abs(stRound(r.target - r.now))
+        }));
+        try { await insertChunks('stock_logs', rows(false)); }
+        catch (e) {
+            if (/check|constraint|violat/i.test(e.message)) {
+                try { await insertChunks('stock_logs', rows(true)); } catch (e2) { logNote = 'The stock was corrected, but the Movement Log could not be written: ' + e2.message; }
+            } else logNote = 'The stock was corrected, but the Movement Log could not be written: ' + e.message;
+        }
+    }
+
+    stApplying = false;
+    if (failures.length) {
+        body.innerHTML = `<h3>Some parts could not be updated</h3>
+            <div class="imp-summary bad">${applied.length} part${applied.length === 1 ? ' was' : 's were'} updated. ${failures.length} could not be:<br>${
+                failures.slice(0, 8).map(f => `${escapeHtml(f.r.item.name)} — ${escapeHtml(f.why)}`).join('<br>')}</div>
+            <p class="imp-note">Your stock take is still open. Press Finish and Update again to retry the ones that failed — the ones that worked will not be applied twice.</p>
+            ${logNote ? `<p class="imp-note">${escapeHtml(logNote)}</p>` : ''}
+            <div class="imp-actions"><button class="btn btn-primary" onclick="closeStockTakeDialog(); loadData().then(renderStockTake)">Close</button></div>`;
+        return;
+    }
+    stockTake = null; stSave();
+    body.innerHTML = `<h3>Stock take finished</h3>
+        <div class="imp-summary">${applied.length ? `${applied.length} part${applied.length === 1 ? '' : 's'} corrected in Stock Control.<br>Each correction is in the Movement Log as COUNT IN or COUNT OUT.` : 'Nothing needed correcting.'}</div>
+        ${logNote ? `<p class="imp-note">${escapeHtml(logNote)}</p>` : ''}
+        <div class="imp-actions"><button class="btn btn-primary" onclick="finishStockTakeDone()">Done</button></div>`;
+}
+
+async function finishStockTakeDone() {
+    await loadData(); // pick up the corrected quantities before the dashboard is shown
+    document.getElementById('stockTakeOverlay').classList.remove('open');
+    leaveStockTake();
 }
 
 // ═══ BACKUP (JSON) ═══
