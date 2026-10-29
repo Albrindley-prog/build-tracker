@@ -37,7 +37,7 @@ const PRODUCT_ID = 'stock-control';
 // Stamped onto the QR code's link (&v=…). A phone may keep a saved copy of this page for 10 minutes
 // without checking for a newer one; a link it hasn't seen before is always fetched fresh, so scanning
 // a QR code opens the newest version. Change it (MMDD + a letter) each time an update is published.
-const APP_VERSION = '1029d';
+const APP_VERSION = '1029e';
 </script>
 
 <style>
@@ -899,7 +899,7 @@ td.mono { color: #3a4470; }
 .st-finish { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin: 4px 0 8px; }
 
 /* ───── SELLING ───── */
-#sellScreen, #salesScreen { display: none; }
+#sellScreen, #salesScreen, #ordersScreen { display: none; }
 #saleDoc { display: none; }
 .st-ico.sell { background: #e1f6ee; color: var(--accent2); }
 .stats-grid.flat { margin: 0 0 18px; }
@@ -938,6 +938,22 @@ td.mono { color: #3a4470; }
 .action-cards .st-card-text { min-width: 0; flex: 1 1 auto; }
 .action-cards .st-card-actions { margin-top: auto; }
 .st-ico.reorder { background: #fff3d9; color: #b86e00; }
+.st-ico.stillage { background: #e0f2fe; color: #0b6fa4; }
+.action-cards #stillageCard { grid-column: 1 / -1; } /* the fourth tile sits on its own, full width, under the three */
+.action-cards #stillageCard .st-card-row { flex-direction: row; align-items: center; gap: 16px; }
+.action-cards #stillageCard .st-card-actions { margin-top: 0; }
+/* stillages & customer orders */
+.stl-cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 130px; max-width: 300px; padding: 3px 5px; background: transparent; border: 1.5px solid transparent; border-radius: 10px; cursor: pointer; text-align: left; font-family: var(--sans); }
+.stl-cell:hover { border-color: var(--border); background: #fff; }
+.stl-chip { display: inline-block; padding: 2px 9px; border-radius: 20px; background: #e8efff; color: var(--accent); font: 700 12px var(--sans); white-space: nowrap; }
+.stl-chip.loose { background: #f1f3fa; color: var(--muted); }
+.stl-chip.warn { background: #fde9ec; color: #c42a41; }
+.stl-add { font: 600 12.5px var(--sans); color: var(--muted); }
+.stl-cell:hover .stl-add { color: var(--accent); }
+.stl-add-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.stl-from { width: auto; max-width: 100%; padding: 4px 8px; font-size: 12.5px; border-radius: 8px; display: inline-block; }
+.stl-table td, .stl-table th { vertical-align: middle; }
+.co-table td .stl-chip { margin: 0 4px 4px 0; }
 #reorderScreen { display: none; }
 .st-diff.part { background: #e8efff; color: var(--accent); }
 #camOverlay { z-index: 1001; } /* the camera can be opened from inside the purchase-order pop-up, so it must sit above it */
@@ -1008,6 +1024,17 @@ td.mono { color: #3a4470; }
     .po-table td[data-label]::before { content: attr(data-label); display: block; font: 600 11px var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
     .po-table td:nth-child(5) { grid-column: 1 / -1; }
     .po-table td:nth-child(5) input { width: 100% !important; font-size: 16px; padding: 10px; border-color: var(--border); background: #fff; }
+    /* a customer order's lines on a phone: part, then qty and stock, then where it is */
+    .co-table, .co-table tbody, .co-table tr, .co-table td { display: block; width: 100%; }
+    .co-table thead { display: none; }
+    .co-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; padding: 12px 0; border-bottom: 1px solid #edf0f8; }
+    .co-table td { border: 0; padding: 0 !important; font-size: 14px; }
+    .co-table td:nth-child(1) { grid-column: 1 / -1; font-weight: 600; }
+    .co-table td[data-label]::before { content: attr(data-label); display: block; font: 600 11px var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+    .co-table td:nth-child(4) { grid-column: 1 / -1; }
+    .co-edit tr { grid-template-columns: 1fr auto; }
+    .co-edit td:nth-child(2) { grid-column: 1; grid-row: 2; }
+    .co-edit td:nth-child(3) { grid-column: 2; grid-row: 2; }
     .price-in { width: 100%; }
     .qty-ctl input { width: 100%; min-width: 0; }
     .qty-ctl { display: flex; width: 100%; }
@@ -1211,6 +1238,21 @@ td.mono { color: #3a4470; }
                 </div>
             </div>
         </div>
+
+        <!-- Stillages & customer orders -->
+        <div class="card" id="stillageCard">
+            <div class="st-card-row">
+                <div class="st-ico stillage"><svg class="ico" viewBox="0 0 24 24"><path d="M4 4v16M20 4v16M4 9.5h16M4 15h16"/><path d="M7 9.5V6.5h4v3M13 15v-3h4v3"/></svg></div>
+                <div class="st-card-text">
+                    <h3>Stillages &amp; customer orders</h3>
+                    <p id="stillageBlurb"></p>
+                </div>
+                <div class="st-card-actions">
+                    <button class="btn btn-primary" id="ordersBtn" onclick="openOrders()">Customer orders</button>
+                    <button class="btn btn-ghost" id="stillagesBtn" onclick="slOpenManage()">Stillages</button>
+                </div>
+            </div>
+        </div>
         </div>
 
         <!-- Add Item -->
@@ -1296,7 +1338,7 @@ td.mono { color: #3a4470; }
             <h3 class="stock-head">
                 <span>Stock Items<span class="log-filter-label" id="stockCount"></span></span>
                 <span class="stock-tools">
-                    <input id="stockSearch" class="search-input" placeholder="Search code, name or location…" oninput="onStockSearch(this.value)" autocomplete="off">
+                    <input id="stockSearch" class="search-input" placeholder="Search code, name, location or stillage…" oninput="onStockSearch(this.value)" autocomplete="off">
                     <button type="button" class="btn btn-ghost btn-sm" onclick="printLabels()"><svg class="ico" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9M7 17H5.5a1 1 0 0 1-1-1v-5.5a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H17M7 14h10v5.5H7z"/></svg>Print labels</button>
                 </span>
             </h3>
@@ -1307,6 +1349,7 @@ td.mono { color: #3a4470; }
                         <th>Name</th>
                         <th>Product Code</th>
                         <th>Location</th>
+                        <th id="thStillages" style="display:none;">Stillages</th>
                         <th>Qty</th>
                         <th>Unit Cost</th>
                         <th>Sell Price</th>
@@ -1504,6 +1547,55 @@ td.mono { color: #3a4470; }
                 <table>
                     <thead><tr><th>No.</th><th>Date</th><th>Customer</th><th>Paid by</th><th>Net</th><th>VAT</th><th>Total</th><th>Status</th></tr></thead>
                     <tbody id="salesBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ STILLAGES & CUSTOMER ORDERS ═══ -->
+<div id="slOverlay" class="bc-overlay">
+    <div class="bc-box wide" id="slBody" style="max-width:600px;"></div>
+</div>
+<div id="orderOverlay" class="bc-overlay">
+    <div class="bc-box wide" id="orderBody" style="max-width:760px;"></div>
+</div>
+
+<div id="ordersScreen">
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="2" height="14" rx=".5"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="3" height="14"/><rect x="15" y="5" width="1" height="14"/><rect x="18" y="5" width="3" height="14" rx=".5"/></svg></div>
+            <div>
+                <div class="brand-name">Customer orders</div>
+                <div class="brand-sub">PD Stevens &amp; Sons Ltd</div>
+            </div>
+        </div>
+        <div class="topbar-user">
+            <button class="logout-btn" onclick="leaveOrders()">← Back to dashboard</button>
+        </div>
+    </div>
+
+    <div class="app-body">
+        <div class="card">
+            <h3 class="stock-head" style="margin:0;">
+                <span class="auth-tabs" style="margin:0;">
+                    <button class="auth-tab" id="coTab-open" onclick="coSetFilter('open')">Open</button>
+                    <button class="auth-tab" id="coTab-fulfilled" onclick="coSetFilter('fulfilled')">Sold</button>
+                    <button class="auth-tab" id="coTab-cancelled" onclick="coSetFilter('cancelled')">Cancelled</button>
+                    <button class="auth-tab" id="coTab-all" onclick="coSetFilter('all')">All</button>
+                </span>
+                <span class="stock-tools">
+                    <input id="coSearch" class="search-input" placeholder="Search customer, order no. or note…" oninput="coOnSearch(this.value)" autocomplete="off">
+                    <button class="btn btn-primary btn-sm" onclick="coNew()">New order</button>
+                </span>
+            </h3>
+        </div>
+        <div class="card">
+            <p class="imp-note" style="margin:0 0 12px;">An open order sets parts aside for a customer. They stay in your stock, but nobody else can sell them until the order is sold, changed or cancelled.</p>
+            <div class="table-scroll stock-scroll">
+                <table>
+                    <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Parts</th><th>Status</th></tr></thead>
+                    <tbody id="coListBody"></tbody>
                 </table>
             </div>
         </div>
@@ -1901,9 +1993,10 @@ async function doLogout() {
     sale = sellNew(); sellRestored = false; sellSuggest = []; salesRows = []; hasSalesDb = true; hasSellCol = true; // so does a sale in progress
     hasReorderCols = true; rdQtyOverride.clear();
     hasPoDb = true; poOnOrder.clear(); poOpenCount = 0; poRows = null; poDetail = null; poCache.clear();
+    hasStillageDb = true; stillages = []; slByPart = new Map(); ordersOpen = []; reservedBy = new Map(); coDetail = null; coDraft = null; coBusy = false; slBusy = false; slPart = null;
     document.getElementById('poOverlay').classList.remove('open');
-    ['stockTakeScreen', 'sellScreen', 'salesScreen', 'reorderScreen'].forEach(id => { document.getElementById(id).style.display = 'none'; });
-    ['stockTakeOverlay', 'sellOverlay'].forEach(id => document.getElementById(id).classList.remove('open'));
+    ['stockTakeScreen', 'sellScreen', 'salesScreen', 'reorderScreen', 'ordersScreen'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+    ['stockTakeOverlay', 'sellOverlay', 'slOverlay', 'orderOverlay'].forEach(id => document.getElementById(id).classList.remove('open'));
     document.getElementById('appScreen').style.display  = 'none';
     document.getElementById('billingScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
@@ -1946,6 +2039,7 @@ async function loadData() {
     stock = await fetchAllPages('stock', [['sku', true], ['id', true]]);
     sortStock();
     stockLoaded = true;
+    await slLoad(); // where parts sit in the stillages, and what the open customer orders have set aside
     render();
     if (filteredItemId) loadFilteredLogs();
 }
@@ -2071,6 +2165,7 @@ async function adjust(id, change) {
     });
 
     item.qty = newQty;
+    if (change < 0) await slReduceParts([{ stockId: id, total: newQty }]); // the stillage counts come down too
     render();
     if (filteredItemName === item.name) loadFilteredLogs();
 }
@@ -2088,10 +2183,12 @@ async function updateLocation(id, value) {
 }
 
 async function deleteItem(id) {
-    if (!confirm('Delete this item?')) return;
+    const held = reservedBy.get(id);
+    if (!confirm(held ? `Delete this item?\n\n${stQty(held)} of it ${held === 1 ? 'is' : 'are'} set aside for customer orders.` : 'Delete this item?')) return;
     const { error } = await sbClient.from('stock').delete().eq('id', id).eq('owner_id', ownerId);
     if (error) { alert('Could not delete item: ' + error.message); return; }
     stock = stock.filter(i => i.id !== id);
+    slByPart.delete(id); // its stillage counts go with it
     if (filteredItemId === id) clearLogFilter();
     render();
 }
@@ -2131,6 +2228,7 @@ function render() {
     renderSellCard();
     renderReorderCard();
     renderStockTakeCard();
+    renderStillageCard();
 }
 
 function visibleStock() {
@@ -2139,7 +2237,8 @@ function visibleStock() {
     return stock.filter(i =>
         String(i.name || '').toLowerCase().includes(q) ||
         String(i.sku || '').toLowerCase().includes(q) ||
-        String(i.location || '').toLowerCase().includes(q));
+        String(i.location || '').toLowerCase().includes(q) ||
+        slNamesOf(i.id).some(n => n.toLowerCase().includes(q)));
 }
 
 function onStockSearch(value) {
@@ -2152,13 +2251,15 @@ function renderStock() {
     const sb = document.getElementById('stockBody');
     const list = visibleStock();
     const shown = list.slice(0, RENDER_LIMIT);
+    const showSl = slActive(), cols = showSl ? 9 : 8; // the Stillages column only appears once stillages have been set up
+    document.getElementById('thStillages').style.display = showSl ? '' : 'none';
 
     document.getElementById('stockCount').textContent = !stock.length ? ''
         : list.length === stock.length ? ` — ${stock.length} parts`
         : ` — ${list.length} of ${stock.length} parts`;
 
     if (!list.length) {
-        sb.innerHTML = `<tr><td colspan="8"><div class="empty-state">${stock.length
+        sb.innerHTML = `<tr><td colspan="${cols}"><div class="empty-state">${stock.length
             ? 'No items match “' + escapeHtml(stockSearch.trim()) + '”.'
             : 'No stock items yet — add one above, or import your Excel list.'}</div></td></tr>`;
         return;
@@ -2172,7 +2273,8 @@ function renderStock() {
             <td class="mono">${escapeHtml(item.sku)}</td>
             <td><input class="loc-input" value="${escapeHtml(item.location || '')}" placeholder="Add location" autocomplete="off"
                 onclick="event.stopPropagation()" onchange="updateLocation('${item.id}', this.value)" onkeydown="if(event.key==='Enter')this.blur()"></td>
-            <td><span class="qty-badge${isLowStock(item) ? ' low' : ''}">${item.qty}</span></td>
+            ${showSl ? slStockCell(item) : ''}
+            <td><span class="qty-badge${isLowStock(item) ? ' low' : ''}">${item.qty}</span>${reservedBy.get(item.id) ? `<div class="sl-sub" style="white-space:nowrap" title="Set aside for customer orders">${stQty(reservedBy.get(item.id))} reserved</div>` : ''}</td>
             <td class="mono">£${Number(item.cost).toFixed(2)}</td>
             <td><input class="price-cell" type="number" step="0.01" min="0" inputmode="decimal" value="${item.sell_price === null || item.sell_price === undefined ? '' : item.sell_price}" placeholder="Add price" autocomplete="off"
                 onclick="event.stopPropagation()" onchange="updateSellPrice('${item.id}', this.value)" onkeydown="if(event.key==='Enter')this.blur()"></td>
@@ -2187,7 +2289,7 @@ function renderStock() {
             </td>
         </tr>`).join('')
         + (list.length > shown.length
-            ? `<tr><td colspan="8"><div class="empty-state">Showing the first ${shown.length} of ${list.length} — type in the search box to narrow it down.</div></td></tr>`
+            ? `<tr><td colspan="${cols}"><div class="empty-state">Showing the first ${shown.length} of ${list.length} — type in the search box to narrow it down.</div></td></tr>`
             : '');
 }
 
@@ -2583,6 +2685,7 @@ async function submitScanAction() {
     scanItem.qty = newQty;
     const listed = stock.find(i => i.id === scanItem.id);
     if (listed) listed.qty = newQty; // keep the dashboard's copy in step for when we go back to it
+    if (change < 0) await slReduceParts([{ stockId: scanItem.id, total: newQty }]); // the stillage counts come down too
     document.getElementById('scanCurrentQty').textContent = newQty;
     document.getElementById('scanQty').value = 1;
     msg.textContent = `✅ ${scanDirection === 'in' ? 'Stock in' : 'Stock out'} recorded — ${scanItem.name} is now ${newQty}.`;
@@ -2886,6 +2989,7 @@ async function runImport() {
     }
 
     await loadData();
+    await slReconcileAll(); // a spreadsheet can lower a quantity below what the stillages add up to
     body.innerHTML = `<h3>Import finished</h3>
         <div class="imp-summary">${plan.add.length} part${plan.add.length === 1 ? '' : 's'} added<br>${plan.update.length} part${plan.update.length === 1 ? '' : 's'} updated${plan.skipped.length ? '<br>' + plan.skipped.length + ' row' + (plan.skipped.length === 1 ? '' : 's') + ' skipped (listed before importing)' : ''}</div>${plan.fractions && wholeQtyTables.has('stock') ? '<p class="imp-note">Your database only stores whole-number quantities, so part-quantities like 0.5 were rounded.</p>' : ''}
         <div class="imp-actions"><button class="btn btn-primary" onclick="closeImport()">Done</button></div>`;
@@ -3157,6 +3261,7 @@ function poRenderDetail() {
         <p class="imp-note">Raised ${new Date(po.created_at).toLocaleDateString('en-GB')} · ordered for ${sellMoney(Number(po.total))}${po.notes ? ' · ' + escapeHtml(po.notes) : ''}</p>
         ${live ? `<input id="poScan" class="search-input" style="width:100%;margin-bottom:6px" placeholder="Scan a part that has arrived, then type how many…" autocomplete="off" autocapitalize="off" spellcheck="false">
             <div id="poScanMsg" class="imp-note" style="min-height:18px;margin-bottom:8px"></div>` : ''}
+        ${live && slActive() ? `<div class="imp-row"><label>Put what arrives into</label><select id="poDest" class="imp-select"><option value="">Not placed in a stillage</option>${stillages.filter(s => s.active).map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</select></div>` : ''}
         <div class="table-scroll"><table class="imp-preview po-table"><thead><tr><th>Part</th><th>Ordered</th><th>Arrived</th><th>Still due</th>${live ? '<th>Booking in now</th>' : ''}</tr></thead><tbody>${rows}</tbody></table></div>
         <div class="imp-actions" style="flex-wrap:wrap">
             ${live ? `<button class="btn btn-ghost" onclick="poFillAll()">Everything still due has arrived</button>` : ''}
@@ -3196,6 +3301,7 @@ function poScan(raw) {
 async function poReceive() {
     if (poBusy || !poDetail) return;
     const { po, lines } = poDetail;
+    const dest = (document.getElementById('poDest') || {}).value || ''; // the stillage the delivery goes into, if one was chosen
     const entries = [];
     for (const l of lines) {
         const el = document.getElementById('poIn-' + l.id); if (!el) continue;
@@ -3235,6 +3341,12 @@ async function poReceive() {
             failed.forEach(f => problems.push(`${(sellItem(f.id) || {}).name || 'a part'}: it is booked against the order but its stock was not raised (${f.why}) — add it by hand`));
             try { await sellWriteLogs(done.filter(e => add.has(e.line.stock_id) && !bad.has(e.line.stock_id)).map(e => ({ item: e.line.name, qty: e.qty, action: 'GOODS IN', dir: 'IN' }))); }
             catch (e) { problems.push('The Movement Log could not be written: ' + e.message); }
+            if (dest) {
+                const placed = new Map();
+                done.forEach(e => { if (e.line.stock_id && add.has(e.line.stock_id) && !bad.has(e.line.stock_id)) placed.set(e.line.stock_id, sellR2((placed.get(e.line.stock_id) || 0) + e.qty)); });
+                const note = await slAddTo(dest, [...placed].map(([stockId, qty]) => ({ stockId, qty })));
+                if (note) problems.push(note);
+            }
         }
         // 3. where the order stands now
         const { data: now } = await sbClient.from('sc_po_lines').select('*').eq('po_id', po.id);
@@ -3321,18 +3433,18 @@ const rdQtyOverride = new Map(); // part id -> order quantity typed on the list 
 const rdNum = v => (v === null || v === undefined || v === '') ? null : Number(v);
 const rdLevel = i => rdNum(i.reorder_level);
 const rdIsOpen = () => document.getElementById('reorderScreen').style.display === 'block';
-const isLowStock = i => Number(i.qty) <= (rdLevel(i) ?? 5);
+const isLowStock = i => freeQty(i) <= (rdLevel(i) ?? 5); // free stock: what is set aside for customer orders does not count
 const rdOnOrder = i => poOnOrder.get(i.id) || 0;   // units already ordered and not yet arrived (purchase orders)
 // A part needs ordering when what is in stock PLUS what is already on order is at or below its level —
 // so once an order is raised it drops off this list until the delivery is booked in (or the order is cancelled).
-const rdOnList = () => stock.filter(i => rdLevel(i) !== null && Number(i.qty) + rdOnOrder(i) <= rdLevel(i));
+const rdOnList = () => stock.filter(i => rdLevel(i) !== null && freeQty(i) + rdOnOrder(i) <= rdLevel(i));
 const rdSupplier = i => String(i.supplier || '').trim();
 
 // How many to order: the part's usual order quantity, or failing that enough to top up to twice its level.
 function rdSuggest(i) {
     const usual = rdNum(i.reorder_qty);
     if (usual !== null && usual > 0) return usual;
-    return Math.max(1, Math.ceil(rdLevel(i) * 2 - (Number(i.qty) + rdOnOrder(i))));
+    return Math.max(1, Math.ceil(rdLevel(i) * 2 - (freeQty(i) + rdOnOrder(i))));
 }
 const rdQtyFor = i => rdQtyOverride.has(i.id) ? rdQtyOverride.get(i.id) : rdSuggest(i);
 
@@ -3444,7 +3556,7 @@ function renderReorder() {
                 shown++;
                 return `<tr${qty === 0 ? ' style="opacity:.5"' : ''}>
                     <td>${escapeHtml(item.name)}</td><td class="mono">${escapeHtml(item.sku)}</td><td>${escapeHtml(item.location || '')}</td>
-                    <td><span class="qty-badge low">${stQty(item.qty)}</span></td><td class="mono">${rdOnOrder(item) ? stQty(rdOnOrder(item)) : '—'}</td><td class="mono">${stQty(rdLevel(item))}</td>
+                    <td><span class="qty-badge low">${stQty(item.qty)}</span>${reservedBy.get(item.id) ? `<div class="sl-sub">${stQty(freeQty(item))} free</div>` : ''}</td><td class="mono">${rdOnOrder(item) ? stQty(rdOnOrder(item)) : '—'}</td><td class="mono">${stQty(rdLevel(item))}</td>
                     <td><input class="price-cell" type="number" min="0" step="any" value="${qty}" title="0 leaves it off the order" onchange="rdSetOrderQty('${item.id}', this.value)"></td>
                     <td class="mono">${sellMoney(Number(item.cost))}</td><td class="mono">${sellMoney(qty > 0 ? est : 0)}</td></tr>`;
             }).join('');
@@ -3736,6 +3848,8 @@ function sellProblem() {
     if (!t.lines.length) return 'Add a part to the sale first.';
     if (t.lines.some(x => !(x.l.qty > 0))) return 'Every line needs a quantity above 0.';
     if (t.lines.some(x => x.l.price === null || x.l.price === undefined || !(x.l.price >= 0))) return 'Every line needs a price (the cell is red).';
+    const held = t.lines.find(x => { const o = slReservedOthers(x.item.id, sale.orderId); return o > 0 && x.l.qty > sellR2(Number(x.item.qty) - o); });
+    if (held) { const o = slReservedOthers(held.item.id, sale.orderId); return `${held.item.name}: only ${stQty(Math.max(0, sellR2(Number(held.item.qty) - o)))} free — ${stQty(o)} set aside for customer orders.`; }
     if (sale.kind === 'account' && !sale.customer.trim()) return 'Type the customer’s name.';
     return '';
 }
@@ -3769,14 +3883,16 @@ function renderSellBasket() {
     const sugg = sellSuggest.length ? `<div class="sell-sugg"><div class="sell-sugg-h">Matches — click one to add it</div>${sellSuggest.map(i => `
         <button type="button" class="sell-sugg-row" onclick="sellAdd('${i.id}')">
             <span><strong>${escapeHtml(i.name)}</strong><br><span class="sl-sub">${escapeHtml(i.sku)}${i.location ? ' · ' + escapeHtml(i.location) : ''}</span></span>
-            <span class="sl-sub" style="text-align:right">${i.sell_price !== null && i.sell_price !== undefined && i.sell_price !== '' ? sellMoney(Number(i.sell_price)) + '<br>' : ''}${stQty(i.qty)} in stock</span>
+            <span class="sl-sub" style="text-align:right">${i.sell_price !== null && i.sell_price !== undefined && i.sell_price !== '' ? sellMoney(Number(i.sell_price)) + '<br>' : ''}${sellStockNote(i, sale.orderId)}</span>
         </button>`).join('')}</div>` : '';
     const rows = t.lines.map(({ l, item, net }) => {
-        const over = l.qty > Number(item.qty);
+        const others = slReservedOthers(item.id, sale.orderId), freeNow = sellR2(Number(item.qty) - others);
+        const over = l.qty > Number(item.qty), overRes = others > 0 && l.qty > freeNow;
         return `<tr>
             <td><div class="sl-name">${escapeHtml(item.name)}</div>
-                <div class="sl-sub">${escapeHtml(item.sku)}${item.location ? ' · ' + escapeHtml(item.location) : ''} · ${stQty(item.qty)} in stock</div>
-                ${over ? `<div class="sl-warn">Only ${stQty(item.qty)} in stock</div>` : ''}</td>
+                <div class="sl-sub">${escapeHtml(item.sku)}${item.location ? ' · ' + escapeHtml(item.location) : ''} · ${sellStockNote(item, sale.orderId)}</div>
+                ${overRes ? `<div class="sl-warn">Only ${stQty(Math.max(0, freeNow))} free — ${stQty(others)} set aside for customer orders</div>` : over ? `<div class="sl-warn">Only ${stQty(item.qty)} in stock</div>` : ''}
+                ${slTakeFromSelect(item, l)}</td>
             <td><div class="qty-ctl"><button type="button" onclick="sellNudge('${item.id}', -1)">−</button>
                 <input type="number" step="any" min="0" value="${l.qty}" onchange="sellSetQty('${item.id}', this.value)">
                 <button type="button" onclick="sellNudge('${item.id}', 1)">+</button></div></td>
@@ -3813,6 +3929,7 @@ function renderSellSummary() {
     const tab = (cur, val, label, fn, dis) => `<button class="auth-tab${cur === val ? ' active' : ''}" ${dis ? 'disabled' : ''} onclick="${fn}('${val}')">${label}</button>`;
     document.getElementById('sellSummary').innerHTML = `
         <h3>Customer &amp; payment</h3>
+        ${sale.orderId ? `<div class="imp-summary" style="margin-bottom:12px">This sale is for customer order <strong>${coLabel(sale.orderNo)}</strong>. The parts set aside for it count as free, and the order is closed when you complete the sale.</div>` : ''}
         <div class="auth-tabs" style="margin-bottom:14px;">${tab(sale.kind, 'cash', 'Cash sale', 'sellSetKind')}${tab(sale.kind, 'account', 'Account customer', 'sellSetKind')}</div>
         ${sale.kind === 'account' ? `
             <div class="form-field" style="margin-bottom:10px"><label>Customer name</label><input value="${escapeHtml(sale.customer)}" placeholder="e.g. Smith Plumbing" autocomplete="off" oninput="sellText('customer', this.value)"></div>
@@ -3868,6 +3985,16 @@ async function completeSale() {
 
     selling = true; sellRefreshButton();
     try {
+        const forOrder = sale.orderId || null;
+        if (hasStillageDb) {
+            await slLoad(); // other tills' orders, fresh
+            if (forOrder && !ordersOpen.some(o => o.id === forOrder)) {
+                sale.orderId = null; sale.orderNo = null; sellSaveDraft(); renderSell();
+                throw new Error('That customer order is no longer open (it was sold or cancelled), so it is no longer linked to this sale. Check the basket and press Complete sale again.');
+            }
+            const prob = sellProblem();
+            if (prob) { renderSell(); throw new Error(prob); }
+        }
         const now = new Date().toISOString();
         const lineRows = t.lines.map(x => ({ id: crypto.randomUUID(), owner_id: ownerId, stock_id: x.item.id, sku: x.item.sku, name: x.item.name, qty: x.l.qty, unit_price: x.l.price, line_net: x.net }));
 
@@ -3902,10 +4029,23 @@ async function completeSale() {
         const bad = new Set(failed.map(f => f.id));
         const okRows = lineRows.filter(r => fresh.has(r.stock_id) && !bad.has(r.stock_id));
 
+        // 3b. the stillage counts come down with the stock (from the stillage chosen on each line)
+        const slNote = await slReduceParts(changes.filter(c => !bad.has(c.id)).map(c => {
+            const ln = t.lines.find(x => x.item.id === c.id);
+            return { stockId: c.id, total: c.qty, sold: ln ? ln.l.qty : 0, preferred: ln ? slPreferred(ln.l) : '' };
+        }));
+        // 3c. if this sale was a customer order being sold, the order is done
+        let orderNote = '';
+        if (forOrder) {
+            const { data: closed, error: oe } = await sbClient.from('sc_orders').update({ status: 'fulfilled', sale_no: header.sale_no, closed_at: now }).eq('id', forOrder).eq('status', 'open').select('id');
+            if (oe || !closed || !closed.length) orderNote = 'The sale is saved, but the customer order could not be marked as sold — open it in Customer orders and cancel it to release the parts.';
+        }
+
         // 4. Movement Log
         let logNote = '';
         try { await sellWriteLogs(okRows.map(r => ({ item: r.name, qty: r.qty, action: 'SALE', dir: 'OUT' }))); }
         catch (e) { logNote = 'The Movement Log could not be written: ' + e.message; }
+        logNote = [logNote, slNote, orderNote].filter(Boolean).join(' ');
 
         // 5. what the screen shows now
         changes.forEach(c => { if (!bad.has(c.id)) { const it = sellItem(c.id); if (it) it.qty = c.qty; } });
@@ -3915,6 +4055,7 @@ async function completeSale() {
         ];
         const done = { ...header, lines: lineRows };
         sale = sellNew(); sellSaveDraft();
+        if (hasStillageDb) await slLoad(); // the order (if any) is closed, so its parts are no longer set aside
         render();
         renderSell();
         sellShowDone(done, problems, logNote);
@@ -4394,7 +4535,7 @@ document.getElementById('stScanBox').addEventListener('keydown', e => {
 });
 
 // The camera scanner is shared with the dashboard — a code it reads goes wherever you are.
-function onCameraCode(text) { if (poDetailOpen() && document.getElementById('poScan')) poScan(text); else if (sellIsOpen()) sellScanEnter(text); else if (stIsOpen()) stockTakeScan(text); else handleScannedCode(text); }
+function onCameraCode(text) { if (coEditOpen()) coScanEnter(text); else if (poDetailOpen() && document.getElementById('poScan')) poScan(text); else if (sellIsOpen()) sellScanEnter(text); else if (stIsOpen()) stockTakeScan(text); else handleScannedCode(text); }
 
 // ── the two lists: Counted / Still to count
 function stSetTab(tab) { stTab = tab; renderStLists(); }
@@ -4539,6 +4680,9 @@ async function applyStockTake() {
         stSave();
     }
 
+    // Parts counted down: the stillage counts come down with them.
+    const slNote = await slReduceParts(applied.filter(r => r.target < r.now).map(r => ({ stockId: r.item.id, total: r.target })));
+
     // The Movement Log: COUNT IN / COUNT OUT. (If the database only accepts plain IN / OUT, fall back to those.)
     let logNote = '';
     if (applied.length) {
@@ -4556,6 +4700,7 @@ async function applyStockTake() {
     }
 
     stApplying = false;
+    if (slNote) logNote = (logNote ? logNote + ' ' : '') + slNote;
     if (failures.length) {
         body.innerHTML = `<h3>Some parts could not be updated</h3>
             <div class="imp-summary bad">${applied.length} part${applied.length === 1 ? ' was' : 's were'} updated. ${failures.length} could not be:<br>${
@@ -4578,6 +4723,758 @@ async function finishStockTakeDone() {
     leaveStockTake();
 }
 
+// ═══ STILLAGES & CUSTOMER ORDERS ═══
+// Stillages are the warehouses: 4 to 6 (up to 8 allowed), named however the owner likes. A part's
+// quantity in Stock Control stays the total held; the stillage rows say where some or all of it is
+// (anything not placed in a stillage is simply "not placed"). The counts can never add up to more
+// than the total: when stock goes down (a sale, a stock take, a manual stock-out) the stillage
+// counts are brought down with it — from the stillage chosen on a sale, otherwise from the biggest.
+//
+// A customer order sets parts aside. That stock is still ours (the total does not change) but it is
+// not FREE: it cannot be sold to anyone else, and it counts as gone for the Low stock figure and the
+// reorder list. The order ends when it is sold (Sell this order), cancelled, or changed. Orders are
+// never deleted — a cancelled one is kept, marked cancelled. All of it needs migration-stillages-orders.sql.
+
+let hasStillageDb = true;      // false until migration-stillages-orders.sql has been run — see slLoad()
+let stillages = [];            // [{ id, name, sort_order, active }]
+let slByPart = new Map();      // stock id -> [{ id, stillage_id, qty }]: where a part sits
+let ordersOpen = [];           // the open customer orders, each with its .lines
+let reservedBy = new Map();    // stock id -> units set aside on the open orders
+let slBusy = false;
+let slPart = null;             // the part whose stillages are being edited: { id, ids }
+const SL_MAX = 8;
+
+const slActive = () => hasStillageDb && stillages.some(s => s.active);
+const slName = id => (stillages.find(s => s.id === id) || {}).name || 'a hidden stillage';
+const slRowsOf = id => slByPart.get(id) || [];
+const slPlaced = id => sellR2(slRowsOf(id).reduce((t, r) => t + r.qty, 0));
+const slNamesOf = id => slRowsOf(id).filter(r => r.qty > 0).map(r => slName(r.stillage_id));
+const freeQty = i => sellR2(Number(i.qty) - (reservedBy.get(i.id) || 0));   // in stock, less what is set aside
+// What other customers' open orders have set aside for a part (not counting one order, e.g. the one being sold).
+function slReservedOthers(stockId, exceptOrderId) {
+    let t = 0;
+    ordersOpen.forEach(o => { if (o.id !== exceptOrderId) o.lines.forEach(l => { if (l.stock_id === stockId) t += Number(l.qty); }); });
+    return sellR2(t);
+}
+
+// ── loading: the stillages, where every part sits, and the open orders (which decide what is set aside)
+async function slLoad() {
+    const head = await sbClient.from('sc_stillages').select('*').eq('owner_id', ownerId).order('sort_order', { ascending: true }).order('name', { ascending: true });
+    if (head.error) {
+        if (/sc_stillages|schema cache|does not exist|relation/i.test(head.error.message || '')) {
+            hasStillageDb = false; stillages = []; slByPart = new Map(); ordersOpen = []; reservedBy = new Map();
+        } else console.error('Loading stillages failed:', head.error.message);
+        return;
+    }
+    hasStillageDb = true;
+    stillages = head.data || [];
+    try {
+        const rows = await fetchAllPages('sc_stillage_stock', [['id', true]], true);
+        const map = new Map();
+        rows.forEach(r => { if (!map.has(r.stock_id)) map.set(r.stock_id, []); map.get(r.stock_id).push({ id: r.id, stillage_id: r.stillage_id, qty: Number(r.qty) }); });
+        slByPart = map;
+    } catch (e) { console.error('Loading stillage stock failed:', e.message); }
+    await coLoadOpen();
+}
+
+async function coLoadOpen() {
+    const { data: orders, error } = await sbClient.from('sc_orders').select('*').eq('owner_id', ownerId).eq('status', 'open').order('order_no', { ascending: true }).limit(500);
+    if (error) { console.error('Loading orders failed:', error.message); return; }
+    const lines = [];
+    for (let i = 0; i < (orders || []).length; i += 100) {
+        const { data, error: e2 } = await sbClient.from('sc_order_lines').select('*').eq('owner_id', ownerId).in('order_id', orders.slice(i, i + 100).map(o => o.id));
+        if (e2) { console.error('Loading order lines failed:', e2.message); return; } // keep what was set aside before rather than showing nothing
+        lines.push(...(data || []));
+    }
+    ordersOpen = (orders || []).map(o => ({ ...o, lines: lines.filter(l => l.order_id === o.id) }));
+    const map = new Map();
+    lines.forEach(l => { if (l.stock_id) map.set(l.stock_id, sellR2((map.get(l.stock_id) || 0) + Number(l.qty))); });
+    reservedBy = map;
+}
+
+// ── the dashboard card
+function renderStillageCard() {
+    const blurb = document.getElementById('stillageBlurb');
+    if (!blurb) return;
+    const b1 = document.getElementById('ordersBtn'), b2 = document.getElementById('stillagesBtn');
+    if (!hasStillageDb) {
+        blurb.innerHTML = 'One-off set-up needed: run <code>migration-stillages-orders.sql</code> in Supabase (SQL Editor), then refresh this page.';
+        b1.disabled = b2.disabled = true; b2.textContent = 'Stillages';
+        return;
+    }
+    b1.disabled = b2.disabled = false;
+    const act = stillages.filter(s => s.active).length, n = ordersOpen.length;
+    const units = sellR2([...reservedBy.values()].reduce((t, v) => t + v, 0));
+    const s = k => k === 1 ? '' : 's';
+    blurb.textContent = !act ? 'Set up your stillages (your warehouses), then say which stillage each part is in. Customer orders set parts aside so nobody else can sell them.'
+        : `${act} stillage${s(act)}. ` + (n ? `${n} open customer order${s(n)} holding ${stQty(units)} unit${units === 1 ? '' : 's'} for ${n === 1 ? 'a customer' : 'customers'}.` : 'No customer orders are open — an order sets parts aside for a customer.');
+    b2.textContent = act ? 'Stillages' : 'Set up stillages';
+}
+
+// ── the Stillages column in the stock list
+function slStockCell(item) {
+    const rows = slRowsOf(item.id).filter(r => r.qty > 0).sort((a, b) => b.qty - a.qty);
+    const loose = sellR2(Number(item.qty) - slPlaced(item.id));
+    const chips = rows.slice(0, 3).map(r => `<span class="stl-chip">${escapeHtml(slName(r.stillage_id))} · ${stQty(r.qty)}</span>`).join('')
+        + (rows.length > 3 ? `<span class="stl-chip">+${rows.length - 3} more</span>` : '')
+        + (rows.length && loose > 0 ? `<span class="stl-chip loose">${stQty(loose)} not placed</span>` : '')
+        + (loose < 0 ? `<span class="stl-chip warn">${stQty(-loose)} too many — check</span>` : '');
+    return `<td><button type="button" class="stl-cell" title="Say which stillage this part is in" onclick="event.stopPropagation(); slOpenPart('${item.id}')">${chips || '<span class="stl-add">+ Allocate</span>'}</button></td>`;
+}
+
+// Where a part is, as small chips (read-only) — used on orders.
+function slWhereHtml(item) {
+    const rows = slRowsOf(item.id).filter(r => r.qty > 0).sort((a, b) => b.qty - a.qty);
+    return rows.length ? rows.map(r => `<span class="stl-chip">${escapeHtml(slName(r.stillage_id))} · ${stQty(r.qty)}</span>`).join('')
+        : `<span class="sl-sub">${escapeHtml(item.location || 'not placed')}</span>`;
+}
+function slWhereText(item) {
+    const rows = slRowsOf(item.id).filter(r => r.qty > 0).sort((a, b) => b.qty - a.qty);
+    return rows.length ? rows.map(r => `${slName(r.stillage_id)} (${stQty(r.qty)})`).join(', ') : (item.location || '');
+}
+
+function slClose() {
+    if (slBusy) return;
+    document.getElementById('slOverlay').classList.remove('open');
+    slPart = null;
+}
+function slNeedDb() {
+    if (hasStillageDb) return false;
+    alert('Stillages and customer orders need a one-off database step first: run migration-stillages-orders.sql in Supabase (SQL Editor), then refresh this page.');
+    return true;
+}
+
+// ── managing the stillages themselves
+function slStats() {
+    const m = new Map();
+    slByPart.forEach((rows, stockId) => {
+        if (!sellItem(stockId)) return;
+        rows.forEach(r => { if (r.qty > 0) { const x = m.get(r.stillage_id) || { parts: 0, units: 0 }; x.parts++; x.units = sellR2(x.units + r.qty); m.set(r.stillage_id, x); } });
+    });
+    return m;
+}
+
+function slOpenManage() {
+    if (slNeedDb()) return;
+    slPart = null;
+    slRenderManage();
+    document.getElementById('slOverlay').classList.add('open');
+}
+
+function slRenderManage() {
+    const stats = slStats();
+    const rows = stillages.map(s => {
+        const st = stats.get(s.id) || { parts: 0, units: 0 };
+        return `<tr><td><input class="price-cell sup-cell" style="min-width:150px" value="${escapeHtml(s.name)}" maxlength="40" autocomplete="off" onchange="slRename('${s.id}', this.value)"${s.active ? '' : ' disabled'}></td>
+            <td class="mono">${st.parts ? `${st.parts} part${st.parts === 1 ? '' : 's'} · ${stQty(st.units)} in all` : '<span class="sl-sub">empty</span>'}</td>
+            <td style="text-align:right;white-space:nowrap">${s.active ? '' : '<span class="sl-sub">hidden &nbsp;</span>'}<button class="btn btn-ghost btn-sm" onclick="slToggle('${s.id}')">${s.active ? 'Hide' : 'Show again'}</button></td></tr>`;
+    }).join('');
+    document.getElementById('slBody').innerHTML = `
+        <h3>Your stillages</h3>
+        <p class="imp-note">These are your warehouses. Give each a name that means something on the floor, then say which stillage each part is in from the <strong>Stillages</strong> column in the stock list.</p>
+        ${stillages.length ? `<div class="table-scroll"><table class="imp-preview stl-table"><thead><tr><th>Name</th><th>What is in it</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+            <div class="stl-add-row"><input id="slNewName" class="imp-text" style="flex:1;min-width:0;width:auto" maxlength="40" placeholder="Name of another stillage, e.g. Stillage 7" autocomplete="off" onkeydown="if(event.key==='Enter')slAddOne()">
+                <button class="btn btn-ghost" onclick="slAddOne()">Add it</button></div>
+            <p class="imp-note">Up to ${SL_MAX} can be showing at once. Hiding one puts its parts back to “not placed” — nothing is deleted from your stock.</p>`
+        : `<div class="stl-add-row" style="margin-top:14px"><label for="slHowMany" style="font-weight:600;font-size:14px">How many stillages do you have?</label>
+            <select id="slHowMany" class="imp-select" style="width:auto"><option>4</option><option>5</option><option selected>6</option></select>
+            <button class="btn btn-primary" onclick="slSetup()">Create them</button></div>
+            <p class="imp-note">They are called Stillage 1, Stillage 2… and you can rename them straight afterwards.</p>`}
+        <div class="imp-actions"><button class="btn btn-primary" onclick="slClose()">Done</button></div>`;
+}
+
+async function slInsertStillages(names) {
+    const have = new Set(stillages.map(s => s.name.toLowerCase()));
+    const next = stillages.reduce((m, s) => Math.max(m, Number(s.sort_order) || 0), 0) + 1;
+    const rows = names.filter(n => !have.has(n.toLowerCase())).map((name, i) => ({ id: crypto.randomUUID(), owner_id: ownerId, name, sort_order: next + i, active: true }));
+    if (!rows.length) return 0;
+    const { error } = await sbClient.from('sc_stillages').insert(rows);
+    if (error) throw new Error(/duplicate|unique/i.test(error.message) ? 'There is already a stillage with one of those names.' : error.message);
+    return rows.length;
+}
+
+async function slAfterChange() { await slLoad(); render(); if (document.getElementById('slOverlay').classList.contains('open') && !slPart) slRenderManage(); }
+
+async function slSetup() {
+    if (slBusy) return;
+    const n = Math.max(1, Math.min(SL_MAX, Number(document.getElementById('slHowMany').value) || 6));
+    slBusy = true;
+    try { await slInsertStillages(Array.from({ length: n }, (_, i) => 'Stillage ' + (i + 1))); await slAfterChange(); }
+    catch (e) { alert('Could not create the stillages: ' + e.message); }
+    finally { slBusy = false; }
+}
+
+async function slAddOne() {
+    if (slBusy) return;
+    const el = document.getElementById('slNewName'), name = el.value.trim().replace(/\s+/g, ' ');
+    if (!name) { el.focus(); return; }
+    if (stillages.filter(s => s.active).length >= SL_MAX) { alert(`You can have up to ${SL_MAX} stillages showing. Hide one first.`); return; }
+    if (stillages.some(s => s.name.toLowerCase() === name.toLowerCase())) { alert(`There is already a stillage called “${name}”.`); return; }
+    slBusy = true;
+    try { await slInsertStillages([name]); await slAfterChange(); }
+    catch (e) { alert('Could not add it: ' + e.message); }
+    finally { slBusy = false; }
+}
+
+async function slRename(id, value) {
+    const s = stillages.find(x => x.id === id); if (!s || slBusy) return;
+    const name = String(value).trim().replace(/\s+/g, ' ');
+    if (!name || name === s.name) { slRenderManage(); return; }
+    if (stillages.some(x => x.id !== id && x.name.toLowerCase() === name.toLowerCase())) { alert(`There is already a stillage called “${name}”.`); slRenderManage(); return; }
+    slBusy = true;
+    try {
+        const { error } = await sbClient.from('sc_stillages').update({ name }).eq('id', id).eq('owner_id', ownerId);
+        if (error) throw new Error(error.message);
+        await slAfterChange();
+    } catch (e) { alert('Could not rename it: ' + e.message); slRenderManage(); }
+    finally { slBusy = false; }
+}
+
+async function slToggle(id) {
+    const s = stillages.find(x => x.id === id); if (!s || slBusy) return;
+    if (s.active) {
+        const st = slStats().get(id) || { parts: 0 };
+        if (st.parts && !confirm(`Hide ${s.name}?\n\nThe ${st.parts} part${st.parts === 1 ? '' : 's'} in it go back to “not placed in a stillage”. Your stock quantities are not touched.`)) return;
+    } else if (stillages.filter(x => x.active).length >= SL_MAX) { alert(`You can have up to ${SL_MAX} stillages showing. Hide one first.`); return; }
+    slBusy = true;
+    try {
+        if (s.active) {
+            const { error: e1 } = await sbClient.from('sc_stillage_stock').delete().eq('stillage_id', id).eq('owner_id', ownerId);
+            if (e1) throw new Error(e1.message);
+        }
+        const { error } = await sbClient.from('sc_stillages').update({ active: !s.active }).eq('id', id).eq('owner_id', ownerId);
+        if (error) throw new Error(error.message);
+        await slAfterChange();
+    } catch (e) { alert('Could not do that: ' + e.message); await slAfterChange(); }
+    finally { slBusy = false; }
+}
+
+// ── saying which stillage(s) a part is in
+function slOpenPart(id) {
+    if (slNeedDb()) return;
+    const item = sellItem(id); if (!item) return;
+    const have = new Map(slRowsOf(id).map(r => [r.stillage_id, r.qty]));
+    const list = [...stillages.filter(s => s.active), ...stillages.filter(s => !s.active && have.get(s.id) > 0)];
+    if (!list.length) { slOpenManage(); return; }
+    slPart = { id, ids: list.map(s => s.id) };
+    const reserved = reservedBy.get(id) || 0;
+    document.getElementById('slBody').innerHTML = `
+        <h3>Where is ${escapeHtml(item.name)}?</h3>
+        <p class="imp-note">${escapeHtml(item.sku)} · <strong>${stQty(item.qty)}</strong> in stock${reserved ? ` · ${stQty(reserved)} set aside for customer orders` : ''}. Say how many of them are in each stillage; leave the rest empty.</p>
+        <div class="table-scroll"><table class="imp-preview stl-table"><thead><tr><th>Stillage</th><th>How many are in it</th><th></th></tr></thead><tbody>${list.map(s => `
+            <tr><td>${escapeHtml(s.name)}${s.active ? '' : ' <span class="sl-sub">(hidden)</span>'}</td>
+                <td><input id="slIn-${s.id}" class="price-cell" type="number" min="0" step="any" inputmode="decimal" placeholder="0" value="${have.get(s.id) || ''}" style="width:110px" oninput="slPartRecalc()" onkeydown="if(event.key==='Enter')slSavePart()"></td>
+                <td style="text-align:right"><button type="button" class="btn btn-ghost btn-sm" onclick="slFillRest('${s.id}')">All the rest</button></td></tr>`).join('')}</tbody></table></div>
+        <div class="imp-summary" id="slPartSum"></div>
+        <div class="imp-actions"><button class="btn btn-ghost" onclick="slClose()">Cancel</button><button class="btn btn-primary" id="slPartSave" onclick="slSavePart()">Save</button></div>`;
+    document.getElementById('slOverlay').classList.add('open');
+    slPartRecalc();
+}
+
+function slPartInputs() {
+    const out = new Map();
+    for (const sid of slPart.ids) {
+        const raw = document.getElementById('slIn-' + sid).value.trim();
+        const n = raw === '' ? 0 : Number(raw);
+        out.set(sid, isFinite(n) && n >= 0 ? sellR2(n) : NaN);
+    }
+    return out;
+}
+
+function slPartRecalc() {
+    if (!slPart) return;
+    const item = sellItem(slPart.id); if (!item) return;
+    const vals = [...slPartInputs().values()];
+    const sum = sellR2(vals.reduce((t, v) => t + (isNaN(v) ? 0 : v), 0)), total = Number(item.qty);
+    const bad = vals.some(isNaN) || sum > total;
+    const el = document.getElementById('slPartSum');
+    el.className = 'imp-summary' + (bad ? ' bad' : '');
+    el.innerHTML = vals.some(isNaN) ? 'Type a number (or leave it empty) for each stillage.'
+        : sum > total ? `That is ${stQty(sellR2(sum - total))} more than the ${stQty(total)} in stock.`
+        : `In stillages: <strong>${stQty(sum)}</strong> · not placed in a stillage: <strong>${stQty(sellR2(total - sum))}</strong> · in stock: <strong>${stQty(total)}</strong>`;
+    document.getElementById('slPartSave').disabled = bad;
+}
+
+function slFillRest(sid) {
+    const item = sellItem(slPart.id); if (!item) return;
+    let others = 0;
+    slPartInputs().forEach((v, k) => { if (k !== sid && !isNaN(v)) others += v; });
+    document.getElementById('slIn-' + sid).value = Math.max(0, sellR2(Number(item.qty) - others)) || '';
+    slPartRecalc();
+}
+
+async function slSavePart() {
+    if (slBusy || !slPart) return;
+    const item = sellItem(slPart.id); if (!item) return;
+    const want = slPartInputs();
+    const sum = sellR2([...want.values()].reduce((t, v) => t + (isNaN(v) ? 0 : v), 0));
+    if ([...want.values()].some(isNaN) || sum > Number(item.qty)) { slPartRecalc(); return; }
+    slBusy = true;
+    const btn = document.getElementById('slPartSave'); if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+        const have = new Map(slRowsOf(item.id).map(r => [r.stillage_id, r]));
+        const up = [], del = [];
+        want.forEach((q, sid) => {
+            const cur = have.get(sid);
+            if (q > 0 && (!cur || cur.qty !== q)) up.push({ owner_id: ownerId, stillage_id: sid, stock_id: item.id, qty: q });
+            if (q === 0 && cur) del.push(cur.id);
+        });
+        if (up.length) { const { error } = await sbClient.from('sc_stillage_stock').upsert(up, { onConflict: 'stillage_id,stock_id' }); if (error) throw new Error(error.message); }
+        if (del.length) { const { error } = await sbClient.from('sc_stillage_stock').delete().in('id', del).eq('owner_id', ownerId); if (error) throw new Error(error.message); }
+        slBusy = false;
+        await slLoad(); render();
+        document.getElementById('slOverlay').classList.remove('open'); slPart = null;
+    } catch (e) { slBusy = false; alert('Could not save that: ' + e.message); if (btn) { btn.disabled = false; btn.textContent = 'Save'; } }
+    finally { slBusy = false; }
+}
+
+// ── keeping the stillage counts in step when stock goes down.
+// items: [{ stockId, total, sold?, preferred? }] — `total` is the part's quantity now. A sale names the stillage
+// it was taken from (`preferred`) and how many were sold; everything else just trims, biggest stillage first,
+// until the stillages no longer add up to more than the total. Returns a note if something went wrong, else ''.
+async function slReduceParts(items) {
+    items = items.filter(x => slByPart.has(x.stockId));
+    if (!hasStillageDb || !items.length) return '';
+    try {
+        const rows = [];
+        for (let i = 0; i < items.length; i += 100) {
+            const { data, error } = await sbClient.from('sc_stillage_stock').select('*').eq('owner_id', ownerId).in('stock_id', items.slice(i, i + 100).map(x => x.stockId));
+            if (error) throw new Error(error.message);
+            rows.push(...(data || []));
+        }
+        const updates = [], deletes = [];
+        for (const it of items) {
+            const mine = rows.filter(r => r.stock_id === it.stockId).map(r => ({ id: r.id, stillage_id: r.stillage_id, qty: Number(r.qty), was: Number(r.qty) }));
+            if (it.preferred && it.sold > 0) { const p = mine.find(r => r.stillage_id === it.preferred); if (p) p.qty = Math.max(0, sellR2(p.qty - it.sold)); }
+            let excess = sellR2(mine.reduce((t, r) => t + r.qty, 0) - it.total);
+            for (const r of mine.slice().sort((a, b) => b.qty - a.qty)) {
+                if (excess <= 0) break;
+                const take = Math.min(r.qty, excess);
+                r.qty = sellR2(r.qty - take); excess = sellR2(excess - take);
+            }
+            mine.forEach(r => { if (r.qty !== r.was) (r.qty > 0 ? updates : deletes).push(r); });
+        }
+        for (let i = 0; i < updates.length; i += 8) {
+            await Promise.all(updates.slice(i, i + 8).map(async r => {
+                const { error } = await sbClient.from('sc_stillage_stock').update({ qty: r.qty }).eq('id', r.id).eq('owner_id', ownerId);
+                if (error) throw new Error(error.message);
+            }));
+        }
+        for (let i = 0; i < deletes.length; i += 100) {
+            const { error } = await sbClient.from('sc_stillage_stock').delete().in('id', deletes.slice(i, i + 100).map(r => r.id)).eq('owner_id', ownerId);
+            if (error) throw new Error(error.message);
+        }
+        await slLoad();
+        return '';
+    } catch (e) { return `The stillage counts could not be brought down (${e.message}) — check them in the Stillages column.`; }
+}
+
+// After an import (or anything else that sets quantities directly): trim any part whose stillages add up to more than it has.
+async function slReconcileAll() {
+    const items = [];
+    slByPart.forEach((rows, id) => { const it = sellItem(id); if (it && slPlaced(id) > Number(it.qty)) items.push({ stockId: id, total: Number(it.qty) }); });
+    return slReduceParts(items);
+}
+
+// Goods in can go straight into a stillage: adds `qty` of each part to that stillage's count.
+async function slAddTo(stillageId, adds) {
+    if (!stillageId || !adds.length || !hasStillageDb) return '';
+    try {
+        const cur = new Map();
+        for (let i = 0; i < adds.length; i += 100) {
+            const { data, error } = await sbClient.from('sc_stillage_stock').select('*').eq('owner_id', ownerId).eq('stillage_id', stillageId).in('stock_id', adds.slice(i, i + 100).map(a => a.stockId));
+            if (error) throw new Error(error.message);
+            (data || []).forEach(r => cur.set(r.stock_id, Number(r.qty)));
+        }
+        const rows = adds.map(a => ({ owner_id: ownerId, stillage_id: stillageId, stock_id: a.stockId, qty: sellR2((cur.get(a.stockId) || 0) + a.qty) }));
+        const { error } = await sbClient.from('sc_stillage_stock').upsert(rows, { onConflict: 'stillage_id,stock_id' });
+        if (error) throw new Error(error.message);
+        await slLoad();
+        return '';
+    } catch (e) { return `The delivery is booked in, but it could not be added to the stillage (${e.message}) — use the Stillages column to place it.`; }
+}
+
+// ── Take-from choice on a sale line (only when the part is in one or more stillages)
+function slDefaultFrom(stockId) {
+    const rows = slRowsOf(stockId).filter(r => r.qty > 0 && stillages.some(s => s.id === r.stillage_id && s.active)).sort((a, b) => b.qty - a.qty);
+    return rows.length ? rows[0].stillage_id : '';
+}
+const slPreferred = line => line.from === undefined ? slDefaultFrom(line.id) : line.from;
+
+function slTakeFromSelect(item, line) {
+    if (!slActive()) return '';
+    const rows = slRowsOf(item.id).filter(r => r.qty > 0 && stillages.some(s => s.id === r.stillage_id && s.active)).sort((a, b) => b.qty - a.qty);
+    if (!rows.length) return '';
+    const loose = sellR2(Number(item.qty) - slPlaced(item.id)), cur = slPreferred(line);
+    return `<div class="sl-sub" style="margin-top:5px">Take from <select class="imp-select stl-from" onchange="sellSetFrom('${item.id}', this.value)">${
+        rows.map(r => `<option value="${r.stillage_id}"${cur === r.stillage_id ? ' selected' : ''}>${escapeHtml(slName(r.stillage_id))} (${stQty(r.qty)})</option>`).join('')
+        + (loose > 0 ? `<option value=""${cur === '' ? ' selected' : ''}>Not placed in a stillage (${stQty(loose)})</option>` : '')}</select></div>`;
+}
+function sellSetFrom(id, v) { const line = sale.lines.find(l => l.id === id); if (line) { line.from = v; sellSaveDraft(); } }
+
+// ── backup and restore take the stillages with them
+async function slRestore(data) {
+    if (!hasStillageDb || !Array.isArray(data.stillages)) return;
+    const mine = data.stillages.map(s => ({ id: s.id, owner_id: ownerId, name: s.name, sort_order: s.sort_order ?? 0, active: s.active !== false }));
+    if (mine.length) { const { error } = await sbClient.from('sc_stillages').upsert(mine, { onConflict: 'id' }); if (error) throw new Error(error.message); }
+    const parts = new Set(stock.map(i => i.id)), places = new Set(mine.map(s => s.id));
+    const rows = (data.stillage_stock || []).filter(r => parts.has(r.stock_id) && places.has(r.stillage_id)).map(r => ({ id: r.id, owner_id: ownerId, stillage_id: r.stillage_id, stock_id: r.stock_id, qty: r.qty }));
+    for (let i = 0; i < rows.length; i += 500) {
+        const { error } = await sbClient.from('sc_stillage_stock').upsert(rows.slice(i, i + 500), { onConflict: 'id' });
+        if (error) throw new Error(error.message);
+    }
+}
+
+// ═══ CUSTOMER ORDERS ═══
+const coLabel = n => 'ORD-' + String(n).padStart(4, '0');
+const coBadge = s => s === 'fulfilled' ? '<span class="st-diff ok">Sold</span>' : s === 'cancelled' ? '<span class="st-diff short">Cancelled</span>' : '<span class="st-diff over">Open</span>';
+let coFilter = 'open';
+let coSearch = '';
+let coSearchTimer = null;
+let coRows = [];               // the orders in the list
+const coLinesBy = new Map();   // order id -> its lines, for the list's Parts column
+let coDetail = null;           // the order open in the pop-up: { o, lines }
+let coDraft = null;            // the order being made or changed: { id, no, customer, reference, lines: [{ stock_id, sku, name, qty, lineId }], original: [{ lineId, qty }] }
+let coSuggest = [];
+let coBusy = false;
+const coOverlayOpen = () => document.getElementById('orderOverlay').classList.contains('open');
+const coEditOpen = () => coOverlayOpen() && !!coDraft && !!document.getElementById('coScan');
+const coIsOpen = () => document.getElementById('ordersScreen').style.display === 'block';
+function coCloseDialog() { if (coBusy) return; document.getElementById('orderOverlay').classList.remove('open'); coDetail = null; coDraft = null; coSuggest = []; }
+
+function openOrders() {
+    if (slNeedDb()) return;
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('ordersScreen').style.display = 'block';
+    coFilter = 'open'; coSearch = ''; document.getElementById('coSearch').value = '';
+    window.scrollTo(0, 0);
+    coLoadList();
+}
+function leaveOrders() {
+    document.getElementById('ordersScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    render();
+}
+function coSetFilter(f) { coFilter = f; coLoadList(); }
+function coOnSearch(v) { coSearch = v; clearTimeout(coSearchTimer); coSearchTimer = setTimeout(coRenderList, 120); }
+
+let coLoadSeq = 0; // the tab can change while a list is loading; only the latest load is drawn
+async function coLoadList() {
+    const seq = ++coLoadSeq;
+    document.getElementById('coListBody').innerHTML = '<tr><td colspan="5"><div class="empty-state">Loading…</div></td></tr>';
+    ['open', 'fulfilled', 'cancelled', 'all'].forEach(t => document.getElementById('coTab-' + t).classList.toggle('active', coFilter === t));
+    let q = sbClient.from('sc_orders').select('*').eq('owner_id', ownerId).order('order_no', { ascending: false }).limit(300);
+    if (coFilter !== 'all') q = q.eq('status', coFilter);
+    const { data, error } = await q;
+    if (seq !== coLoadSeq) return;
+    if (error) { document.getElementById('coListBody').innerHTML = `<tr><td colspan="5"><div class="empty-state">Could not load the orders: ${escapeHtml(error.message)}</div></td></tr>`; return; }
+    const rows = data || [], by = new Map();
+    for (let i = 0; i < rows.length; i += 100) {
+        const { data: lines } = await sbClient.from('sc_order_lines').select('order_id, qty').eq('owner_id', ownerId).in('order_id', rows.slice(i, i + 100).map(o => o.id));
+        (lines || []).forEach(l => { if (!by.has(l.order_id)) by.set(l.order_id, []); by.get(l.order_id).push(l); });
+    }
+    if (seq !== coLoadSeq) return;
+    coRows = rows;
+    coLinesBy.clear(); by.forEach((v, k) => coLinesBy.set(k, v));
+    coRenderList();
+}
+
+function coRenderList() {
+    const q = coSearch.trim().toLowerCase();
+    const list = coRows.filter(o => !q || [coLabel(o.order_no), o.customer, o.reference].some(v => String(v || '').toLowerCase().includes(q)));
+    document.getElementById('coListBody').innerHTML = list.length ? list.map(o => {
+        const lines = coLinesBy.get(o.id) || [], units = sellR2(lines.reduce((t, l) => t + Number(l.qty), 0));
+        return `<tr style="cursor:pointer" onclick="coOpen('${o.id}')">
+            <td class="mono"><strong>${coLabel(o.order_no)}</strong></td>
+            <td>${new Date(o.created_at).toLocaleDateString('en-GB')}</td>
+            <td>${escapeHtml(o.customer)}${o.reference ? `<div class="sl-sub">${escapeHtml(o.reference)}</div>` : ''}</td>
+            <td class="mono">${lines.length} part${lines.length === 1 ? '' : 's'} · ${stQty(units)}</td>
+            <td>${coBadge(o.status)}${o.sale_no ? `<div class="sl-sub">Sale ${o.sale_no}</div>` : ''}</td></tr>`;
+    }).join('') : `<tr><td colspan="5"><div class="empty-state">${q ?'No order matches “' + escapeHtml(coSearch.trim()) + '”.' : coFilter === 'open' ? 'No customer orders are open. Press “New order” to set some parts aside for a customer.' : 'Nothing here yet.'}</div></td></tr>`;
+}
+
+// ── one order
+async function coFetch(id) {
+    const [h, l] = await Promise.all([
+        sbClient.from('sc_orders').select('*').eq('id', id).limit(1),
+        sbClient.from('sc_order_lines').select('*').eq('order_id', id).order('name', { ascending: true })
+    ]);
+    if (h.error || l.error || !h.data || !h.data[0]) throw new Error((h.error || l.error || {}).message || 'It was not found.');
+    return { o: h.data[0], lines: l.data || [] };
+}
+
+async function coOpen(id) {
+    document.getElementById('orderBody').innerHTML = '<h3>Loading…</h3>';
+    document.getElementById('orderOverlay').classList.add('open');
+    try { coDetail = await coFetch(id); coDraft = null; coRenderDetail(); }
+    catch (e) { document.getElementById('orderBody').innerHTML = `<h3>Could not load that order</h3><p class="imp-note">${escapeHtml(e.message)}</p><div class="imp-actions"><button class="btn btn-ghost" onclick="coCloseDialog()">Close</button></div>`; }
+}
+
+function coRenderDetail() {
+    const { o, lines } = coDetail;
+    const live = o.status === 'open';
+    const rows = lines.map(l => {
+        const it = l.stock_id ? sellItem(l.stock_id) : null;
+        return `<tr><td>${escapeHtml(l.name)}<br><span class="sl-sub">${escapeHtml(l.sku)}</span></td>
+            <td class="mono" data-label="Qty"><strong>${stQty(l.qty)}</strong></td>
+            <td class="mono" data-label="In stock">${it ? stQty(it.qty) : '<span class="sl-sub">part deleted</span>'}</td>
+            <td data-label="Where it is">${it ? slWhereHtml(it) : ''}</td></tr>`;
+    }).join('');
+    const sellReady = hasSalesDb && hasSellCol;
+    document.getElementById('orderBody').innerHTML = `
+        <h3>${coLabel(o.order_no)} — ${escapeHtml(o.customer)} ${coBadge(o.status)}</h3>
+        <p class="imp-note">Raised ${new Date(o.created_at).toLocaleDateString('en-GB')}${o.reference ? ' · ' + escapeHtml(o.reference) : ''}${o.sale_no ? ' · sold on sale ' + o.sale_no : ''}${o.status === 'cancelled' ? ' · the parts were released' : ''}</p>
+        ${live ? '<p class="imp-note">These parts are set aside for this customer. Nobody else can sell them until the order is sold, changed or cancelled.</p>' : ''}
+        <div class="table-scroll"><table class="imp-preview co-table"><thead><tr><th>Part</th><th>Qty</th><th>In stock</th><th>Where it is</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="imp-actions" style="flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="coPrint()">Print pick list</button>
+            ${live ? `<button class="btn btn-danger" onclick="coCancel()">Cancel this order…</button><button class="btn btn-ghost" onclick="coEdit('${o.id}')">Change it</button>` : ''}
+            <button class="btn btn-ghost" onclick="coCloseDialog()">Close</button>
+            ${live ? `<button class="btn btn-primary" onclick="coSell()" ${sellReady ? '' : 'disabled title="Selling needs its one-off database step first"'}>Sell this order</button>` : ''}
+        </div>`;
+}
+
+async function coCancel() {
+    if (!coDetail || coBusy) return;
+    const { o } = coDetail;
+    if (!confirm(`Cancel ${coLabel(o.order_no)} for ${o.customer}?\n\nThe parts are released and can be sold to anyone again. The order is kept, marked cancelled.`)) return;
+    coBusy = true;
+    try {
+        const { data, error } = await sbClient.from('sc_orders').update({ status: 'cancelled', closed_at: new Date().toISOString() }).eq('id', o.id).eq('status', 'open').select('id');
+        if (error) throw new Error(error.message);
+        if (!data || !data.length) alert('That order has changed since you opened it (it may already have been sold or cancelled), so nothing was done.');
+    } catch (e) { alert('Could not cancel it: ' + e.message); }
+    finally { coBusy = false; }
+    await slLoad(); render();
+    if (coIsOpen()) coLoadList();
+    await coOpen(o.id);
+}
+
+// ── printing a pick list: what to fetch, and where from
+function coPrint() {
+    if (!coDetail) return;
+    const { o, lines } = coDetail;
+    const set = saleSettings();
+    const company = String(set.company || '').split('\n');
+    document.getElementById('saleDoc').innerHTML = `
+        <div class="sd-head"><div class="sd-co">${escapeHtml(company[0] || '')}</div></div>
+        <h2>Pick list — ${coLabel(o.order_no)}${o.status === 'cancelled' ? ' (CANCELLED)' : ''}</h2>
+        <div class="sd-meta"><div><strong>Customer</strong> ${escapeHtml(o.customer)}</div><div><strong>Date</strong> ${new Date(o.created_at).toLocaleDateString('en-GB')}</div>${o.reference ? `<div><strong>Reference</strong> ${escapeHtml(o.reference)}</div>` : ''}</div>
+        <table><thead><tr><th>Part</th><th>Code</th><th class="r">Qty</th><th>Where to find it</th></tr></thead><tbody>${
+            lines.map(l => { const it = l.stock_id ? sellItem(l.stock_id) : null; return `<tr><td>${escapeHtml(l.name)}</td><td>${escapeHtml(l.sku)}</td><td class="r">${stQty(l.qty)}</td><td>${escapeHtml(it ? slWhereText(it) : '')}</td></tr>`; }).join('')}</tbody></table>`;
+    document.body.classList.add('printing-sale');
+    window.print();
+}
+
+// ── making or changing an order
+const coFreeFor = stockId => { const it = sellItem(stockId); return it ? sellR2(Number(it.qty) - slReservedOthers(stockId, coDraft && coDraft.id)) : 0; };
+
+function coNew() {
+    if (slNeedDb()) return;
+    coDraft = { id: null, no: null, customer: '', reference: '', lines: [], original: [] };
+    coSuggest = [];
+    coRenderEditor();
+    document.getElementById('orderOverlay').classList.add('open');
+    coFocus();
+}
+
+async function coEdit(id) {
+    try {
+        const d = coDetail && coDetail.o.id === id ? coDetail : await coFetch(id);
+        if (d.o.status !== 'open') { alert('Only an open order can be changed.'); return; }
+        coDraft = { id, no: d.o.order_no, customer: d.o.customer, reference: d.o.reference || '',
+            lines: d.lines.map(l => ({ stock_id: l.stock_id, sku: l.sku, name: l.name, qty: Number(l.qty), lineId: l.id })),
+            original: d.lines.map(l => ({ lineId: l.id, qty: Number(l.qty) })) };
+        coSuggest = [];
+        await slLoad(); // the other orders' figures, fresh
+        coRenderEditor();
+        document.getElementById('orderOverlay').classList.add('open');
+        coFocus();
+    } catch (e) { alert('Could not open that order: ' + e.message); }
+}
+const coFocus = () => { if (window.matchMedia('(pointer: fine)').matches) { const el = document.getElementById(coDraft && coDraft.customer ? 'coScan' : 'coCust'); if (el) el.focus(); } };
+
+function coRenderEditor() {
+    const d = coDraft;
+    document.getElementById('orderBody').innerHTML = `
+        <h3>${d.id ? 'Change ' + coLabel(d.no) : 'New customer order'}</h3>
+        <p class="imp-note">The parts you add are set aside for this customer. Nobody else can sell them until the order is sold, changed or cancelled.</p>
+        <div class="imp-row"><label>Customer</label><input id="coCust" class="imp-text" value="${escapeHtml(d.customer)}" placeholder="e.g. Smith Plumbing" autocomplete="off" oninput="coDraft.customer=this.value; coRefresh()"></div>
+        <div class="imp-row"><label>Their order number / note</label><input id="coRef" class="imp-text" value="${escapeHtml(d.reference)}" placeholder="optional" autocomplete="off" oninput="coDraft.reference=this.value"></div>
+        <input id="coScan" class="search-input" style="width:100%;margin:6px 0 4px" placeholder="Scan a part, or type a name or code and press Enter" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div id="coMsg" class="imp-note" style="min-height:18px;margin:0 0 8px"></div>
+        <div id="coSugg"></div>
+        <div id="coLines"></div>
+        <div class="sl-warn" id="coProblem" style="margin-top:8px"></div>
+        <div class="imp-actions"><button class="btn btn-ghost" onclick="coCloseDialog()">Cancel</button><button class="btn btn-primary" id="coSaveBtn" onclick="coSave()"></button></div>`;
+    const sc = document.getElementById('coScan');
+    sc.addEventListener('keydown', e => { if (e.key !== 'Enter') return; e.preventDefault(); coScanEnter(e.target.value); });
+    sc.addEventListener('input', e => { coSuggest = findBySku(e.target.value) ? [] : sellSearch(e.target.value); coRenderSugg(); });
+    coRenderSugg(); coRenderLines();
+}
+
+function coMsg(text, isError) { const el = document.getElementById('coMsg'); if (!el) return; el.textContent = text; el.style.color = isError ? 'var(--danger)' : ''; }
+
+function coScanEnter(raw) {
+    const code = String(raw || '').trim();
+    if (!code || !coDraft) return;
+    const exact = findBySku(code);
+    if (exact) { coAdd(exact.id); return; }
+    const hits = sellSearch(code);
+    if (hits.length === 1) { coAdd(hits[0].id); return; }
+    coMsg(hits.length ? 'Several parts match — pick one from the list below.' : `Nothing in stock matching “${code}”.`, true);
+}
+
+function coRenderSugg() {
+    const el = document.getElementById('coSugg'); if (!el) return;
+    el.innerHTML = coSuggest.length ? `<div class="sell-sugg"><div class="sell-sugg-h">Matches — click one to add it</div>${coSuggest.map(i => `
+        <button type="button" class="sell-sugg-row" onclick="coAdd('${i.id}')">
+            <span><strong>${escapeHtml(i.name)}</strong><br><span class="sl-sub">${escapeHtml(i.sku)}${i.location ? ' · ' + escapeHtml(i.location) : ''}</span></span>
+            <span class="sl-sub" style="text-align:right">${stQty(coFreeFor(i.id))} free<br>${stQty(i.qty)} in stock</span>
+        </button>`).join('')}</div>` : '';
+}
+
+function coAdd(id) {
+    const item = sellItem(id); if (!item || !coDraft) return;
+    const line = coDraft.lines.find(l => l.stock_id === id);
+    if (line) line.qty = sellR2(line.qty + 1);
+    else coDraft.lines.push({ stock_id: id, sku: item.sku, name: item.name, qty: 1, lineId: null });
+    const box = document.getElementById('coScan'); box.value = ''; coSuggest = [];
+    coMsg(`Added: ${item.name}${line ? ' (now ' + stQty(line.qty) + ')' : ''}`, false);
+    coRenderSugg(); coRenderLines();
+    if (window.matchMedia('(pointer: fine)').matches) box.focus();
+}
+
+function coSetQty(id, v) {
+    const line = coDraft.lines.find(l => l.stock_id === id); if (!line) return;
+    const n = Number(v);
+    line.qty = isFinite(n) && n >= 0 ? sellR2(n) : line.qty;
+    coRenderLines();
+}
+function coNudge(id, d) { const line = coDraft.lines.find(l => l.stock_id === id); if (line) coSetQty(id, Math.max(0, line.qty + d)); }
+function coRemove(id) { coDraft.lines = coDraft.lines.filter(l => l.stock_id !== id); coRenderLines(); }
+
+function coProblem() {
+    const d = coDraft;
+    if (!d.customer.trim()) return 'Type the customer’s name.';
+    if (!d.lines.length) return 'Add at least one part.';
+    if (d.lines.some(l => !(l.qty > 0))) return 'Every line needs a quantity above 0.';
+    for (const l of d.lines) {
+        if (!sellItem(l.stock_id)) return `${l.name} is no longer in Stock Control — remove it.`;
+        const free = coFreeFor(l.stock_id);
+        if (l.qty > free) return `${l.name}: only ${stQty(Math.max(0, free))} free to set aside.`;
+    }
+    return '';
+}
+
+function coRenderLines() {
+    const el = document.getElementById('coLines'); if (!el) return;
+    el.innerHTML = coDraft.lines.length ? `<div class="table-scroll"><table class="sell-table co-edit"><thead><tr><th>Part</th><th>Qty to set aside</th><th></th></tr></thead><tbody>${coDraft.lines.map(l => {
+        const it = sellItem(l.stock_id), free = coFreeFor(l.stock_id), others = it ? slReservedOthers(l.stock_id, coDraft.id) : 0;
+        return `<tr><td><div class="sl-name">${escapeHtml(l.name)}</div>
+                <div class="sl-sub">${escapeHtml(l.sku)} · ${it ? stQty(it.qty) + ' in stock' + (others ? ' · ' + stQty(others) + ' set aside for other orders' : '') : 'part deleted'}</div>
+                ${l.qty > free ? `<div class="sl-warn">Only ${stQty(Math.max(0, free))} free</div>` : ''}</td>
+            <td><div class="qty-ctl"><button type="button" onclick="coNudge('${l.stock_id}', -1)">−</button>
+                <input type="number" step="any" min="0" value="${l.qty}" onchange="coSetQty('${l.stock_id}', this.value)">
+                <button type="button" onclick="coNudge('${l.stock_id}', 1)">+</button></div></td>
+            <td><button class="btn-icon del" title="Remove" onclick="coRemove('${l.stock_id}')">✕</button></td></tr>`;
+    }).join('')}</tbody></table></div>` : '<div class="st-empty"><div><strong>Scan a part, or type a name or code above.</strong><br>Each one you add is set aside for this customer.</div></div>';
+    coRefresh();
+}
+
+function coRefresh() {
+    const btn = document.getElementById('coSaveBtn'); if (!btn || !coDraft) return;
+    const prob = coProblem(), n = coDraft.lines.length;
+    btn.disabled = !!prob || coBusy;
+    btn.textContent = coBusy ? 'Saving…' : coDraft.id ? 'Save changes' : `Set ${n ? n + ' part' + (n === 1 ? '' : 's') : 'parts'} aside`;
+    const p = document.getElementById('coProblem'); if (p) p.textContent = n || coDraft.customer ? prob : '';
+}
+
+// The next free order number (retried if two people raise one at the same moment).
+async function coInsertHeader(fields) {
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const { data: last, error: e1 } = await sbClient.from('sc_orders').select('order_no').eq('owner_id', ownerId).order('order_no', { ascending: false }).limit(1);
+        if (e1) throw new Error(e1.message);
+        const row = { id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id, order_no: (last && last[0] ? Number(last[0].order_no) : 0) + 1, status: 'open', created_at: new Date().toISOString(), ...fields };
+        const { error } = await sbClient.from('sc_orders').insert(row);
+        if (!error) return row;
+        if (error.code !== '23505' && !/duplicate|unique/i.test(error.message)) throw new Error(error.message);
+    }
+    throw new Error('Could not get a free order number — please try again.');
+}
+
+async function coSave() {
+    if (coBusy || !coDraft || coProblem()) return;
+    coBusy = true; coRefresh();
+    const d = coDraft;
+    try {
+        // Fresh figures: what is really in stock, and what every other open order has set aside.
+        await slLoad();
+        const fresh = await sellFreshQty(d.lines.map(l => l.stock_id));
+        const short = d.lines.filter(l => !fresh.has(l.stock_id) || l.qty > sellR2(fresh.get(l.stock_id) - slReservedOthers(l.stock_id, d.id)));
+        if (short.length) {
+            alert('Not enough free stock to set that aside:\n\n' + short.map(l => `${l.name}: ${stQty(Math.max(0, fresh.has(l.stock_id) ? sellR2(fresh.get(l.stock_id) - slReservedOthers(l.stock_id, d.id)) : 0))} free, you asked for ${stQty(l.qty)}`).join('\n') + '\n\nSomeone may have sold or reserved some a moment ago. Lower the quantities and try again.');
+            return;
+        }
+        let orderId = d.id;
+        if (!d.id) {
+            const header = await coInsertHeader({ customer: d.customer.trim(), reference: d.reference.trim() || null });
+            orderId = header.id;
+            const { error } = await sbClient.from('sc_order_lines').insert(d.lines.map(l => ({ id: crypto.randomUUID(), order_id: header.id, owner_id: ownerId, stock_id: l.stock_id, sku: l.sku, name: l.name, qty: l.qty })));
+            if (error) {
+                await sbClient.from('sc_orders').update({ status: 'cancelled', closed_at: new Date().toISOString(), reference: 'NOT SAVED — could not save the parts' }).eq('id', header.id);
+                throw new Error(`The parts could not be saved (${error.message}). Nothing was set aside.`);
+            }
+        } else {
+            const { data: ok, error } = await sbClient.from('sc_orders').update({ customer: d.customer.trim(), reference: d.reference.trim() || null }).eq('id', d.id).eq('status', 'open').select('id');
+            if (error) throw new Error(error.message);
+            if (!ok || !ok.length) throw new Error('That order is no longer open (it was sold or cancelled), so it was not changed.');
+            const keep = new Map(d.lines.filter(l => l.lineId).map(l => [l.lineId, l]));
+            const gone = d.original.filter(o => !keep.has(o.lineId)).map(o => o.lineId);
+            const changed = d.original.filter(o => keep.has(o.lineId) && keep.get(o.lineId).qty !== o.qty);
+            const smaller = changed.filter(o => keep.get(o.lineId).qty < o.qty), bigger = changed.filter(o => keep.get(o.lineId).qty > o.qty);
+            const fresh2 = d.lines.filter(l => !l.lineId);
+            // taking things off first, adding after, so the set-aside figure never goes above what was checked
+            if (gone.length) { const { error: e } = await sbClient.from('sc_order_lines').delete().in('id', gone).eq('owner_id', ownerId); if (e) throw new Error(e.message); }
+            for (const o of [...smaller, ...bigger]) { const { error: e } = await sbClient.from('sc_order_lines').update({ qty: keep.get(o.lineId).qty }).eq('id', o.lineId).eq('owner_id', ownerId); if (e) throw new Error(e.message); }
+            if (fresh2.length) { const { error: e } = await sbClient.from('sc_order_lines').insert(fresh2.map(l => ({ id: crypto.randomUUID(), order_id: d.id, owner_id: ownerId, stock_id: l.stock_id, sku: l.sku, name: l.name, qty: l.qty }))); if (e) throw new Error(e.message); }
+        }
+        coBusy = false;
+        await slLoad(); render();
+        if (coIsOpen()) coLoadList();
+        coDraft = null;
+        await coOpen(orderId);
+    } catch (e) { alert('The order was not saved: ' + e.message); }
+    finally { coBusy = false; if (coDraft) coRefresh(); }
+}
+
+// ── selling an order: the basket is filled from the order; completing the sale closes the order
+async function coSell() {
+    if (!coDetail || coBusy) return;
+    if (!hasSalesDb || !hasSellCol) { alert('Selling needs a one-off database step first: run migration-sales.sql in Supabase (SQL Editor), then refresh this page.'); return; }
+    const { o, lines } = coDetail;
+    if (sale.lines.length && !confirm(`A sale is already in progress (${sale.lines.length} line${sale.lines.length === 1 ? '' : 's'} in the basket).\n\nReplace it with ${coLabel(o.order_no)}?`)) return;
+    const basket = [], missing = [];
+    lines.forEach(l => {
+        const it = l.stock_id ? sellItem(l.stock_id) : null;
+        if (!it) missing.push(l.name);
+        else basket.push({ id: it.id, qty: Number(l.qty), price: it.sell_price !== null && it.sell_price !== undefined && it.sell_price !== '' ? Number(it.sell_price) : null });
+    });
+    if (!basket.length) { alert('None of this order’s parts are in Stock Control any more, so there is nothing to sell.'); return; }
+    if (missing.length && !confirm(`${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} no longer in Stock Control and will be left off.\n\nCarry on with the rest?`)) return;
+    sale = { ...sellNew(), kind: 'account', payment: 'account', customer: o.customer, reference: o.reference || coLabel(o.order_no), lines: basket, orderId: o.id, orderNo: o.order_no };
+    sellSaveDraft();
+    coCloseDialog();
+    document.getElementById('ordersScreen').style.display = 'none';
+    openSell();
+}
+
+// What the sell screen says about a part's stock, including anything set aside for other customers.
+function sellStockNote(item, exceptOrderId) {
+    const o = slReservedOthers(item.id, exceptOrderId);
+    return stQty(item.qty) + ' in stock' + (o ? ' · ' + stQty(o) + ' set aside for orders' : '');
+}
+
 // ═══ BACKUP (JSON) ═══
 
 async function exportBackup() {
@@ -4586,7 +5483,12 @@ async function exportBackup() {
     let allLogs;
     try { allLogs = await fetchAllPages('stock_logs', [['date', false], ['id', true]], true); }
     catch (e) { alert('Could not read the movement log for the backup: ' + e.message); return false; }
-    const blob = new Blob([JSON.stringify({ stock, logs: allLogs }, null, 2)], { type: 'application/json' });
+    let stillageData = {};
+    if (hasStillageDb) {
+        try { stillageData = { stillages, stillage_stock: await fetchAllPages('sc_stillage_stock', [['id', true]], true) }; }
+        catch (e) { alert('Could not read the stillage counts for the backup: ' + e.message); return false; }
+    }
+    const blob = new Blob([JSON.stringify({ stock, logs: allLogs, ...stillageData }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'stock-backup.json';
@@ -4652,7 +5554,7 @@ async function runClearAll() {
         return;
     }
 
-    stock = []; logs = [];
+    stock = []; logs = []; slByPart = new Map(); // the stillage counts went with the parts
     clearLogFilter();
     render();
     body.innerHTML = `<h3>All data cleared</h3><p style="font-size:13px;margin:10px 0 16px;">Stock Control is empty. Add parts one at a time, or use <strong>Import from Excel</strong>.</p>
@@ -4673,6 +5575,7 @@ function importBackup(event) {
         stock = data.stock || [];
         logs  = data.logs  || [];
         try { await saveData(); } catch (err) { alert('Restore stopped part-way: ' + err.message); }
+        try { await slRestore(data); } catch (err) { alert('The parts were restored, but the stillages could not be: ' + err.message); }
         logs = [];
         await loadData();
     };
