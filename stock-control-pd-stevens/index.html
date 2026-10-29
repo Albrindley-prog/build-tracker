@@ -39,7 +39,7 @@ const PRODUCT_ID = 'stock-control';
 // Stamped onto the QR code's link (&v=…). A phone may keep a saved copy of this page for 10 minutes
 // without checking for a newer one; a link it hasn't seen before is always fetched fresh, so scanning
 // a QR code opens the newest version. Change it (MMDD + a letter) each time an update is published.
-const APP_VERSION = '1029b';
+const APP_VERSION = '1029c';
 </script>
 
 <style>
@@ -941,6 +941,8 @@ td.mono { color: #3a4470; }
 .action-cards .st-card-actions { margin-top: auto; }
 .st-ico.reorder { background: #fff3d9; color: #b86e00; }
 #reorderScreen { display: none; }
+.st-diff.part { background: #e8efff; color: var(--accent); }
+#camOverlay { z-index: 1001; } /* the camera can be opened from inside the purchase-order pop-up, so it must sit above it */
 .rd-group td { background: #f5f7fd; font-weight: 800; font-size: 13.5px; border-bottom: 1px solid var(--border); }
 .rd-group:hover { background: #f5f7fd !important; }
 .rd-total td { font-weight: 800; border-top: 2px solid var(--text); border-bottom: 0; }
@@ -999,6 +1001,15 @@ td.mono { color: #3a4470; }
     .sell-table td:nth-child(5) { grid-column: 3; grid-row: 2; }
     .sell-table td:nth-child(4) { grid-column: 1 / -1; grid-row: 3; text-align: right; font-weight: 700; }
     .sell-table td:nth-child(4)::before { content: 'Line total  '; font-weight: 500; color: var(--muted); font-family: var(--sans); }
+    /* an order's lines on a phone: part, then ordered / arrived / still due, then the box to type what arrived */
+    .po-table, .po-table tbody, .po-table tr, .po-table td { display: block; width: 100%; }
+    .po-table thead { display: none; }
+    .po-table tr { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; padding: 12px 0; border-bottom: 1px solid #edf0f8; }
+    .po-table td { border: 0; padding: 0 !important; font-size: 14px; }
+    .po-table td:nth-child(1) { grid-column: 1 / -1; font-weight: 600; }
+    .po-table td[data-label]::before { content: attr(data-label); display: block; font: 600 11px var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+    .po-table td:nth-child(5) { grid-column: 1 / -1; }
+    .po-table td:nth-child(5) input { width: 100% !important; font-size: 16px; padding: 10px; border-color: var(--border); background: #fff; }
     .price-in { width: 100%; }
     .qty-ctl input { width: 100%; min-width: 0; }
     .qty-ctl { display: flex; width: 100%; }
@@ -1374,6 +1385,10 @@ td.mono { color: #3a4470; }
 </div>
 
 <!-- ═══ REORDER ═══ -->
+<div id="poOverlay" class="bc-overlay">
+    <div class="bc-box wide" id="poBody" style="max-width:760px;"></div>
+</div>
+
 <div id="reorderScreen">
     <div class="topbar">
         <div class="topbar-brand">
@@ -1393,13 +1408,15 @@ td.mono { color: #3a4470; }
             <h3 class="stock-head" style="margin:0;">
                 <span class="auth-tabs" style="margin:0;">
                     <button class="auth-tab" id="rdTab-order" onclick="rdSetTab('order')">To order</button>
+                    <button class="auth-tab" id="rdTab-orders" onclick="rdSetTab('orders')">Purchase orders</button>
                     <button class="auth-tab" id="rdTab-levels" onclick="rdSetTab('levels')">Set levels</button>
                 </span>
                 <span class="stock-tools">
                     <input id="rdSearch" class="search-input" placeholder="Search part, code or supplier…" oninput="rdOnSearch(this.value)" autocomplete="off">
                     <span id="rdOrderTools" class="stock-tools">
                         <button class="btn btn-ghost btn-sm" onclick="printOrderList()">Print</button>
-                        <button class="btn btn-primary btn-sm" onclick="downloadOrderList()">Download order list (Excel)</button>
+                        <button class="btn btn-ghost btn-sm" onclick="downloadOrderList()">Download (Excel)</button>
+                        <button class="btn btn-primary btn-sm" onclick="poCreateFromList()">Create purchase orders</button>
                     </span>
                 </span>
             </h3>
@@ -1926,6 +1943,8 @@ async function doLogout() {
     stockTake = null; stRestored = false; stSelectedId = null; // the count in progress stays saved in this browser, for next sign-in
     sale = sellNew(); sellRestored = false; sellSuggest = []; salesRows = []; hasSalesDb = true; hasSellCol = true; // so does a sale in progress
     hasReorderCols = true; rdQtyOverride.clear();
+    hasPoDb = true; poOnOrder.clear(); poOpenCount = 0; poRows = null; poDetail = null; poCache.clear();
+    document.getElementById('poOverlay').classList.remove('open');
     ['stockTakeScreen', 'sellScreen', 'salesScreen', 'reorderScreen'].forEach(id => { document.getElementById(id).style.display = 'none'; });
     ['stockTakeOverlay', 'sellOverlay'].forEach(id => document.getElementById(id).classList.remove('open'));
     document.getElementById('appScreen').style.display  = 'none';
@@ -1983,6 +2002,7 @@ async function checkLocationColumn() {
     document.getElementById('dbWarn').style.display = hasLocationCol ? 'none' : 'block';
     checkSalesDb(); // is the selling set-up (migration-sales.sql) in place too?
     checkReorderCols(); // and the reorder levels (migration-reorder.sql)?
+    checkPoDb(); // and purchase orders (migration-purchase-orders.sql)?
 }
 
 // A quantity like 0.5 (half a roll) is sent as it is. If that table's qty column only
@@ -2998,6 +3018,333 @@ async function exportExcel() {
     }
 }
 
+// ═══ PURCHASE ORDERS & GOODS IN ═══
+// The To order list on the Reorder screen can be turned into purchase orders, one per supplier
+// (migration-purchase-orders.sql). An order records what was ordered, and what has arrived so far.
+// While something is on order it counts towards a part's stock when deciding whether to reorder, so
+// the same part isn't ordered twice. When a delivery arrives you book it in against the order:
+// the stock goes up, the Movement Log says GOODS IN, and the order moves to part-delivered or
+// complete. An order that is no longer wanted is cancelled, never deleted.
+
+let hasPoDb = true;               // false until migration-purchase-orders.sql has been run — see checkPoDb()
+const poOnOrder = new Map();      // stock id -> units ordered but not yet arrived, across the open orders
+let poOpenCount = 0;              // how many orders are still open (waiting or part-delivered)
+let poFilter = 'open';
+let poRows = null;                // the orders in the list (null while loading)
+const poLinesBy = new Map();      // order id -> its lines, for the list's progress column
+let poBusy = false;
+let poDetail = null;              // the order open in the pop-up: { po, lines }
+const poCache = new Map();        // order id -> { po, lines }, for printing
+
+const poLabel = n => 'PO-' + String(n).padStart(4, '0');
+const poDetailOpen = () => document.getElementById('poOverlay').classList.contains('open');
+function closePoDialog() { if (poBusy) return; document.getElementById('poOverlay').classList.remove('open'); poDetail = null; }
+const poBadge = s => s === 'received' ? '<span class="st-diff ok">Complete</span>' : s === 'cancelled' ? '<span class="st-diff short">Cancelled</span>' : s === 'partial' ? '<span class="st-diff part">Part delivered</span>' : '<span class="st-diff over">Waiting</span>';
+const poStatusFor = lines => lines.length && lines.every(l => Number(l.qty_received) >= Number(l.qty_ordered)) ? 'received' : lines.some(l => Number(l.qty_received) > 0) ? 'partial' : 'open';
+
+async function checkPoDb() {
+    const { error } = await sbClient.from('sc_purchase_orders').select('id').limit(1);
+    hasPoDb = !(error && /sc_purchase_orders|schema cache|does not exist|relation/i.test(error.message || ''));
+    if (hasPoDb) await poRefreshOnOrder(); else { poOnOrder.clear(); poOpenCount = 0; }
+    render();
+}
+
+// What is on order right now: the units still to arrive on every open order.
+async function poRefreshOnOrder() {
+    poOnOrder.clear(); poOpenCount = 0;
+    const { data: pos, error } = await sbClient.from('sc_purchase_orders').select('id').eq('owner_id', ownerId).in('status', ['open', 'partial']).limit(500);
+    if (error || !pos) return;
+    poOpenCount = pos.length;
+    for (let i = 0; i < pos.length; i += 100) {
+        const { data: lines } = await sbClient.from('sc_po_lines').select('stock_id, qty_ordered, qty_received').eq('owner_id', ownerId).in('po_id', pos.slice(i, i + 100).map(p => p.id));
+        (lines || []).forEach(l => {
+            const due = Number(l.qty_ordered) - Number(l.qty_received);
+            if (l.stock_id && due > 0) poOnOrder.set(l.stock_id, sellR2((poOnOrder.get(l.stock_id) || 0) + due));
+        });
+    }
+}
+
+// The next free order number (retried if two people raise one at the same moment).
+async function poInsertHeader(fields) {
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const { data: last, error: e1 } = await sbClient.from('sc_purchase_orders').select('po_no').eq('owner_id', ownerId).order('po_no', { ascending: false }).limit(1);
+        if (e1) throw new Error(e1.message);
+        const row = { id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id, po_no: (last && last[0] ? Number(last[0].po_no) : 0) + 1, status: 'open', created_at: new Date().toISOString(), ...fields };
+        const { error } = await sbClient.from('sc_purchase_orders').insert(row);
+        if (!error) return row;
+        if (error.code !== '23505' && !/duplicate|unique/i.test(error.message)) throw new Error(error.message);
+    }
+    throw new Error('Could not get a free order number — please try again.');
+}
+
+// ── 1. raising orders from the To order list
+async function poCreateFromList() {
+    if (poBusy) return;
+    if (!hasPoDb) { alert('Purchase orders need a one-off database step first: run migration-purchase-orders.sql in Supabase (SQL Editor), then refresh this page.'); return; }
+    const groups = rdGroups().map(g => ({ ...g, rows: g.rows.filter(r => r.qty > 0) })).filter(g => g.rows.length);
+    const ready = groups.filter(g => g.supplier !== 'No supplier set');
+    const unsupplied = groups.filter(g => g.supplier === 'No supplier set').reduce((t, g) => t + g.rows.length, 0);
+    if (!ready.length) { alert(unsupplied ? 'None of these parts has a supplier yet. Open “Set levels” and add a supplier to each part first.' : 'There is nothing to order.'); return; }
+    const parts = ready.reduce((t, g) => t + g.rows.length, 0);
+    if (!confirm(`Create ${ready.length} purchase order${ready.length === 1 ? '' : 's'} (${ready.map(g => g.supplier).join(', ')}) for ${parts} part${parts === 1 ? '' : 's'}?`
+        + (unsupplied ? `\n\n${unsupplied} part${unsupplied === 1 ? ' has' : 's have'} no supplier and ${unsupplied === 1 ? 'is' : 'are'} left off — add a supplier in “Set levels”.` : '')
+        + '\n\nThe parts count as “on order” until the delivery is booked in.')) return;
+
+    poBusy = true;
+    const made = [];
+    try {
+        for (const g of ready) {
+            const total = sellR2(g.rows.reduce((t, r) => t + r.est, 0));
+            const po = await poInsertHeader({ supplier: g.supplier, total });
+            const lines = g.rows.map(r => ({ id: crypto.randomUUID(), po_id: po.id, owner_id: ownerId, stock_id: r.item.id, sku: r.item.sku, name: r.item.name, qty_ordered: r.qty, qty_received: 0, unit_cost: Number(r.item.cost) }));
+            const { error } = await sbClient.from('sc_po_lines').insert(lines);
+            if (error) {
+                await sbClient.from('sc_purchase_orders').update({ status: 'cancelled', notes: 'NOT COMPLETED — could not save the parts on it' }).eq('id', po.id);
+                throw new Error(`${poLabel(po.po_no)} could not be saved (${error.message}). It has been cancelled.`);
+            }
+            poCache.set(po.id, { po, lines });
+            made.push({ po, lines });
+            g.rows.forEach(r => rdQtyOverride.delete(r.item.id)); // the typed quantity is now on the order; the list works out a fresh suggestion
+        }
+    } catch (e) {
+        alert('Not every order could be created: ' + e.message + (made.length ? '\n\nAlready created: ' + made.map(m => poLabel(m.po.po_no)).join(', ') : ''));
+    } finally { poBusy = false; }
+    await poRefreshOnOrder();
+    render(); renderReorder();
+    if (made.length) {
+        document.getElementById('poBody').innerHTML = `
+            <h3>${made.length === 1 ? 'Purchase order created' : made.length + ' purchase orders created'}</h3>
+            <div class="imp-summary">${made.map(m => `<strong>${poLabel(m.po.po_no)}</strong> — ${escapeHtml(m.po.supplier)}: ${m.lines.length} part${m.lines.length === 1 ? '' : 's'}, ${sellMoney(Number(m.po.total))}`).join('<br>')}</div>
+            <p class="imp-note">These parts now show as on order, so they drop off the To order list until the delivery is booked in under “Purchase orders”.</p>
+            <div class="imp-actions">${made.map(m => `<button class="btn btn-ghost" onclick="poPrintById('${m.po.id}')">Print ${poLabel(m.po.po_no)}</button>`).join('')}<button class="btn btn-primary" onclick="closePoDialog()">Done</button></div>`;
+        document.getElementById('poOverlay').classList.add('open');
+    }
+}
+
+// ── 2. the Purchase orders tab
+function poSetFilter(f) { poFilter = f; poLoadList(); }
+
+async function poLoadList() {
+    if (!hasPoDb) { poRows = []; renderReorder(); return; }
+    poRows = null; renderReorder();
+    let q = sbClient.from('sc_purchase_orders').select('*').eq('owner_id', ownerId).order('po_no', { ascending: false }).limit(200);
+    if (poFilter === 'open') q = q.in('status', ['open', 'partial']);
+    else if (poFilter === 'received') q = q.eq('status', 'received');
+    else if (poFilter === 'cancelled') q = q.eq('status', 'cancelled');
+    const { data, error } = await q;
+    if (error) { alert('Could not load the purchase orders: ' + error.message); poRows = []; renderReorder(); return; }
+    poRows = data || [];
+    poLinesBy.clear();
+    for (let i = 0; i < poRows.length; i += 100) {
+        const { data: lines } = await sbClient.from('sc_po_lines').select('*').eq('owner_id', ownerId).in('po_id', poRows.slice(i, i + 100).map(p => p.id));
+        (lines || []).forEach(l => { if (!poLinesBy.has(l.po_id)) poLinesBy.set(l.po_id, []); poLinesBy.get(l.po_id).push(l); });
+    }
+    renderReorder();
+}
+
+function poRenderTab(head, body, bulk, stat) {
+    bulk.style.display = '';
+    bulk.innerHTML = `<div class="auth-tabs" style="margin:0;max-width:460px;">${[['open', 'On order'], ['received', 'Complete'], ['cancelled', 'Cancelled'], ['all', 'All']]
+        .map(([k, label]) => `<button class="auth-tab${poFilter === k ? ' active' : ''}" onclick="poSetFilter('${k}')">${label}</button>`).join('')}</div>`;
+    head.innerHTML = '<tr><th>Order</th><th>Date</th><th>Supplier</th><th>Parts</th><th>Arrived</th><th>Total</th><th>Status</th></tr>';
+    if (!hasPoDb) {
+        document.getElementById('rdStats').innerHTML = '';
+        body.innerHTML = '<tr><td colspan="7"><div class="empty-state">One-off set-up needed: run <code>migration-purchase-orders.sql</code> in Supabase (SQL Editor), then refresh this page.</div></td></tr>';
+        return;
+    }
+    if (poRows === null) { document.getElementById('rdStats').innerHTML = ''; body.innerHTML = '<tr><td colspan="7"><div class="empty-state">Loading…</div></td></tr>'; return; }
+    const q = rdSearch.trim().toLowerCase();
+    const list = poRows.filter(p => !q || String(p.supplier).toLowerCase().includes(q) || poLabel(p.po_no).toLowerCase().includes(q));
+    const units = p => { const ls = poLinesBy.get(p.id) || []; return { ord: ls.reduce((t, l) => t + Number(l.qty_ordered), 0), got: ls.reduce((t, l) => t + Number(l.qty_received), 0), n: ls.length }; };
+    const live = list.filter(p => p.status !== 'cancelled');
+    const due = live.reduce((t, p) => { const u = units(p); return t + Math.max(0, u.ord - u.got); }, 0);
+    const lay = '<path d="M12 3.5l8.5 4.7-8.5 4.7-8.5-4.7z"/><path d="M3.5 12.2l8.5 4.7 8.5-4.7M3.5 16.2l8.5 4.7 8.5-4.7"/>';
+    document.getElementById('rdStats').innerHTML =
+        stat('', 'Orders shown', list.length, '<path d="M9.5 3h5a1 1 0 0 1 1 1v1.5h2a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1h-12a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1h2V4a1 1 0 0 1 1-1z"/>') +
+        stat('qty', 'Units still to arrive', stQty(due), lay) +
+        stat('value', 'Value ordered', sellMoney(sellR2(live.reduce((t, p) => t + Number(p.total), 0))), '<path d="M16.5 6.8a4.3 4.3 0 0 0-8 2.2v3.2m0 0H6.5m2 0v3.6c0 1.6-.9 2.8-2.3 3.4h11.3M8.5 12.2h6"/>');
+    body.innerHTML = list.length ? list.map(p => {
+        const u = units(p), d = new Date(p.created_at);
+        return `<tr style="cursor:pointer" onclick="poOpen('${p.id}')">
+            <td class="mono"><strong>${poLabel(p.po_no)}</strong></td><td>${d.toLocaleDateString('en-GB')}</td><td>${escapeHtml(p.supplier)}</td>
+            <td class="mono">${u.n}</td><td class="mono">${stQty(u.got)} of ${stQty(u.ord)}</td><td class="mono"><strong>${sellMoney(Number(p.total))}</strong></td><td>${poBadge(p.status)}</td></tr>`;
+    }).join('') : `<tr><td colspan="7"><div class="empty-state">${q ? 'No order matches “' + escapeHtml(rdSearch.trim()) + '”.' : poFilter === 'open' ? 'Nothing is on order. Raise orders from the “To order” tab.' : 'No orders here yet.'}</div></td></tr>`;
+}
+
+// ── 3. one order: booking a delivery in
+async function poOpen(id) {
+    document.getElementById('poBody').innerHTML = '<h3>Loading…</h3>';
+    document.getElementById('poOverlay').classList.add('open');
+    const [h, l] = await Promise.all([
+        sbClient.from('sc_purchase_orders').select('*').eq('id', id).limit(1),
+        sbClient.from('sc_po_lines').select('*').eq('po_id', id).order('name', { ascending: true })
+    ]);
+    if (h.error || l.error || !h.data || !h.data[0]) { document.getElementById('poBody').innerHTML = `<h3>Could not load that order</h3><p class="imp-note">${escapeHtml((h.error || l.error || {}).message || 'It was not found.')}</p><div class="imp-actions"><button class="btn btn-ghost" onclick="closePoDialog()">Close</button></div>`; return; }
+    poDetail = { po: h.data[0], lines: l.data || [] };
+    poCache.set(id, poDetail);
+    poRenderDetail();
+}
+
+function poRenderDetail() {
+    const { po, lines } = poDetail;
+    const live = po.status === 'open' || po.status === 'partial';
+    const anyIn = lines.some(l => Number(l.qty_received) > 0);
+    const rows = lines.map(l => {
+        const due = Math.max(0, sellR2(Number(l.qty_ordered) - Number(l.qty_received)));
+        return `<tr id="poRow-${l.id}"><td>${escapeHtml(l.name)}<br><span class="sl-sub">${escapeHtml(l.sku)}</span></td>
+            <td class="mono" data-label="Ordered">${stQty(l.qty_ordered)}</td><td class="mono" data-label="Arrived">${stQty(l.qty_received)}</td><td class="mono" data-label="Still due"><strong>${stQty(due)}</strong></td>
+            ${live ? `<td data-label="Booking in now"><input id="poIn-${l.id}" class="price-cell" type="number" min="0" step="any" placeholder="0" style="width:90px"></td>` : ''}</tr>`;
+    }).join('');
+    document.getElementById('poBody').innerHTML = `
+        <h3>${poLabel(po.po_no)} — ${escapeHtml(po.supplier)} ${poBadge(po.status)}</h3>
+        <p class="imp-note">Raised ${new Date(po.created_at).toLocaleDateString('en-GB')} · ordered for ${sellMoney(Number(po.total))}${po.notes ? ' · ' + escapeHtml(po.notes) : ''}</p>
+        ${live ? `<input id="poScan" class="search-input" style="width:100%;margin-bottom:6px" placeholder="Scan a part that has arrived, then type how many…" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <div id="poScanMsg" class="imp-note" style="min-height:18px;margin-bottom:8px"></div>` : ''}
+        <div class="table-scroll"><table class="imp-preview po-table"><thead><tr><th>Part</th><th>Ordered</th><th>Arrived</th><th>Still due</th>${live ? '<th>Booking in now</th>' : ''}</tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="imp-actions" style="flex-wrap:wrap">
+            ${live ? `<button class="btn btn-ghost" onclick="poFillAll()">Everything still due has arrived</button>` : ''}
+            <button class="btn btn-ghost" onclick="poPrintById('${po.id}')">Print</button>
+            ${po.status === 'open' && !anyIn ? `<button class="btn btn-danger" onclick="poCancel()">Cancel this order…</button>` : ''}
+            ${po.status === 'partial' ? `<button class="btn btn-danger" onclick="poCloseShort()">Nothing more is coming…</button>` : ''}
+            <button class="btn btn-ghost" onclick="closePoDialog()">Close</button>
+            ${live ? `<button class="btn btn-primary" id="poBookBtn" onclick="poReceive()">Book in</button>` : ''}
+        </div>`;
+    const scan = document.getElementById('poScan');
+    if (scan) scan.addEventListener('keydown', e => { if (e.key !== 'Enter') return; e.preventDefault(); const c = e.target.value; e.target.value = ''; poScan(c); });
+}
+
+function poFillAll() {
+    poDetail.lines.forEach(l => {
+        const el = document.getElementById('poIn-' + l.id);
+        const due = sellR2(Number(l.qty_ordered) - Number(l.qty_received));
+        if (el && due > 0) el.value = due;
+    });
+}
+
+// A scanned part jumps to its line, ready to type how many arrived.
+function poScan(raw) {
+    if (!poDetail) return;
+    const code = String(raw || '').trim(); if (!code) return;
+    const msg = document.getElementById('poScanMsg');
+    const part = findBySku(code);
+    const line = part && poDetail.lines.find(l => l.stock_id === part.id);
+    if (!line) { msg.textContent = part ? `${part.name} is not on this order.` : `Nothing in stock with the code “${code}”.`; msg.style.color = 'var(--danger)'; return; }
+    const el = document.getElementById('poIn-' + line.id);
+    if (!el) { msg.textContent = 'This order is already complete.'; return; }
+    msg.style.color = ''; msg.textContent = `${line.name} — still due ${stQty(Math.max(0, Number(line.qty_ordered) - Number(line.qty_received)))}. Type how many arrived.`;
+    document.getElementById('poRow-' + line.id).scrollIntoView({ block: 'nearest' });
+    el.focus(); el.select();
+}
+
+async function poReceive() {
+    if (poBusy || !poDetail) return;
+    const { po, lines } = poDetail;
+    const entries = [];
+    for (const l of lines) {
+        const el = document.getElementById('poIn-' + l.id); if (!el) continue;
+        const raw = el.value.trim(); if (raw === '') continue;
+        const n = Number(raw);
+        if (!isFinite(n) || n < 0) { alert(`Type a number for ${l.name}.`); el.focus(); return; }
+        if (n > 0) entries.push({ line: l, qty: sellR2(n) });
+    }
+    if (!entries.length) { alert('Type how many arrived against at least one part.'); return; }
+    const over = entries.filter(e => e.qty > sellR2(Number(e.line.qty_ordered) - Number(e.line.qty_received)));
+    if (over.length && !confirm(`${over.length} part${over.length === 1 ? ' is' : 's are'} more than was still due (${over.map(e => e.line.name).slice(0, 3).join(', ')}${over.length > 3 ? '…' : ''}).\n\nBook in the full amount anyway?`)) return;
+
+    poBusy = true;
+    const btn = document.getElementById('poBookBtn'); if (btn) { btn.disabled = true; btn.textContent = 'Booking in…'; }
+    const problems = [];
+    try {
+        // 1. against the order — each line only if nobody else has changed it since it was opened
+        const done = [];
+        for (let i = 0; i < entries.length; i += 8) {
+            await Promise.all(entries.slice(i, i + 8).map(async e => {
+                const { data, error } = await sbClient.from('sc_po_lines').update({ qty_received: sellR2(Number(e.line.qty_received) + e.qty) }).eq('id', e.line.id).eq('qty_received', e.line.qty_received).select('id');
+                if (error) problems.push(`${e.line.name}: ${error.message}`);
+                else if (!data || !data.length) problems.push(`${e.line.name}: someone else booked this in while you had it open — nothing was added; close this and open the order again`);
+                else done.push(e);
+            }));
+        }
+        // 2. into stock (fresh quantities, so a sale made a moment ago isn't overwritten)
+        if (done.length) {
+            const ids = [...new Set(done.map(e => e.line.stock_id).filter(Boolean))];
+            const fresh = ids.length ? await sellFreshQty(ids) : new Map();
+            const add = new Map();
+            done.forEach(e => { if (e.line.stock_id && fresh.has(e.line.stock_id)) add.set(e.line.stock_id, sellR2((add.get(e.line.stock_id) ?? fresh.get(e.line.stock_id)) + e.qty)); });
+            const failed = await sellSetStock([...add].map(([id, qty]) => ({ id, qty })));
+            const bad = new Set(failed.map(f => f.id));
+            [...add].forEach(([id, qty]) => { if (!bad.has(id)) { const it = sellItem(id); if (it) it.qty = qty; } });
+            done.forEach(e => { if (!e.line.stock_id || !fresh.has(e.line.stock_id)) problems.push(`${e.line.name} is no longer in Stock Control, so its stock could not be raised`); });
+            failed.forEach(f => problems.push(`${(sellItem(f.id) || {}).name || 'a part'}: it is booked against the order but its stock was not raised (${f.why}) — add it by hand`));
+            try { await sellWriteLogs(done.filter(e => add.has(e.line.stock_id) && !bad.has(e.line.stock_id)).map(e => ({ item: e.line.name, qty: e.qty, action: 'GOODS IN', dir: 'IN' }))); }
+            catch (e) { problems.push('The Movement Log could not be written: ' + e.message); }
+        }
+        // 3. where the order stands now
+        const { data: now } = await sbClient.from('sc_po_lines').select('*').eq('po_id', po.id);
+        if (now && now.length) {
+            const status = poStatusFor(now);
+            await sbClient.from('sc_purchase_orders').update({ status, received_at: status === 'received' ? new Date().toISOString() : null }).eq('id', po.id).in('status', ['open', 'partial']);
+        }
+    } catch (e) { problems.push(e.message); }
+    finally { poBusy = false; }
+    await poRefreshOnOrder();
+    render(); renderReorder();
+    await poOpen(po.id);
+    if (poRows !== null) poLoadList();
+    if (problems.length) {
+        const m = document.getElementById('poScanMsg');
+        alert('Some of that did not go through:\n\n' + problems.join('\n'));
+        if (m) m.textContent = '';
+    }
+}
+
+async function poCancel() {
+    if (!poDetail || poBusy) return;
+    const { po } = poDetail;
+    if (!confirm(`Cancel ${poLabel(po.po_no)} to ${po.supplier}?\n\nThe parts stop counting as on order and go back on the To order list. The order is kept, marked cancelled.`)) return;
+    const { data, error } = await sbClient.from('sc_purchase_orders').update({ status: 'cancelled' }).eq('id', po.id).eq('status', 'open').select('id');
+    if (error) { alert('Could not cancel it: ' + error.message); return; }
+    if (!data || !data.length) alert('That order has changed since you opened it (something may have been booked in), so it was not cancelled.');
+    await poRefreshOnOrder(); render(); renderReorder();
+    await poOpen(po.id);
+    if (poRows !== null) poLoadList();
+}
+
+async function poCloseShort() {
+    if (!poDetail || poBusy) return;
+    const { po } = poDetail;
+    if (!confirm(`Close ${poLabel(po.po_no)} as complete although not everything arrived?\n\nWhat is still due stops counting as on order. What has already arrived stays booked in.`)) return;
+    const { data, error } = await sbClient.from('sc_purchase_orders').update({ status: 'received', received_at: new Date().toISOString(), notes: ((po.notes || '') + ' Closed short — not everything arrived.').trim() }).eq('id', po.id).eq('status', 'partial').select('id');
+    if (error) { alert('Could not close it: ' + error.message); return; }
+    if (!data || !data.length) alert('That order has changed since you opened it, so it was not closed.');
+    await poRefreshOnOrder(); render(); renderReorder();
+    await poOpen(po.id);
+    if (poRows !== null) poLoadList();
+}
+
+// ── printing the order for the supplier
+async function poPrintById(id) {
+    let d = poCache.get(id);
+    if (!d || !d.lines) {
+        const [h, l] = await Promise.all([sbClient.from('sc_purchase_orders').select('*').eq('id', id).limit(1), sbClient.from('sc_po_lines').select('*').eq('po_id', id).order('name', { ascending: true })]);
+        if (!h.data || !h.data[0]) { alert('Could not load that order to print it.'); return; }
+        d = { po: h.data[0], lines: l.data || [] };
+        poCache.set(id, d);
+    }
+    const { po, lines } = d;
+    const company = String(saleSettings().company || '').split('\n');
+    document.getElementById('saleDoc').innerHTML = `
+        <div class="sd-head"><div class="sd-co">${escapeHtml(company[0] || '')}</div>${company.slice(1).map(x => `<div>${escapeHtml(x)}</div>`).join('')}</div>
+        <h2>Purchase order ${poLabel(po.po_no)}${po.status === 'cancelled' ? ' — CANCELLED' : ''}</h2>
+        <div class="sd-meta"><div><strong>To</strong> ${escapeHtml(po.supplier)}</div><div><strong>Date</strong> ${new Date(po.created_at).toLocaleDateString('en-GB')}</div>${po.notes ? `<div><strong>Note</strong> ${escapeHtml(po.notes)}</div>` : ''}</div>
+        <table><thead><tr><th>Code</th><th>Part</th><th class="r">Qty</th><th class="r">Unit cost</th><th class="r">Total</th></tr></thead><tbody>${
+            lines.map(l => `<tr><td>${escapeHtml(l.sku)}</td><td>${escapeHtml(l.name)}</td><td class="r">${stQty(l.qty_ordered)}</td><td class="r">${sellMoney(Number(l.unit_cost))}</td><td class="r">${sellMoney(sellR2(Number(l.qty_ordered) * Number(l.unit_cost)))}</td></tr>`).join('')}</tbody></table>
+        <div class="sd-tot"><div class="g"><span>Total</span><span>${sellMoney(Number(po.total))}</span></div></div>
+        <div class="sd-foot">Please quote ${poLabel(po.po_no)} on your delivery note and invoice. Prices are shown without VAT.</div>`;
+    document.body.classList.add('printing-sale');
+    window.print();
+}
+
 // ═══ REORDER (levels, suppliers, what to order) ═══
 // Each part can have a reorder level (order when stock is at or below it), a usual order quantity
 // and a supplier (migration-reorder.sql). The Reorder screen shows what is at or below its level,
@@ -3018,14 +3365,17 @@ const rdNum = v => (v === null || v === undefined || v === '') ? null : Number(v
 const rdLevel = i => rdNum(i.reorder_level);
 const rdIsOpen = () => document.getElementById('reorderScreen').style.display === 'block';
 const isLowStock = i => Number(i.qty) <= (rdLevel(i) ?? 5);
-const rdOnList = () => stock.filter(i => rdLevel(i) !== null && Number(i.qty) <= rdLevel(i));
+const rdOnOrder = i => poOnOrder.get(i.id) || 0;   // units already ordered and not yet arrived (purchase orders)
+// A part needs ordering when what is in stock PLUS what is already on order is at or below its level —
+// so once an order is raised it drops off this list until the delivery is booked in (or the order is cancelled).
+const rdOnList = () => stock.filter(i => rdLevel(i) !== null && Number(i.qty) + rdOnOrder(i) <= rdLevel(i));
 const rdSupplier = i => String(i.supplier || '').trim();
 
 // How many to order: the part's usual order quantity, or failing that enough to top up to twice its level.
 function rdSuggest(i) {
     const usual = rdNum(i.reorder_qty);
     if (usual !== null && usual > 0) return usual;
-    return Math.max(1, Math.ceil(rdLevel(i) * 2 - Number(i.qty)));
+    return Math.max(1, Math.ceil(rdLevel(i) * 2 - (Number(i.qty) + rdOnOrder(i))));
 }
 const rdQtyFor = i => rdQtyOverride.has(i.id) ? rdQtyOverride.get(i.id) : rdSuggest(i);
 
@@ -3048,10 +3398,11 @@ function renderReorderCard() {
     btn.disabled = false;
     const withLevel = stock.filter(i => rdLevel(i) !== null).length, n = rdOnList().length;
     const s = k => k === 1 ? '' : 's';
+    const onWay = poOpenCount ? ` ${poOpenCount} order${s(poOpenCount)} on the way.` : '';
     blurb.textContent = !stock.length ? 'Add some parts first, then give each a reorder level.'
         : !withLevel ? 'Give each part a reorder level and Stock Control will tell you what to order, grouped by supplier.'
-        : n ? `${n} part${s(n)} ${n === 1 ? 'is' : 'are'} at or below ${n === 1 ? 'its' : 'their'} reorder level — time to order.`
-        : `Nothing needs ordering. ${withLevel} part${s(withLevel)} ${withLevel === 1 ? 'has' : 'have'} a reorder level.`;
+        : n ? `${n} part${s(n)} ${n === 1 ? 'is' : 'are'} at or below ${n === 1 ? 'its' : 'their'} reorder level — time to order.${onWay}`
+        : `Nothing needs ordering.${onWay || ` ${withLevel} part${s(withLevel)} ${withLevel === 1 ? 'has' : 'have'} a reorder level.`}`;
     btn.textContent = !withLevel ? 'Set reorder levels' : n ? 'See what to order' : 'Reorder levels';
 }
 
@@ -3064,13 +3415,14 @@ function openReorder() {
     rdSearch = ''; document.getElementById('rdSearch').value = '';
     window.scrollTo(0, 0);
     renderReorder();
+    if (hasPoDb) poRefreshOnOrder().then(() => { if (rdIsOpen()) { renderReorder(); render(); } });
 }
 function leaveReorder() {
     document.getElementById('reorderScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
     render();
 }
-function rdSetTab(tab) { rdTab = tab; renderReorder(); }
+function rdSetTab(tab) { rdTab = tab; if (tab === 'orders') poLoadList(); else renderReorder(); }
 function rdOnSearch(v) { rdSearch = v; clearTimeout(rdSearchTimer); rdSearchTimer = setTimeout(renderReorder, 120); }
 
 // ── the To order list, grouped by supplier
@@ -3100,7 +3452,7 @@ function rdSetOrderQty(id, v) {
 }
 
 function renderReorder() {
-    ['order', 'levels'].forEach(t => document.getElementById('rdTab-' + t).classList.toggle('active', rdTab === t));
+    ['order', 'orders', 'levels'].forEach(t => document.getElementById('rdTab-' + t).classList.toggle('active', rdTab === t));
     document.getElementById('rdOrderTools').style.display = rdTab === 'order' ? '' : 'none';
     const head = document.getElementById('rdHead'), body = document.getElementById('rdBody'), bulk = document.getElementById('rdBulk');
     const CAP = 100;
@@ -3108,6 +3460,8 @@ function renderReorder() {
     const box = '<path d="M3.5 7.8L12 3.5l8.5 4.3v8.4L12 20.5l-8.5-4.3z"/><path d="M3.8 7.9L12 12l8.2-4.1M12 12v8.3"/>';
     const lay = '<path d="M12 3.5l8.5 4.7-8.5 4.7-8.5-4.7z"/><path d="M3.5 12.2l8.5 4.7 8.5-4.7M3.5 16.2l8.5 4.7 8.5-4.7"/>';
     const pound = '<path d="M16.5 6.8a4.3 4.3 0 0 0-8 2.2v3.2m0 0H6.5m2 0v3.6c0 1.6-.9 2.8-2.3 3.4h11.3M8.5 12.2h6"/>';
+
+    if (rdTab === 'orders') { poRenderTab(head, body, bulk, stat); return; }
 
     if (rdTab === 'order') {
         bulk.style.display = 'none';
@@ -3118,11 +3472,11 @@ function renderReorder() {
             stat('low', 'Parts to order', all.length, '<path d="M12 4l9 16H3z"/><path d="M12 10v4.2M12 17.4v.1"/>') +
             stat('qty', 'Suppliers', groups.filter(g => g.supplier !== 'No supplier set').length, lay) +
             stat('value', 'Estimated cost', sellMoney(total), pound);
-        head.innerHTML = '<tr><th>Name</th><th>Product Code</th><th>Location</th><th>In stock</th><th>Level</th><th>Order qty</th><th>Unit cost</th><th>Est. cost</th></tr>';
+        head.innerHTML = '<tr><th>Name</th><th>Product Code</th><th>Location</th><th>In stock</th><th>On order</th><th>Level</th><th>Order qty</th><th>Unit cost</th><th>Est. cost</th></tr>';
         if (!groups.length) {
             const any = stock.some(i => rdLevel(i) !== null);
-            body.innerHTML = `<tr><td colspan="8"><div class="empty-state">${rdSearch.trim() ? 'No part to order matches “' + escapeHtml(rdSearch.trim()) + '”.'
-                : any ? 'Nothing is at or below its reorder level — nothing to order.' : 'No part has a reorder level yet. Open the “Set levels” tab to give them one.'}</div></td></tr>`;
+            body.innerHTML = `<tr><td colspan="9"><div class="empty-state">${rdSearch.trim() ? 'No part to order matches “' + escapeHtml(rdSearch.trim()) + '”.'
+                : any ? (poOpenCount ? 'Everything at or below its reorder level is already on order. See the “Purchase orders” tab.' : 'Nothing is at or below its reorder level — nothing to order.') : 'No part has a reorder level yet. Open the “Set levels” tab to give them one.'}</div></td></tr>`;
             return;
         }
         let shown = 0;
@@ -3133,13 +3487,13 @@ function renderReorder() {
                 shown++;
                 return `<tr${qty === 0 ? ' style="opacity:.5"' : ''}>
                     <td>${escapeHtml(item.name)}</td><td class="mono">${escapeHtml(item.sku)}</td><td>${escapeHtml(item.location || '')}</td>
-                    <td><span class="qty-badge low">${stQty(item.qty)}</span></td><td class="mono">${stQty(rdLevel(item))}</td>
+                    <td><span class="qty-badge low">${stQty(item.qty)}</span></td><td class="mono">${rdOnOrder(item) ? stQty(rdOnOrder(item)) : '—'}</td><td class="mono">${stQty(rdLevel(item))}</td>
                     <td><input class="price-cell" type="number" min="0" step="any" value="${qty}" title="0 leaves it off the order" onchange="rdSetOrderQty('${item.id}', this.value)"></td>
                     <td class="mono">${sellMoney(Number(item.cost))}</td><td class="mono">${sellMoney(qty > 0 ? est : 0)}</td></tr>`;
             }).join('');
-            return `<tr class="rd-group"><td colspan="7">${escapeHtml(g.supplier)} <span class="sl-sub">· ${g.rows.length} part${g.rows.length === 1 ? '' : 's'}</span></td><td class="mono">${sellMoney(sub)}</td></tr>${rows}`;
-        }).join('') + `<tr class="rd-total"><td colspan="7">Total estimated cost</td><td class="mono">${sellMoney(total)}</td></tr>`
-            + (all.length > CAP ? `<tr><td colspan="8"><div class="empty-state">Showing the first ${CAP} — type in the search box to narrow it down. The download and print include everything.</div></td></tr>` : '');
+            return `<tr class="rd-group"><td colspan="8">${escapeHtml(g.supplier)} <span class="sl-sub">· ${g.rows.length} part${g.rows.length === 1 ? '' : 's'}</span></td><td class="mono">${sellMoney(sub)}</td></tr>${rows}`;
+        }).join('') + `<tr class="rd-total"><td colspan="8">Total estimated cost</td><td class="mono">${sellMoney(total)}</td></tr>`
+            + (all.length > CAP ? `<tr><td colspan="9"><div class="empty-state">Showing the first ${CAP} — type in the search box to narrow it down. The download, print and purchase orders include every part matching your search.</div></td></tr>` : '');
         return;
     }
 
@@ -4083,7 +4437,7 @@ document.getElementById('stScanBox').addEventListener('keydown', e => {
 });
 
 // The camera scanner is shared with the dashboard — a code it reads goes wherever you are.
-function onCameraCode(text) { if (sellIsOpen()) sellScanEnter(text); else if (stIsOpen()) stockTakeScan(text); else handleScannedCode(text); }
+function onCameraCode(text) { if (poDetailOpen() && document.getElementById('poScan')) poScan(text); else if (sellIsOpen()) sellScanEnter(text); else if (stIsOpen()) stockTakeScan(text); else handleScannedCode(text); }
 
 // ── the two lists: Counted / Still to count
 function stSetTab(tab) { stTab = tab; renderStLists(); }
