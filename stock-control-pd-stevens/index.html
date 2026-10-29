@@ -462,7 +462,7 @@ body {
 /* ───── FORM ───── */
 .add-grid {
     display: grid;
-    grid-template-columns: 2fr 1.3fr 1.3fr 0.8fr 0.9fr auto;
+    grid-template-columns: 2fr 1.3fr 1.3fr 0.8fr 0.9fr 1fr auto;
     gap: 12px;
     align-items: end;
 }
@@ -709,6 +709,19 @@ td.mono { color: #3a4470; }
     #labelSheet .lbl-name { font: 600 11pt 'IBM Plex Sans', sans-serif; margin-bottom: 1mm; overflow-wrap: anywhere; }
     #labelSheet .lbl-loc  { font: 9pt 'IBM Plex Sans', sans-serif; }
     #labelSheet .lbl svg  { max-width: 100%; height: auto; }
+    /* a sales receipt */
+    body.printing-sale > #saleDoc { display: block !important; background: #fff; color: #000; padding: 12mm; font: 11pt/1.45 Arial, sans-serif; }
+    #saleDoc .sd-co { font-size: 16pt; font-weight: 700; }
+    #saleDoc h2 { font-size: 14pt; margin: 8mm 0 3mm; }
+    #saleDoc .sd-meta { display: flex; flex-wrap: wrap; gap: 2mm 8mm; margin-bottom: 5mm; }
+    #saleDoc table { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+    #saleDoc thead th { background: none; color: #000; text-transform: none; letter-spacing: 0; font-size: 10.5pt; border: 0; border-bottom: 0.4mm solid #000; border-radius: 0; padding: 1.5mm 2mm; text-align: left; }
+    #saleDoc td { font-size: 10.5pt; padding: 1.5mm 2mm; border-bottom: 0.2mm solid #999; }
+    #saleDoc .r { text-align: right !important; }
+    #saleDoc .sd-tot { margin-left: auto; width: 70mm; }
+    #saleDoc .sd-tot > div { display: flex; justify-content: space-between; padding: 1mm 0; }
+    #saleDoc .sd-tot .g { font-weight: 700; font-size: 13pt; border-top: 0.4mm solid #000; margin-top: 1mm; }
+    #saleDoc .sd-foot { margin-top: 8mm; font-size: 10pt; }
 }
 
 .empty-state {
@@ -768,7 +781,7 @@ td.mono { color: #3a4470; }
 .search-input:focus { border-color: var(--accent); background-color: #fff; box-shadow: 0 0 0 4px rgba(22,93,255,0.12); }
 .btn-sm { padding: 9px 14px; font-size: 12.5px; }
 .table-scroll { overflow-x: auto; }
-.stock-scroll table { min-width: 800px; } /* scrolls sideways inside its card on a phone rather than squashing */
+.stock-scroll table { min-width: 900px; } /* scrolls sideways inside its card on a phone rather than squashing */
 
 .loc-input {
     width: 100%;
@@ -853,6 +866,8 @@ td.mono { color: #3a4470; }
 .st-bar { height: 10px; max-width: 520px; background: rgba(255,255,255,0.25); border-radius: 6px; overflow: hidden; margin: 2px 0 20px; }
 .st-bar > div { height: 100%; width: 0; background: #fff; border-radius: 6px; transition: width 0.3s; }
 .stock-head .auth-tab { flex: none; white-space: nowrap; padding: 9px 16px; }
+.stock-head .auth-tabs { flex-wrap: wrap; }
+.stock-tools { flex-wrap: wrap; }
 .st-input::-webkit-outer-spin-button, .st-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .st-input { -moz-appearance: textfield; appearance: textfield; }
 .st-blind { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; font-weight: 600; opacity: 0.92; cursor: pointer; }
@@ -879,6 +894,42 @@ td.mono { color: #3a4470; }
 .st-diff.short { background: #fde9ec; color: #c42a41; }
 .st-diff.over { background: #fff3d9; color: #9a6200; }
 .st-finish { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin: 4px 0 8px; }
+
+/* ───── SELLING ───── */
+#sellScreen, #salesScreen { display: none; }
+#saleDoc { display: none; }
+.st-ico.sell { background: #e1f6ee; color: var(--accent2); }
+.stats-grid.flat { margin: 0 0 18px; }
+.auth-tab:disabled { opacity: 0.4; cursor: not-allowed; }
+.sell-grid { position: relative; z-index: 2; margin: -50px 22px 18px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+.sell-grid > .card { margin-bottom: 0; box-shadow: var(--shadow-md); }
+.sl-name { font-weight: 700; font-size: 14px; }
+.sl-sub { font-size: 12px; color: var(--muted); font-weight: 500; }
+.sl-warn { font-size: 12.5px; font-weight: 700; color: #c42a41; margin-top: 4px; }
+.sl-warn:empty { display: none; }
+.sell-table th { padding: 10px; }
+.qty-ctl { display: inline-flex; align-items: center; gap: 4px; }
+.qty-ctl button { width: 30px; height: 34px; border: 1.5px solid var(--border); background: #fff; border-radius: 10px; font: 700 16px var(--sans); color: var(--text); cursor: pointer; }
+.qty-ctl button:hover { border-color: var(--accent); color: var(--accent); background: #f3f7ff; }
+.qty-ctl input { width: 66px; text-align: center; padding: 7px 4px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); font: 600 14px var(--mono); color: var(--text); outline: none; }
+.price-in { width: 108px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); font: 600 14px var(--mono); color: var(--text); outline: none; }
+.qty-ctl input:focus, .price-in:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px rgba(22,93,255,0.12); }
+.price-in.missing { border-color: #e0364c; background: #fff3f4; }
+.price-cell { width: 100%; min-width: 92px; padding: 7px 8px; background: transparent; border: 1.5px solid transparent; border-radius: 10px; color: var(--text); font: 500 13px var(--mono); outline: none; transition: all 0.15s; }
+.price-cell:hover { border-color: var(--border); background: #fff; }
+.price-cell:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px rgba(22,93,255,0.12); }
+.price-cell::placeholder { color: #9aa2c0; font-family: var(--sans); }
+.sell-sugg { border: 1px solid var(--border); border-radius: 14px; margin-bottom: 16px; overflow: hidden; background: #fff; }
+.sell-sugg-h { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 10px 14px; background: #f5f7fd; border-bottom: 1px solid var(--border); }
+.sell-sugg-row { display: flex; justify-content: space-between; gap: 12px; width: 100%; text-align: left; padding: 10px 14px; background: #fff; border: 0; border-bottom: 1px solid #edf0f8; font: 500 14px var(--sans); color: var(--text); cursor: pointer; }
+.sell-sugg-row:last-child { border-bottom: 0; }
+.sell-sugg-row:hover { background: #f3f7ff; }
+.sell-totals { border-top: 1px dashed var(--border); padding-top: 12px; margin-bottom: 14px; display: grid; gap: 6px; font-size: 14px; }
+.sell-totals > div { display: flex; justify-content: space-between; }
+.sell-gross { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
+.sell-complete { width: 100%; padding: 15px; font-size: 15px; }
+.imp-select, .imp-text { width: 100%; padding: 10px 12px; background: var(--input-bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-family: var(--sans); font-size: 14px; outline: none; }
+.imp-text { resize: vertical; }
 
 .app-foot { text-align: center; font-size: 12px; color: var(--muted); padding: 6px 0 4px; }
 
@@ -914,6 +965,21 @@ td.mono { color: #3a4470; }
     .card { padding: 18px; border-radius: 18px; }
     .qr-row { flex-direction: column; text-align: center; }
     .st-count { margin: -50px 6px 18px; }
+    .sell-grid { margin: -50px 6px 18px; grid-template-columns: minmax(0, 1fr); }
+    /* each basket line becomes a small card: part, then qty + price + remove, then the line total */
+    .sell-table, .sell-table tbody, .sell-table tr, .sell-table td { display: block; width: 100%; }
+    .sell-table thead { display: none; }
+    .sell-table tr { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; padding: 14px 0; border-bottom: 1px solid #edf0f8; }
+    .sell-table td { border: 0; padding: 0; }
+    .sell-table td:nth-child(1) { grid-column: 1 / -1; }
+    .sell-table td:nth-child(2) { grid-column: 1; grid-row: 2; }
+    .sell-table td:nth-child(3) { grid-column: 2; grid-row: 2; }
+    .sell-table td:nth-child(5) { grid-column: 3; grid-row: 2; }
+    .sell-table td:nth-child(4) { grid-column: 1 / -1; grid-row: 3; text-align: right; font-weight: 700; }
+    .sell-table td:nth-child(4)::before { content: 'Line total  '; font-weight: 500; color: var(--muted); font-family: var(--sans); }
+    .price-in { width: 100%; }
+    .qty-ctl input { width: 100%; min-width: 0; }
+    .qty-ctl { display: flex; width: 100%; }
     .st-entry { width: 100%; }
     .st-entry > div { flex: 1 1 100%; }
     .st-input { width: 100%; }
@@ -1073,6 +1139,21 @@ td.mono { color: #3a4470; }
             </div>
         </div>
 
+        <!-- Sell at the counter -->
+        <div class="card" id="sellCard">
+            <div class="st-card-row">
+                <div class="st-ico sell"><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h2.2l1.7 9.5h9.3l1.6-7H7.3"/><circle cx="10" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/></svg></div>
+                <div class="st-card-text">
+                    <h3>Sell at the counter</h3>
+                    <p id="sellBlurb"></p>
+                </div>
+                <div class="st-card-actions">
+                    <button class="btn btn-primary" id="sellStartBtn" onclick="openSell()">New sale</button>
+                    <button class="btn btn-ghost" id="salesListBtn" onclick="openSales()">Sales</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Stock take -->
         <div class="card" id="stockTakeCard">
             <div class="st-card-row">
@@ -1111,6 +1192,10 @@ td.mono { color: #3a4470; }
                 <div class="form-field">
                     <label>Cost Price (£)</label>
                     <input id="cost" type="number" step="0.01" value="0" autocomplete="off">
+                </div>
+                <div class="form-field">
+                    <label>Sell Price (£ ex VAT)</label>
+                    <input id="sellPrice" type="number" step="0.01" min="0" placeholder="optional" autocomplete="off">
                 </div>
                 <button class="btn btn-primary" onclick="addItem()">Save Item</button>
             </div>
@@ -1180,6 +1265,7 @@ td.mono { color: #3a4470; }
                         <th>Location</th>
                         <th>Qty</th>
                         <th>Unit Cost</th>
+                        <th>Sell Price</th>
                         <th>Value</th>
                         <th>Actions</th>
                     </tr>
@@ -1249,6 +1335,87 @@ td.mono { color: #3a4470; }
     <div class="bc-box wide" id="clearBody" style="max-width:520px;"></div>
 </div>
 
+<!-- ═══ SELLING ═══ -->
+<div id="sellOverlay" class="bc-overlay">
+    <div class="bc-box wide" id="sellBody" style="max-width:640px;"></div>
+</div>
+
+<div id="sellScreen">
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="2" height="14" rx=".5"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="3" height="14"/><rect x="15" y="5" width="1" height="14"/><rect x="18" y="5" width="3" height="14" rx=".5"/></svg></div>
+            <div>
+                <div class="brand-name">Sell at the counter</div>
+                <div class="brand-sub">PD Stevens &amp; Sons Ltd</div>
+            </div>
+        </div>
+        <div class="topbar-user">
+            <button class="logout-btn" onclick="openSales()">Sales list</button>
+            <button class="logout-btn" onclick="leaveSell()">← Back to dashboard</button>
+        </div>
+    </div>
+
+    <div class="app-body">
+        <section class="hero">
+            <div class="hero-kicker">New sale</div>
+            <h1>What are they buying?</h1>
+            <p class="hero-sub">Scan each part, or type a name or code to find it. Prices are entered without VAT — the VAT is added at the bottom.</p>
+            <div class="scanbar-row">
+                <input id="sellScan" placeholder="Scan a part, or type a name or code and press Enter" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <button type="button" class="btn btn-glass" onclick="openCamera()"><svg class="ico" viewBox="0 0 24 24"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.5" r="3.4"/></svg>Use camera</button>
+            </div>
+            <div class="scanbar-msg" id="sellMsg"></div>
+        </section>
+
+        <div class="sell-grid">
+            <div class="card" id="sellBasket"></div>
+            <div class="card" id="sellSummary"></div>
+        </div>
+    </div>
+</div>
+
+<div id="salesScreen">
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="2" height="14" rx=".5"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="3" height="14"/><rect x="15" y="5" width="1" height="14"/><rect x="18" y="5" width="3" height="14" rx=".5"/></svg></div>
+            <div>
+                <div class="brand-name">Sales</div>
+                <div class="brand-sub">PD Stevens &amp; Sons Ltd</div>
+            </div>
+        </div>
+        <div class="topbar-user">
+            <button class="logout-btn" onclick="leaveSales()">← Back to dashboard</button>
+        </div>
+    </div>
+
+    <div class="app-body">
+        <div class="card">
+            <h3 class="stock-head" style="margin:0;">
+                <span class="auth-tabs" style="margin:0;">
+                    <button class="auth-tab" id="salesTab-today" onclick="salesSetRange('today')">Today</button>
+                    <button class="auth-tab" id="salesTab-week" onclick="salesSetRange('week')">Last 7 days</button>
+                    <button class="auth-tab" id="salesTab-month" onclick="salesSetRange('month')">This month</button>
+                    <button class="auth-tab" id="salesTab-all" onclick="salesSetRange('all')">Latest 500</button>
+                </span>
+                <span class="stock-tools">
+                    <button class="btn btn-ghost btn-sm" onclick="openSaleSettings()">Settings</button>
+                    <button class="btn btn-ghost btn-sm" onclick="exportSage()">Export for Sage 50 (CSV)</button>
+                    <button class="btn btn-primary btn-sm" onclick="openSell()">New sale</button>
+                </span>
+            </h3>
+        </div>
+        <div class="stats-grid flat" id="salesStats"></div>
+        <div class="card">
+            <div class="table-scroll stock-scroll">
+                <table>
+                    <thead><tr><th>No.</th><th>Date</th><th>Customer</th><th>Paid by</th><th>Net</th><th>VAT</th><th>Total</th><th>Status</th></tr></thead>
+                    <tbody id="salesBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ═══ STOCK TAKE ═══ -->
 <div id="stockTakeOverlay" class="bc-overlay">
     <div class="bc-box wide" id="stockTakeBody" style="max-width:640px;"></div>
@@ -1310,6 +1477,8 @@ td.mono { color: #3a4470; }
 
 <!-- Filled and printed by printLabels() -->
 <div id="labelSheet"></div>
+<!-- Filled and printed by printSale() -->
+<div id="saleDoc"></div>
 
 <!-- ═══ SCAN SCREEN (opened via a QR code's link — item=<id> in the URL) ═══ -->
 <div id="scanScreen">
@@ -1673,8 +1842,9 @@ async function doLogout() {
     stock = []; logs = []; stockLoaded = false;
     filteredItemId = null; filteredItemName = null; filteredLogs = [];
     stockTake = null; stRestored = false; stSelectedId = null; // the count in progress stays saved in this browser, for next sign-in
-    document.getElementById('stockTakeScreen').style.display = 'none';
-    document.getElementById('stockTakeOverlay').classList.remove('open');
+    sale = sellNew(); sellRestored = false; sellSuggest = []; salesRows = []; hasSalesDb = true; hasSellCol = true; // so does a sale in progress
+    ['stockTakeScreen', 'sellScreen', 'salesScreen'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+    ['stockTakeOverlay', 'sellOverlay'].forEach(id => document.getElementById(id).classList.remove('open'));
     document.getElementById('appScreen').style.display  = 'none';
     document.getElementById('billingScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
@@ -1728,6 +1898,7 @@ async function checkLocationColumn() {
     const { error } = await sbClient.from('stock').select('location').limit(1);
     hasLocationCol = !(error && /location/i.test(error.message));
     document.getElementById('dbWarn').style.display = hasLocationCol ? 'none' : 'block';
+    checkSalesDb(); // is the selling set-up (migration-sales.sql) in place too?
 }
 
 // A quantity like 0.5 (half a roll) is sent as it is. If that table's qty column only
@@ -1763,6 +1934,7 @@ async function saveData() {
     const stockRows = stock.map(i => {
         const row = { ...i, owner_id: ownerId, user_id: currentUser.id };
         if (!hasLocationCol) delete row.location;
+        if (!hasSellCol) delete row.sell_price;
         return row;
     });
     await sbClient.from('stock').delete().eq('owner_id', ownerId);
@@ -1789,6 +1961,10 @@ async function addItem() {
         cost: Number(document.getElementById('cost').value)
     };
     if (hasLocationCol) item.location = document.getElementById('location').value.trim() || null;
+    if (hasSellCol) {
+        const sp = document.getElementById('sellPrice').value.trim();
+        item.sell_price = sp === '' || !isFinite(Number(sp)) || Number(sp) < 0 ? null : Math.round(Number(sp) * 100) / 100;
+    }
     if (!item.name || !item.sku) { alert('Please enter Item Name and Product Code'); return; }
     // Scanning looks a part up by product code, so two parts sharing one
     // would make every scan of it ambiguous.
@@ -1816,6 +1992,7 @@ async function addItem() {
     document.getElementById('location').value = '';
     document.getElementById('qty').value  = '0';
     document.getElementById('cost').value = '0';
+    document.getElementById('sellPrice').value = '';
 }
 
 async function adjust(id, change) {
@@ -1889,6 +2066,7 @@ function render() {
     document.getElementById('totalQty').textContent    = (+stock.reduce((t, i) => t + Number(i.qty), 0).toFixed(2)).toLocaleString('en-GB');
     document.getElementById('stockValue').textContent  = '£' + (+stock.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     document.getElementById('lowStock').textContent    = stock.filter(i => i.qty <= 5).length;
+    renderSellCard();
     renderStockTakeCard();
 }
 
@@ -1917,7 +2095,7 @@ function renderStock() {
         : ` — ${list.length} of ${stock.length} parts`;
 
     if (!list.length) {
-        sb.innerHTML = `<tr><td colspan="7"><div class="empty-state">${stock.length
+        sb.innerHTML = `<tr><td colspan="8"><div class="empty-state">${stock.length
             ? 'No items match “' + escapeHtml(stockSearch.trim()) + '”.'
             : 'No stock items yet — add one above, or import your Excel list.'}</div></td></tr>`;
         return;
@@ -1933,6 +2111,8 @@ function renderStock() {
                 onclick="event.stopPropagation()" onchange="updateLocation('${item.id}', this.value)" onkeydown="if(event.key==='Enter')this.blur()"></td>
             <td><span class="qty-badge${item.qty <= 5 ? ' low' : ''}">${item.qty}</span></td>
             <td class="mono">£${Number(item.cost).toFixed(2)}</td>
+            <td><input class="price-cell" type="number" step="0.01" min="0" inputmode="decimal" value="${item.sell_price === null || item.sell_price === undefined ? '' : item.sell_price}" placeholder="Add price" autocomplete="off"
+                onclick="event.stopPropagation()" onchange="updateSellPrice('${item.id}', this.value)" onkeydown="if(event.key==='Enter')this.blur()"></td>
             <td class="mono">£${(item.qty * item.cost).toFixed(2)}</td>
             <td>
                 <div class="action-btns">
@@ -1944,7 +2124,7 @@ function renderStock() {
             </td>
         </tr>`).join('')
         + (list.length > shown.length
-            ? `<tr><td colspan="7"><div class="empty-state">Showing the first ${shown.length} of ${list.length} — type in the search box to narrow it down.</div></td></tr>`
+            ? `<tr><td colspan="8"><div class="empty-state">Showing the first ${shown.length} of ${list.length} — type in the search box to narrow it down.</div></td></tr>`
             : '');
 }
 
@@ -2162,8 +2342,9 @@ function printLabels() {
 }
 
 window.addEventListener('afterprint', () => {
-    document.body.classList.remove('printing-labels');
+    document.body.classList.remove('printing-labels', 'printing-sale');
     document.getElementById('labelSheet').innerHTML = '';
+    document.getElementById('saleDoc').innerHTML = '';
 });
 
 // ═══ SCANNING ═══
@@ -2380,11 +2561,12 @@ function guessColumns(headers) {
         location: [/loc/i, /\b(bin|shelf|rack|aisle|bay|position)\b/i],
         name:     [/desc/i, /^(product\s*|item\s*|part\s*)?name$/i, /title/i, /^(product|item|part)$/i, /\bname\b/i], // last: "Name of item"
         qty:      [/^(qty|quantity)\b/i, /on\s*hand|in\s*stock|stock\s*level|^stock$/i, /qty|quantity/i],
+        sell:     [/sell/i, /retail|rrp/i, /list\s*price/i], // only an explicit selling-price heading — never "Unit Price"
         cost:     [/unit\s*(price|cost)/i, /cost/i, /price/i] // "Unit Price" before a "Price (£)" that is really the row total
     };
-    const map = { sku: -1, name: -1, qty: -1, cost: -1, location: -1 };
+    const map = { sku: -1, name: -1, qty: -1, cost: -1, location: -1, sell: -1 };
     const used = new Set();
-    for (const key of ['sku', 'location', 'name', 'qty', 'cost']) {
+    for (const key of ['sku', 'location', 'name', 'qty', 'sell', 'cost']) {
         search: for (const re of rules[key]) {
             for (let i = 0; i < headers.length; i++) {
                 if (!used.has(i) && re.test(headers[i])) { map[key] = i; used.add(i); break search; }
@@ -2491,7 +2673,9 @@ function computeImportPlan() {
             else cost = Math.round(Math.max(0, costN) * 100) / 100;
         }
 
-        const rec = { sku: code, name, location: cellStr(get('location')), qty, cost, rowNo };
+        const sellN = numOf(get('sell'));
+        const sell = sellN === null || isNaN(sellN) ? null : Math.round(Math.max(0, sellN) * 100) / 100;
+        const rec = { sku: code, name, location: cellStr(get('location')), qty, cost, sell, rowNo };
         const valueQty  = existing ? (importState.updateQty && qty !== null ? qty : existing.qty) : (qty || 0);
         const valueCost = cost !== null ? cost : (existing ? Number(existing.cost) : 0);
         plan.value += valueQty * valueCost;
@@ -2530,7 +2714,7 @@ function renderImportMapping() {
             plan.skipped.slice(0, 8).map(x => `row ${x.rowNo}: ${escapeHtml(x.label)} — ${x.why}`).join('<br>')
         }${plan.skipped.length > 8 ? `<br>…and ${plan.skipped.length - 8} more` : ''}</div>` : ''}`;
 
-    const cols = [['sku', 'Product code'], ['name', 'Name'], ['location', 'Location'], ['qty', 'Qty'], ['cost', 'Unit cost']].filter(([k]) => s.map[k] >= 0);
+    const cols = [['sku', 'Product code'], ['name', 'Name'], ['location', 'Location'], ['qty', 'Qty'], ['cost', 'Unit cost'], ['sell', 'Sell price']].filter(([k]) => s.map[k] >= 0);
     const preview = cols.length ? `<div class="table-scroll"><table class="imp-preview"><thead><tr>${cols.map(([, l]) => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
         s.preview.map(r => `<tr>${cols.map(([k]) => `<td>${escapeHtml(cellStr(r[s.map[k]]))}</td>`).join('')}</tr>`).join('')
     }</tbody></table></div>` : '';
@@ -2543,6 +2727,7 @@ function renderImportMapping() {
         ${field('location', 'Location')}
         ${field('qty', 'Quantity')}
         ${field('cost', 'Unit cost (£)')}
+        ${field('sell', 'Selling price (£ ex VAT)')}
         <label class="imp-check"><input type="checkbox" ${s.autoCodes ? 'checked' : ''} onchange="importState.autoCodes = this.checked; renderImportMapping()">
             <span>Rows with no product code: still import them, giving each an automatic code (NEW-0001, NEW-0002…). Untick to skip them.</span></label>
         ${s.map.qty >= 0 ? `<label class="imp-check"><input type="checkbox" ${s.updateQty ? 'checked' : ''} onchange="importState.updateQty = this.checked; renderImportMapping()">
@@ -2580,6 +2765,7 @@ async function runImport() {
             const row = { id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id,
                 name: rec.name || rec.sku, sku: rec.sku, qty: rec.qty || 0, cost: rec.cost || 0 };
             if (hasLocationCol) row.location = rec.location || null;
+            if (hasSellCol && rec.sell !== null) row.sell_price = rec.sell;
             return row;
         });
         for (let i = 0; i < newRows.length; i += 500) {
@@ -2597,6 +2783,7 @@ async function runImport() {
             if (rec.name) row.name = rec.name;
             if (rec.cost !== null) row.cost = rec.cost;
             if (hasLocationCol && rec.location) row.location = rec.location;
+            if (hasSellCol && rec.sell !== null) row.sell_price = rec.sell;
             if (s.updateQty && rec.qty !== null && rec.qty !== ex.qty) {
                 changeLogs.push(logRow(row.name, rec.qty > ex.qty ? 'IN' : 'OUT', Math.abs(rec.qty - ex.qty)));
                 row.qty = rec.qty;
@@ -2704,6 +2891,557 @@ async function exportExcel() {
     } catch (e) {
         alert('Could not make the Excel file: ' + (e && e.message ? e.message : e));
     }
+}
+
+// ═══ SELLING (counter sales) ═══
+// Scan or search a part, it goes in the basket at its selling price (change it on the line if
+// you need to), pick cash sale or account customer, Complete sale. That records the sale, takes
+// the parts out of stock, writes the Movement Log and can print a receipt. Every sale is kept
+// (migration-sales.sql) so it can be reprinted, voided, or exported for Sage 50.
+//
+// Prices are held EXCLUDING VAT and the VAT is added at the foot of the sale (20% or 0%).
+// A mistake is never deleted: it is VOIDED, which puts the stock back and keeps the record.
+
+let hasSalesDb = true;   // false until migration-sales.sql has been run — see checkSalesDb()
+let hasSellCol = true;   // stock.sell_price
+let sale = sellNew();    // the basket being built
+let selling = false;
+let sellRestored = false;
+let sellSuggest = [];
+let salesRange = 'today';
+let salesRows = [];
+
+const sellR2 = n => Math.round(n * 100 + 1e-7) / 100;
+const sellMoney = n => (n < 0 ? '−' : '') + '£' + Math.abs(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const sellKey = k => 'pdsc_' + k + '_v1_' + ownerId;
+const sellIsOpen = () => document.getElementById('sellScreen').style.display === 'block';
+const salesIsOpen = () => document.getElementById('salesScreen').style.display === 'block';
+const sellFocus = () => { if (window.matchMedia('(pointer: fine)').matches) document.getElementById('sellScan').focus(); };
+const sellItem = id => stock.find(i => i.id === id);
+const SALE_SETTINGS_DEFAULT = { company: 'PD Stevens & Sons Ltd', nominal: '4000', cashRef: 'CASH', taxStd: 'T1', taxZero: 'T0' };
+
+function sellNew() { return { lines: [], kind: 'cash', customer: '', accountRef: '', payment: 'cash', reference: '', vat: 20 }; }
+
+function saleSettings() {
+    try { return { ...SALE_SETTINGS_DEFAULT, ...JSON.parse(localStorage.getItem(sellKey('salesettings')) || '{}') }; } catch (e) { return { ...SALE_SETTINGS_DEFAULT }; }
+}
+
+// The basket in progress is kept in this browser, so a refresh or a sleeping phone doesn't lose it.
+function sellSaveDraft() {
+    try { sale.lines.length || sale.customer ? localStorage.setItem(sellKey('saledraft'), JSON.stringify(sale)) : localStorage.removeItem(sellKey('saledraft')); } catch (e) { /* private window */ }
+}
+function sellRestoreDraft() {
+    if (sellRestored || !ownerId) return;
+    sellRestored = true;
+    try {
+        const d = JSON.parse(localStorage.getItem(sellKey('saledraft')) || 'null');
+        if (d && Array.isArray(d.lines)) sale = { ...sellNew(), ...d };
+    } catch (e) { /* ignore a damaged draft */ }
+}
+
+// ── is the database ready for selling?
+async function checkSalesDb() {
+    const missing = e => e && /sell_price|sc_sales|schema cache|does not exist|relation/i.test(e.message || '');
+    const [a, b] = await Promise.all([sbClient.from('stock').select('sell_price').limit(1), sbClient.from('sc_sales').select('id').limit(1)]);
+    hasSellCol = !missing(a.error);
+    hasSalesDb = !missing(b.error);
+    render();
+}
+
+// ── the dashboard card
+function renderSellCard() {
+    const blurb = document.getElementById('sellBlurb');
+    if (!blurb) return;
+    sellRestoreDraft();
+    const ready = hasSalesDb && hasSellCol;
+    const n = sale.lines.length;
+    blurb.innerHTML = !ready
+        ? 'One-off set-up needed before you can sell: run <code>migration-sales.sql</code> in Supabase (SQL Editor), then refresh this page.'
+        : n ? `A sale is in progress: ${n} line${n === 1 ? '' : 's'} in the basket.`
+        : 'Scan or search the parts, set the price, take the payment. Stock goes down, the sale is kept, and you can print a receipt.';
+    document.getElementById('sellStartBtn').disabled = !ready;
+    document.getElementById('sellStartBtn').textContent = n ? 'Continue the sale' : 'New sale';
+    document.getElementById('salesListBtn').disabled = !ready;
+}
+
+// ── opening / leaving
+function openSell() {
+    if (!hasSalesDb || !hasSellCol) { alert('Selling needs a one-off database step first: run migration-sales.sql in Supabase (SQL Editor), then refresh this page.'); return; }
+    sellRestoreDraft();
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('salesScreen').style.display = 'none';
+    document.getElementById('sellScreen').style.display = 'block';
+    document.getElementById('sellMsg').textContent = '';
+    window.scrollTo(0, 0);
+    renderSell();
+    sellFocus();
+}
+function leaveSell() {
+    document.getElementById('sellScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    render();
+    focusScanBox();
+}
+
+// ── finding parts: scan box (exact code) or type to search by name / code / location
+function sellMsg(text, isError) { const el = document.getElementById('sellMsg'); el.textContent = text; el.className = 'scanbar-msg' + (isError ? ' error' : ''); }
+
+function sellSearch(q) {
+    q = q.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return stock.filter(i => [i.name, i.sku, i.location].some(v => String(v || '').toLowerCase().includes(q)))
+        .sort((a, b) => (String(a.sku).toLowerCase().startsWith(q) ? 0 : 1) - (String(b.sku).toLowerCase().startsWith(q) ? 0 : 1) || collator.compare(a.name, b.name))
+        .slice(0, 8);
+}
+
+function sellTyped(value) {
+    sellSuggest = findBySku(value) ? [] : sellSearch(value);
+    renderSellBasket();
+}
+
+function sellScanEnter(raw) {
+    const code = String(raw || '').trim();
+    if (!code) return;
+    const exact = findBySku(code);
+    if (exact) { sellAdd(exact.id); return; }
+    const hits = sellSearch(code);
+    if (hits.length === 1) { sellAdd(hits[0].id); return; }
+    sellMsg(hits.length ? 'Several parts match — pick one from the list below.' : `Nothing in stock matching “${code}”.`, true);
+}
+
+document.getElementById('sellScan').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = e.target.value;
+    sellScanEnter(code);
+});
+document.getElementById('sellScan').addEventListener('input', e => sellTyped(e.target.value));
+
+function sellAdd(id) {
+    const item = sellItem(id);
+    if (!item) return;
+    const line = sale.lines.find(l => l.id === id);
+    if (line) line.qty = sellR2(line.qty + 1);
+    else sale.lines.push({ id, qty: 1, price: item.sell_price !== null && item.sell_price !== undefined && item.sell_price !== '' ? Number(item.sell_price) : null });
+    const box = document.getElementById('sellScan');
+    box.value = ''; sellSuggest = [];
+    sellMsg(`Added: ${item.name}${line ? ' (now ' + stQty(line.qty) + ')' : ''}`);
+    sellSaveDraft();
+    renderSell();
+    sellFocus();
+}
+
+// ── the basket
+function sellTotals() {
+    const lines = sale.lines.map(l => ({ l, item: sellItem(l.id) })).filter(x => x.item)
+        .map(x => ({ ...x, net: x.l.price === null || x.l.price === undefined ? 0 : sellR2(x.l.qty * x.l.price) }));
+    const net = sellR2(lines.reduce((t, x) => t + x.net, 0));
+    const vat = sellR2(net * sale.vat / 100);
+    return { lines, net, vat, gross: sellR2(net + vat) };
+}
+
+function sellProblem() {
+    const t = sellTotals();
+    if (!t.lines.length) return 'Add a part to the sale first.';
+    if (t.lines.some(x => !(x.l.qty > 0))) return 'Every line needs a quantity above 0.';
+    if (t.lines.some(x => x.l.price === null || x.l.price === undefined || !(x.l.price >= 0))) return 'Every line needs a price (the cell is red).';
+    if (sale.kind === 'account' && !sale.customer.trim()) return 'Type the customer’s name.';
+    return '';
+}
+
+function sellSetQty(id, v) {
+    const line = sale.lines.find(l => l.id === id); if (!line) return;
+    const n = Number(v);
+    line.qty = isFinite(n) && n >= 0 ? sellR2(n) : line.qty;
+    sellSaveDraft(); renderSell();
+}
+function sellNudge(id, d) { const line = sale.lines.find(l => l.id === id); if (line) sellSetQty(id, Math.max(0, line.qty + d)); }
+function sellSetPrice(id, v) {
+    const line = sale.lines.find(l => l.id === id); if (!line) return;
+    const n = v.trim() === '' ? null : Number(v);
+    line.price = n !== null && isFinite(n) && n >= 0 ? sellR2(n) : null;
+    sellSaveDraft(); renderSell();
+}
+function sellRemove(id) { sale.lines = sale.lines.filter(l => l.id !== id); sellSaveDraft(); renderSell(); }
+function sellClear() {
+    if (sale.lines.length && !confirm('Clear the basket and start again?')) return;
+    sale = sellNew(); sellSaveDraft(); renderSell(); sellFocus();
+}
+
+function renderSell() {
+    renderSellBasket();
+    renderSellSummary();
+}
+
+function renderSellBasket() {
+    const t = sellTotals();
+    const sugg = sellSuggest.length ? `<div class="sell-sugg"><div class="sell-sugg-h">Matches — click one to add it</div>${sellSuggest.map(i => `
+        <button type="button" class="sell-sugg-row" onclick="sellAdd('${i.id}')">
+            <span><strong>${escapeHtml(i.name)}</strong><br><span class="sl-sub">${escapeHtml(i.sku)}${i.location ? ' · ' + escapeHtml(i.location) : ''}</span></span>
+            <span class="sl-sub" style="text-align:right">${i.sell_price !== null && i.sell_price !== undefined && i.sell_price !== '' ? sellMoney(Number(i.sell_price)) + '<br>' : ''}${stQty(i.qty)} in stock</span>
+        </button>`).join('')}</div>` : '';
+    const rows = t.lines.map(({ l, item, net }) => {
+        const over = l.qty > Number(item.qty);
+        return `<tr>
+            <td><div class="sl-name">${escapeHtml(item.name)}</div>
+                <div class="sl-sub">${escapeHtml(item.sku)}${item.location ? ' · ' + escapeHtml(item.location) : ''} · ${stQty(item.qty)} in stock</div>
+                ${over ? `<div class="sl-warn">Only ${stQty(item.qty)} in stock</div>` : ''}</td>
+            <td><div class="qty-ctl"><button type="button" onclick="sellNudge('${item.id}', -1)">−</button>
+                <input type="number" step="any" min="0" value="${l.qty}" onchange="sellSetQty('${item.id}', this.value)">
+                <button type="button" onclick="sellNudge('${item.id}', 1)">+</button></div></td>
+            <td><input class="price-in${l.price === null || l.price === undefined ? ' missing' : ''}" type="number" step="0.01" min="0" inputmode="decimal" placeholder="£ price" value="${l.price === null || l.price === undefined ? '' : l.price}" onchange="sellSetPrice('${item.id}', this.value)"></td>
+            <td class="mono">${sellMoney(net)}</td>
+            <td><button class="btn-icon del" title="Remove" onclick="sellRemove('${item.id}')">✕</button></td></tr>`;
+    }).join('');
+    document.getElementById('sellBasket').innerHTML = sugg + (t.lines.length
+        ? `<div class="table-scroll"><table class="sell-table"><thead><tr><th>Part</th><th>Qty</th><th>Price (ex VAT)</th><th>Total</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : `<div class="st-empty"><svg class="ico solid" viewBox="0 0 24 24"><rect x="3" y="5" width="2" height="14" rx=".5"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="3" height="14"/><rect x="15" y="5" width="1" height="14"/><rect x="18" y="5" width="3" height="14" rx=".5"/></svg>
+            <div><strong>Scan a part, or type a name or code above.</strong><br>It goes in the basket at its selling price.</div></div>`);
+}
+
+function sellSetKind(kind) {
+    sale.kind = kind;
+    if (kind === 'cash' && sale.payment === 'account') sale.payment = 'cash';
+    if (kind === 'account') sale.payment = 'account';
+    sellSaveDraft(); renderSellSummary();
+}
+function sellSetPayment(p) { sale.payment = p; sellSaveDraft(); renderSellSummary(); }
+function sellSetVat(v) { sale.vat = Number(v); sellSaveDraft(); renderSell(); }
+function sellText(field, v) { sale[field] = v; sellSaveDraft(); sellRefreshButton(); }
+
+function sellRefreshButton() {
+    const t = sellTotals(), prob = sellProblem();
+    const btn = document.getElementById('sellCompleteBtn'); if (!btn) return;
+    btn.disabled = !!prob || selling;
+    btn.textContent = selling ? 'Saving…' : `Complete sale — ${sellMoney(t.gross)}`;
+    document.getElementById('sellProblem').textContent = t.lines.length ? prob : '';
+}
+
+function renderSellSummary() {
+    const t = sellTotals();
+    const tab = (cur, val, label, fn, dis) => `<button class="auth-tab${cur === val ? ' active' : ''}" ${dis ? 'disabled' : ''} onclick="${fn}('${val}')">${label}</button>`;
+    document.getElementById('sellSummary').innerHTML = `
+        <h3>Customer &amp; payment</h3>
+        <div class="auth-tabs" style="margin-bottom:14px;">${tab(sale.kind, 'cash', 'Cash sale', 'sellSetKind')}${tab(sale.kind, 'account', 'Account customer', 'sellSetKind')}</div>
+        ${sale.kind === 'account' ? `
+            <div class="form-field" style="margin-bottom:10px"><label>Customer name</label><input value="${escapeHtml(sale.customer)}" placeholder="e.g. Smith Plumbing" autocomplete="off" oninput="sellText('customer', this.value)"></div>
+            <div class="form-field" style="margin-bottom:10px"><label>Account code (for Sage — optional)</label><input value="${escapeHtml(sale.accountRef)}" placeholder="e.g. SMI001" autocomplete="off" oninput="sellText('accountRef', this.value)"></div>` : ''}
+        <div class="form-field" style="margin-bottom:10px"><label>Paid by</label>
+            <div class="auth-tabs" style="margin:0">${tab(sale.payment, 'cash', 'Cash', 'sellSetPayment')}${tab(sale.payment, 'card', 'Card', 'sellSetPayment')}${tab(sale.payment, 'account', 'On account', 'sellSetPayment', sale.kind !== 'account')}</div></div>
+        <div class="form-field" style="margin-bottom:10px"><label>Their order number / note (optional)</label><input value="${escapeHtml(sale.reference)}" autocomplete="off" oninput="sellText('reference', this.value)"></div>
+        <div class="form-field" style="margin-bottom:14px"><label>VAT</label>
+            <select class="imp-select" onchange="sellSetVat(this.value)"><option value="20"${sale.vat === 20 ? ' selected' : ''}>20% — standard rate</option><option value="0"${sale.vat === 0 ? ' selected' : ''}>0% — no VAT</option></select></div>
+        <div class="sell-totals">
+            <div><span>Net</span><span>${sellMoney(t.net)}</span></div>
+            <div><span>VAT (${sale.vat}%)</span><span>${sellMoney(t.vat)}</span></div>
+            <div class="sell-gross"><span>Total</span><span>${sellMoney(t.gross)}</span></div>
+        </div>
+        <button class="btn btn-primary sell-complete" id="sellCompleteBtn" onclick="completeSale()"></button>
+        <div class="sl-warn" id="sellProblem" style="margin-top:8px"></div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="sellClear()">Clear the basket</button>`;
+    sellRefreshButton();
+}
+
+// ── completing the sale
+async function sellWriteLogs(entries, plainAction) {
+    // entries: { item, qty, dir }  — action SALE / VOID, or plain OUT / IN if the database only allows those
+    const now = new Date().toISOString();
+    const rows = plain => entries.map(e => ({ id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id, date: now, item: e.item, action: plain ? e.dir : e.action, qty: e.qty }));
+    try { await insertChunks('stock_logs', rows(false)); }
+    catch (e) { if (/check|constraint|violat/i.test(e.message)) await insertChunks('stock_logs', rows(true)); else throw e; }
+}
+
+// Fresh quantities straight from the database, so a sale made on another till a moment ago isn't overwritten.
+async function sellFreshQty(ids) {
+    const { data, error } = await sbClient.from('stock').select('id, qty').eq('owner_id', ownerId).in('id', ids);
+    if (error) throw new Error(error.message);
+    return new Map((data || []).map(r => [r.id, Number(r.qty)]));
+}
+
+async function sellSetStock(changes) { // [{ id, qty }] — in small batches, each part on its own
+    const failed = [];
+    for (let i = 0; i < changes.length; i += 8) {
+        await Promise.all(changes.slice(i, i + 8).map(async c => {
+            try { await sendChunk('stock', [{ qty: c.qty }], x => sbClient.from('stock').update({ qty: x[0].qty }).eq('id', c.id).eq('owner_id', ownerId)); }
+            catch (e) { failed.push({ id: c.id, why: e.message }); }
+        }));
+    }
+    return failed;
+}
+
+async function completeSale() {
+    if (selling || sellProblem()) return;
+    const t = sellTotals();
+    const short = t.lines.filter(x => x.l.qty > Number(x.item.qty));
+    if (short.length && !confirm(`${short.length} line${short.length === 1 ? ' is' : 's are'} for more than the system says is in stock (${short.map(x => x.item.name).slice(0, 3).join(', ')}${short.length > 3 ? '…' : ''}).\n\nSell anyway? Stock will stop at 0.`)) return;
+
+    selling = true; sellRefreshButton();
+    try {
+        const now = new Date().toISOString();
+        const lineRows = t.lines.map(x => ({ id: crypto.randomUUID(), owner_id: ownerId, stock_id: x.item.id, sku: x.item.sku, name: x.item.name, qty: x.l.qty, unit_price: x.l.price, line_net: x.net }));
+
+        // 1. the sale itself, with the next sale number (retried if two tills pick the same one)
+        let header = null;
+        for (let attempt = 0; attempt < 5 && !header; attempt++) {
+            const { data: last, error: e1 } = await sbClient.from('sc_sales').select('sale_no').eq('owner_id', ownerId).order('sale_no', { ascending: false }).limit(1);
+            if (e1) throw new Error(e1.message);
+            const row = {
+                id: crypto.randomUUID(), owner_id: ownerId, user_id: currentUser.id, sale_no: (last && last[0] ? Number(last[0].sale_no) : 0) + 1, sold_at: now,
+                customer_name: sale.kind === 'account' ? sale.customer.trim() : null, account_ref: sale.kind === 'account' ? (sale.accountRef.trim() || null) : null,
+                payment: sale.payment, reference: sale.reference.trim() || null, vat_rate: sale.vat, net: t.net, vat: t.vat, gross: t.gross, status: 'completed'
+            };
+            const { error } = await sbClient.from('sc_sales').insert(row);
+            if (!error) header = row;
+            else if (error.code !== '23505' && !/duplicate|unique/i.test(error.message)) throw new Error(error.message);
+        }
+        if (!header) throw new Error('Could not get a free sale number — please try again.');
+
+        // 2. what was sold. If this fails the sale is voided straight away, with stock untouched.
+        lineRows.forEach(r => { r.sale_id = header.id; });
+        const { error: lineErr } = await sbClient.from('sc_sale_lines').insert(lineRows);
+        if (lineErr) {
+            await sbClient.from('sc_sales').update({ status: 'voided', voided_at: now, reference: 'NOT COMPLETED — could not save the lines' }).eq('id', header.id);
+            throw new Error(`The sale could not be saved (${lineErr.message}). Nothing was sold and stock is unchanged.`);
+        }
+
+        // 3. take the parts out of stock
+        const fresh = await sellFreshQty(lineRows.map(r => r.stock_id));
+        const changes = lineRows.filter(r => fresh.has(r.stock_id)).map(r => ({ id: r.stock_id, qty: Math.max(0, sellR2(fresh.get(r.stock_id) - r.qty)) }));
+        const failed = await sellSetStock(changes);
+        const bad = new Set(failed.map(f => f.id));
+        const okRows = lineRows.filter(r => fresh.has(r.stock_id) && !bad.has(r.stock_id));
+
+        // 4. Movement Log
+        let logNote = '';
+        try { await sellWriteLogs(okRows.map(r => ({ item: r.name, qty: r.qty, action: 'SALE', dir: 'OUT' }))); }
+        catch (e) { logNote = 'The Movement Log could not be written: ' + e.message; }
+
+        // 5. what the screen shows now
+        changes.forEach(c => { if (!bad.has(c.id)) { const it = sellItem(c.id); if (it) it.qty = c.qty; } });
+        const problems = [
+            ...lineRows.filter(r => !fresh.has(r.stock_id)).map(r => `${r.name} is no longer in Stock Control`),
+            ...failed.map(f => `${(sellItem(f.id) || {}).name || 'a part'}: ${f.why}`)
+        ];
+        const done = { ...header, lines: lineRows };
+        sale = sellNew(); sellSaveDraft();
+        render();
+        renderSell();
+        sellShowDone(done, problems, logNote);
+    } catch (e) {
+        alert('The sale was not completed: ' + e.message);
+    } finally {
+        selling = false;
+        sellRefreshButton();
+    }
+}
+
+function sellShowDone(s, problems, logNote) {
+    document.getElementById('sellBody').innerHTML = `
+        <h3>Sale ${s.sale_no} complete</h3>
+        <div class="imp-summary" style="font-size:15px">Total <strong>${sellMoney(Number(s.gross))}</strong> (${sellMoney(Number(s.net))} + ${sellMoney(Number(s.vat))} VAT) — paid ${s.payment === 'account' ? 'on account' : 'by ' + s.payment}${s.customer_name ? '<br>Customer: ' + escapeHtml(s.customer_name) : ''}</div>
+        ${problems.length ? `<div class="imp-summary bad">Stock could not be reduced for:<br>${problems.map(escapeHtml).join('<br>')}<br>The sale is saved — correct those quantities by hand.</div>` : ''}
+        ${logNote ? `<p class="imp-note">${escapeHtml(logNote)}</p>` : ''}
+        <div class="imp-actions">
+            <button class="btn btn-ghost" onclick="printSale('${s.id}')">Print receipt</button>
+            <button class="btn btn-primary" onclick="closeSellDialog(); sellFocus();">New sale</button>
+        </div>`;
+    sellRememberSale(s);
+    document.getElementById('sellOverlay').classList.add('open');
+}
+
+const sellSalesCache = new Map(); // sale id -> sale with its lines, for printing
+function sellRememberSale(s) { sellSalesCache.set(s.id, s); }
+function closeSellDialog() { document.getElementById('sellOverlay').classList.remove('open'); }
+
+// ── printing a receipt
+async function printSale(id) {
+    let s = sellSalesCache.get(id);
+    if (!s || !s.lines) {
+        const head = salesRows.find(r => r.id === id) || s;
+        const { data, error } = await sbClient.from('sc_sale_lines').select('*').eq('sale_id', id).order('name', { ascending: true });
+        if (error || !head) { alert('Could not load that sale to print it.'); return; }
+        s = { ...head, lines: data || [] };
+        sellRememberSale(s);
+    }
+    const set = saleSettings();
+    const company = String(set.company || '').split('\n');
+    const d = new Date(s.sold_at);
+    document.getElementById('saleDoc').innerHTML = `
+        <div class="sd-head"><div class="sd-co">${escapeHtml(company[0] || '')}</div>${company.slice(1).map(l => `<div>${escapeHtml(l)}</div>`).join('')}</div>
+        <h2>Sales receipt${s.status === 'voided' ? ' — VOIDED' : ''}</h2>
+        <div class="sd-meta"><div><strong>No.</strong> ${s.sale_no}</div><div><strong>Date</strong> ${d.toLocaleDateString('en-GB')} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+            ${s.customer_name ? `<div><strong>Customer</strong> ${escapeHtml(s.customer_name)}${s.account_ref ? ' (' + escapeHtml(s.account_ref) + ')' : ''}</div>` : ''}
+            ${s.reference ? `<div><strong>Reference</strong> ${escapeHtml(s.reference)}</div>` : ''}</div>
+        <table><thead><tr><th>Part</th><th>Code</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Net</th></tr></thead><tbody>${
+            s.lines.map(l => `<tr><td>${escapeHtml(l.name)}</td><td>${escapeHtml(l.sku)}</td><td class="r">${stQty(l.qty)}</td><td class="r">${sellMoney(Number(l.unit_price))}</td><td class="r">${sellMoney(Number(l.line_net))}</td></tr>`).join('')}</tbody></table>
+        <div class="sd-tot"><div><span>Net</span><span>${sellMoney(Number(s.net))}</span></div><div><span>VAT (${Number(s.vat_rate)}%)</span><span>${sellMoney(Number(s.vat))}</span></div><div class="g"><span>Total</span><span>${sellMoney(Number(s.gross))}</span></div></div>
+        <div class="sd-foot">Paid ${s.payment === 'account' ? 'on account' : 'by ' + s.payment}. Thank you for your custom.</div>`;
+    document.body.classList.add('printing-sale');
+    window.print();
+}
+
+// ── the Sales list
+function openSales() {
+    if (!hasSalesDb || !hasSellCol) { alert('Selling needs a one-off database step first: run migration-sales.sql in Supabase (SQL Editor), then refresh this page.'); return; }
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('sellScreen').style.display = 'none';
+    document.getElementById('salesScreen').style.display = 'block';
+    window.scrollTo(0, 0);
+    loadSales();
+}
+function leaveSales() {
+    document.getElementById('salesScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    render();
+}
+function salesSetRange(r) { salesRange = r; loadSales(); }
+
+function salesFrom() {
+    const d = new Date();
+    if (salesRange === 'today') { d.setHours(0, 0, 0, 0); return d; }
+    if (salesRange === 'week') { d.setDate(d.getDate() - 6); d.setHours(0, 0, 0, 0); return d; }
+    if (salesRange === 'month') { d.setDate(1); d.setHours(0, 0, 0, 0); return d; }
+    return null;
+}
+
+async function loadSales() {
+    document.getElementById('salesBody').innerHTML = '<tr><td colspan="8"><div class="empty-state">Loading…</div></td></tr>';
+    let q = sbClient.from('sc_sales').select('*').eq('owner_id', ownerId).order('sale_no', { ascending: false }).limit(500);
+    const from = salesFrom();
+    if (from) q = q.gte('sold_at', from.toISOString());
+    const { data, error } = await q;
+    if (error) { document.getElementById('salesBody').innerHTML = `<tr><td colspan="8"><div class="empty-state">Could not load the sales: ${escapeHtml(error.message)}</div></td></tr>`; return; }
+    salesRows = data || [];
+    renderSales();
+}
+
+function renderSales() {
+    ['today', 'week', 'month', 'all'].forEach(r => document.getElementById('salesTab-' + r).classList.toggle('active', salesRange === r));
+    const ok = salesRows.filter(s => s.status === 'completed');
+    const sum = (rows, f) => sellR2(rows.reduce((t, s) => t + Number(s[f]), 0));
+    const by = p => sum(ok.filter(s => s.payment === p), 'gross');
+    document.getElementById('salesStats').innerHTML = `
+        <div class="stat-card"><div class="stat-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M5 5h2l1.6 9h9l1.6-6.5H8"/><circle cx="10" cy="18.5" r="1.2"/><circle cx="17" cy="18.5" r="1.2"/></svg></div><div><div class="stat-label">Sales</div><div class="stat-value">${ok.length}</div></div></div>
+        <div class="stat-card value"><div class="stat-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M16.5 6.8a4.3 4.3 0 0 0-8 2.2v3.2m0 0H6.5m2 0v3.6c0 1.6-.9 2.8-2.3 3.4h11.3M8.5 12.2h6"/></svg></div><div><div class="stat-label">Total (inc VAT)</div><div class="stat-value">${sellMoney(sum(ok, 'gross'))}</div></div></div>
+        <div class="stat-card qty"><div class="stat-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3.5l8.5 4.7-8.5 4.7-8.5-4.7z"/><path d="M3.5 12.2l8.5 4.7 8.5-4.7"/></svg></div><div><div class="stat-label">VAT collected</div><div class="stat-value">${sellMoney(sum(ok, 'vat'))}</div></div></div>
+        <div class="stat-card"><div class="stat-ico"><svg class="ico" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M3.5 10h17"/></svg></div><div><div class="stat-label">Cash · Card · Account</div><div class="stat-value" style="font-size:15px;line-height:1.4">${sellMoney(by('cash'))} · ${sellMoney(by('card'))} · ${sellMoney(by('account'))}</div></div></div>`;
+    document.getElementById('salesBody').innerHTML = salesRows.length ? salesRows.map(s => {
+        const d = new Date(s.sold_at);
+        return `<tr style="cursor:pointer" onclick="openSaleDetail('${s.id}')">
+            <td class="mono"><strong>${s.sale_no}</strong></td>
+            <td>${d.toLocaleDateString('en-GB')} <span class="sl-sub">${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span></td>
+            <td>${escapeHtml(s.customer_name || 'Cash sale')}${s.reference ? `<div class="sl-sub">${escapeHtml(s.reference)}</div>` : ''}</td>
+            <td>${s.payment === 'account' ? 'On account' : s.payment === 'card' ? 'Card' : 'Cash'}</td>
+            <td class="mono">${sellMoney(Number(s.net))}</td><td class="mono">${sellMoney(Number(s.vat))}</td><td class="mono"><strong>${sellMoney(Number(s.gross))}</strong></td>
+            <td>${s.status === 'voided' ? '<span class="st-diff short">Voided</span>' : '<span class="st-diff ok">Done</span>'}</td></tr>`;
+    }).join('') : '<tr><td colspan="8"><div class="empty-state">No sales in this period yet.</div></td></tr>';
+}
+
+async function openSaleDetail(id) {
+    const head = salesRows.find(s => s.id === id); if (!head) return;
+    document.getElementById('sellBody').innerHTML = '<h3>Loading…</h3>';
+    document.getElementById('sellOverlay').classList.add('open');
+    const { data, error } = await sbClient.from('sc_sale_lines').select('*').eq('sale_id', id).order('name', { ascending: true });
+    if (error) { document.getElementById('sellBody').innerHTML = `<h3>Could not load the sale</h3><p class="imp-note">${escapeHtml(error.message)}</p><div class="imp-actions"><button class="btn btn-ghost" onclick="closeSellDialog()">Close</button></div>`; return; }
+    const s = { ...head, lines: data || [] };
+    sellRememberSale(s);
+    const d = new Date(s.sold_at);
+    document.getElementById('sellBody').innerHTML = `
+        <h3>Sale ${s.sale_no}${s.status === 'voided' ? ' — voided' : ''}</h3>
+        <p class="imp-note">${d.toLocaleDateString('en-GB')} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · ${escapeHtml(s.customer_name || 'Cash sale')}${s.account_ref ? ' (' + escapeHtml(s.account_ref) + ')' : ''} · paid ${s.payment === 'account' ? 'on account' : 'by ' + s.payment}${s.reference ? ' · ' + escapeHtml(s.reference) : ''}</p>
+        <div class="table-scroll"><table class="imp-preview"><thead><tr><th>Part</th><th>Qty</th><th>Price</th><th>Net</th></tr></thead><tbody>${
+            s.lines.map(l => `<tr><td>${escapeHtml(l.name)}<br><span class="sl-sub">${escapeHtml(l.sku)}</span></td><td>${stQty(l.qty)}</td><td>${sellMoney(Number(l.unit_price))}</td><td>${sellMoney(Number(l.line_net))}</td></tr>`).join('')}</tbody></table></div>
+        <div class="imp-summary">Net ${sellMoney(Number(s.net))} + VAT ${sellMoney(Number(s.vat))} = <strong>${sellMoney(Number(s.gross))}</strong></div>
+        <div class="imp-actions">
+            ${s.status === 'completed' ? `<button class="btn btn-danger" onclick="voidSale('${s.id}')">Void this sale…</button>` : ''}
+            <button class="btn btn-ghost" onclick="printSale('${s.id}')">Print receipt</button>
+            <button class="btn btn-primary" onclick="closeSellDialog()">Close</button>
+        </div>`;
+}
+
+// Voiding puts the stock back and keeps the record. The status change goes first and only one
+// till can win it, so pressing Void twice (or on two devices) can't put the stock back twice.
+async function voidSale(id) {
+    const s = sellSalesCache.get(id); if (!s) return;
+    if (!confirm(`Void sale ${s.sale_no}?\n\nThe parts go back into stock and the sale is marked as voided. This can't be undone.`)) return;
+    try {
+        const { data: won, error } = await sbClient.from('sc_sales').update({ status: 'voided', voided_at: new Date().toISOString() }).eq('id', id).eq('status', 'completed').select('id');
+        if (error) throw new Error(error.message);
+        if (!won || !won.length) { alert('That sale has already been voided.'); await loadSales(); closeSellDialog(); return; }
+        const ids = [...new Set(s.lines.map(l => l.stock_id).filter(Boolean))];
+        const fresh = ids.length ? await sellFreshQty(ids) : new Map();
+        const back = new Map();
+        s.lines.forEach(l => { if (l.stock_id && fresh.has(l.stock_id)) back.set(l.stock_id, (back.get(l.stock_id) ?? fresh.get(l.stock_id)) + Number(l.qty)); });
+        const failed = await sellSetStock([...back].map(([sid, qty]) => ({ id: sid, qty: sellR2(qty) })));
+        try { await sellWriteLogs(s.lines.filter(l => back.has(l.stock_id)).map(l => ({ item: l.name, qty: Number(l.qty), action: 'VOID', dir: 'IN' }))); } catch (e) { /* the sale is voided and stock restored; only the log line is missing */ }
+        await loadData();
+        await loadSales();
+        closeSellDialog();
+        if (failed.length || s.lines.some(l => !l.stock_id || !fresh.has(l.stock_id))) alert('The sale is voided, but not every part could be put back in stock (a part may have been deleted). Check the quantities.');
+    } catch (e) { alert('Could not void the sale: ' + e.message); }
+}
+
+// ── Sage 50 export
+// One line per sale (nets and VAT are all Sage needs — the parts stay in Stock Control). The
+// columns are the standard Sage 50 sales-invoice import layout; the account, nominal and tax
+// codes come from Sales settings. CHECK a first import against the template in the Sage folder.
+function csvCell(v) { return '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""') + '"'; }
+
+function exportSage() {
+    const set = saleSettings();
+    const ok = salesRows.filter(s => s.status === 'completed');
+    if (!ok.length) { alert('There are no sales in this period to export.'); return; }
+    const dmy = iso => { const d = new Date(iso); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
+    const head = ['Type', 'Account Reference', 'Nominal A/C Ref', 'Department', 'Date', 'Reference', 'Details', 'Net Amount', 'Tax Code', 'Tax Amount'];
+    const lines = ok.slice().sort((a, b) => a.sale_no - b.sale_no).map(s => [
+        'SI', s.payment === 'account' && s.account_ref ? s.account_ref : set.cashRef, set.nominal, 0, dmy(s.sold_at), 'S' + s.sale_no,
+        'Counter sale' + (s.customer_name ? ' - ' + s.customer_name : '') + (s.reference ? ' - ' + s.reference : ''),
+        Number(s.net).toFixed(2), Number(s.vat_rate) === 0 ? set.taxZero : set.taxStd, Number(s.vat).toFixed(2)
+    ]);
+    const csv = [head, ...lines].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'sage-sales-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
+// ── Sales settings (receipt heading, Sage codes) — kept in this browser
+function openSaleSettings() {
+    const set = saleSettings();
+    document.getElementById('sellBody').innerHTML = `
+        <h3>Sales settings</h3>
+        <p class="imp-note">These are kept on this computer or phone.</p>
+        <div class="form-field" style="margin-bottom:12px"><label>Printed at the top of a receipt (first line is the company name)</label>
+            <textarea id="ssCompany" class="imp-text" rows="4" placeholder="PD Stevens & Sons Ltd&#10;Address&#10;VAT no.">${escapeHtml(set.company)}</textarea></div>
+        <p class="imp-note" style="margin-bottom:6px"><strong>For the Sage 50 export</strong> — copy these from your Sage:</p>
+        <div class="imp-row"><label>Sales nominal code</label><input id="ssNominal" class="search-input" style="width:100%" value="${escapeHtml(set.nominal)}"></div>
+        <div class="imp-row"><label>Customer account for cash &amp; card sales</label><input id="ssCash" class="search-input" style="width:100%" value="${escapeHtml(set.cashRef)}"></div>
+        <div class="imp-row"><label>Tax code for 20% VAT</label><input id="ssStd" class="search-input" style="width:100%" value="${escapeHtml(set.taxStd)}"></div>
+        <div class="imp-row"><label>Tax code for 0% VAT</label><input id="ssZero" class="search-input" style="width:100%" value="${escapeHtml(set.taxZero)}"></div>
+        <div class="imp-actions"><button class="btn btn-ghost" onclick="closeSellDialog()">Cancel</button><button class="btn btn-primary" onclick="saveSaleSettings()">Save</button></div>`;
+    document.getElementById('sellOverlay').classList.add('open');
+}
+function saveSaleSettings() {
+    const v = id => document.getElementById(id).value.trim();
+    const set = { company: document.getElementById('ssCompany').value.trim() || SALE_SETTINGS_DEFAULT.company, nominal: v('ssNominal') || '4000', cashRef: v('ssCash') || 'CASH', taxStd: v('ssStd') || 'T1', taxZero: v('ssZero') || 'T0' };
+    try { localStorage.setItem(sellKey('salesettings'), JSON.stringify(set)); } catch (e) { alert('Could not save the settings in this browser.'); return; }
+    closeSellDialog();
+}
+
+// ── selling price of a part (the stock table and the Add Item form)
+async function updateSellPrice(id, value) {
+    const item = stock.find(i => i.id === id); if (!item) return;
+    const t = String(value).trim();
+    const n = t === '' ? null : Number(t);
+    if (n !== null && (!isFinite(n) || n < 0)) { alert('Type the selling price as a number, for example 4.50.'); renderStock(); return; }
+    const price = n === null ? null : sellR2(n);
+    if ((item.sell_price === undefined || item.sell_price === null ? null : Number(item.sell_price)) === price) return;
+    if (!hasSellCol) { alert('Selling prices can’t be saved yet — the one-off database step (migration-sales.sql) still needs running.'); renderStock(); return; }
+    const { error } = await sbClient.from('stock').update({ sell_price: price }).eq('id', id).eq('owner_id', ownerId);
+    if (error) { alert('Could not save the selling price: ' + error.message); renderStock(); return; }
+    item.sell_price = price;
+    if (sellIsOpen()) renderSell();
 }
 
 // ═══ STOCK TAKE ═══
@@ -2965,7 +3703,7 @@ document.getElementById('stScanBox').addEventListener('keydown', e => {
 });
 
 // The camera scanner is shared with the dashboard — a code it reads goes wherever you are.
-function onCameraCode(text) { if (stIsOpen()) stockTakeScan(text); else handleScannedCode(text); }
+function onCameraCode(text) { if (sellIsOpen()) sellScanEnter(text); else if (stIsOpen()) stockTakeScan(text); else handleScannedCode(text); }
 
 // ── the two lists: Counted / Still to count
 function stSetTab(tab) { stTab = tab; renderStLists(); }
