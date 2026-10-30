@@ -37,7 +37,7 @@ const PRODUCT_ID = 'stock-control';
 // Stamped onto the QR code's link (&v=…). A phone may keep a saved copy of this page for 10 minutes
 // without checking for a newer one; a link it hasn't seen before is always fetched fresh, so scanning
 // a QR code opens the newest version. Change it (MMDD + a letter) each time an update is published.
-const APP_VERSION = '1030b';
+const APP_VERSION = '1030c';
 </script>
 
 <style>
@@ -645,6 +645,9 @@ td.mono { color: #3a4470; }
 .bc-box .bc-loc { font-size: 13px; font-weight: 600; color: var(--accent2); margin-bottom: 14px; min-height: 18px; }
 .bc-wrap { display: inline-block; max-width: 100%; padding: 10px; background: #fff; border: 1px solid var(--border); border-radius: 14px; margin-bottom: 18px; }
 .bc-wrap svg { display: block; max-width: 100%; height: auto; }
+.bc-type { text-align: left; margin-bottom: 12px; }
+.bc-type label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.bc-type-mini { width: auto; padding: 8px 10px; font-size: 13px; }
 .qr-row { display: flex; align-items: center; gap: 16px; text-align: left; background: var(--input-bg); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin-bottom: 16px; }
 .qr-box { flex: none; width: 194px; height: 194px; padding: 7px; background: #fff; border: 1px solid var(--border); border-radius: 12px; }
 .qr-box img, .qr-box canvas { display: block; width: 180px; height: 180px; }
@@ -1342,6 +1345,10 @@ td.mono { color: #3a4470; }
                 <span>Stock Items<span class="log-filter-label" id="stockCount"></span></span>
                 <span class="stock-tools">
                     <input id="stockSearch" class="search-input" placeholder="Search code, name, location or stillage…" oninput="onStockSearch(this.value)" autocomplete="off">
+                    <select id="bcTypeLabels" class="imp-select bc-type-mini" title="The kind of barcode printed on the labels" onchange="bcSetType(this.value)">
+                        <option value="code128">Labels: standard barcode</option>
+                        <option value="code39">Labels: Code 39 (* at each end)</option>
+                    </select>
                     <button type="button" class="btn btn-ghost btn-sm" onclick="printLabels()"><svg class="ico" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9M7 17H5.5a1 1 0 0 1-1-1v-5.5a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H17M7 14h10v5.5H7z"/></svg>Print labels</button>
                 </span>
             </h3>
@@ -1394,8 +1401,14 @@ td.mono { color: #3a4470; }
         <h3 id="bcItemName"></h3>
         <div class="bc-sku" id="bcItemSku"></div>
         <div class="bc-loc" id="bcItemLoc"></div>
+        <div class="bc-type"><label for="bcType">Barcode type</label>
+            <select id="bcType" class="imp-select" onchange="bcSetType(this.value)">
+                <option value="code128">Standard (Code 128)</option>
+                <option value="code39">Code 39 — has a * at each end</option>
+            </select></div>
         <div class="bc-wrap"><svg id="bcSvg"></svg></div>
         <p id="bcError" style="display:none;font-size:12px;color:var(--danger);margin-bottom:12px;">This product code has characters that can't be made into a barcode.</p>
+        <p id="bcNote" style="display:none;font-size:12px;color:#9a6200;margin-bottom:12px;">This code has a character Code 39 can't hold, so a standard barcode is shown for it.</p>
         <div class="qr-row" id="bcQrRow">
             <div class="qr-box" id="bcQr"></div>
             <div class="qr-text"><strong>Scan this with your phone's camera</strong>It opens this part so you can book it in or out. You need to be signed in to Stock Control on your phone.</div>
@@ -2432,18 +2445,47 @@ async function removeMember(userId) {
 // Code 128 of the product code itself — not a link — so the label works with
 // a handheld scanner (it types the code into the scan box, then Enter) and with
 // the camera scanner below, and matches whatever codes are already in Excel.
+//
+// Some handheld guns are set up for Code 39 ("3 of 9"), whose start and stop characters are a * at each end,
+// printed under the bars as *HB-1*. So the labels can be made as Code 39 instead: pick it in the Barcode type
+// box (kept on this computer or phone). The stars are part of the barcode itself — they are never typed into
+// the product code. Code 39 holds only capitals, digits and - . $ / + % space; a code with anything else
+// (or lower case, which is simply capitalised) falls back to a standard barcode for that one part.
+const BC_KEY = 'pdsc_barcodetype_v1';
+const CODE39_OK = /^[0-9A-Z\-. $\/+%]+$/;
+function bcType() { try { return localStorage.getItem(BC_KEY) === 'code39' ? 'code39' : 'code128'; } catch (e) { return 'code128'; } }
+let bcOpenId = null; // the part whose barcode pop-up is open
+
+// Returns false if it can't be drawn at all, 'fallback' if Code 39 was wanted but this code can't be held by it
+// (a standard barcode is drawn instead), otherwise true.
 function drawBarcode(svgEl, value, opts = {}) {
+    const base = { width: 2, height: 70, margin: 8, fontSize: 16, displayValue: true, background: '#ffffff', lineColor: '#000000', ...opts };
+    const want39 = bcType() === 'code39', v39 = String(value).toUpperCase();
+    if (want39 && CODE39_OK.test(v39)) {
+        try { JsBarcode(svgEl, v39, { ...base, format: 'CODE39', text: '*' + v39 + '*' }); return true; }
+        catch (e) { /* fall through to a standard barcode */ }
+    }
     try {
-        JsBarcode(svgEl, value, { format: 'CODE128', width: 2, height: 70, margin: 8, fontSize: 16, displayValue: true, background: '#ffffff', lineColor: '#000000', ...opts });
-        return true;
+        JsBarcode(svgEl, value, { ...base, format: 'CODE128' });
+        return want39 ? 'fallback' : true;
     } catch (e) {
         return false; // Code 128 can't encode every character (e.g. accented letters)
     }
 }
 
+function bcSyncSelects() {
+    ['bcType', 'bcTypeLabels'].forEach(id => { const el = document.getElementById(id); if (el) el.value = bcType(); });
+}
+function bcSetType(t) {
+    try { localStorage.setItem(BC_KEY, t === 'code39' ? 'code39' : 'code128'); } catch (e) { alert('This browser would not keep that choice, so it will go back to standard barcodes next time.'); }
+    bcSyncSelects();
+    if (bcOpenId && document.getElementById('barcodeOverlay').classList.contains('open')) showBarcodeModal(bcOpenId);
+}
+
 function showBarcodeModal(id) {
     const item = stock.find(i => i.id === id);
     if (!item) return;
+    bcOpenId = id; bcSyncSelects();
     document.getElementById('bcItemName').textContent = item.name;
     document.getElementById('bcItemSku').textContent  = item.sku;
     document.getElementById('bcItemLoc').textContent  = item.location ? 'Location: ' + item.location : '';
@@ -2457,6 +2499,7 @@ function showBarcodeModal(id) {
         if (!ok || parseFloat(svg.getAttribute('width')) <= 450) break;
     }
     document.getElementById('bcError').style.display = ok ? 'none' : 'block';
+    document.getElementById('bcNote').style.display = ok === 'fallback' ? 'block' : 'none';
 
     // A phone's own camera app can't read a Code 128 barcode, but it can read a
     // QR code — this one opens the same ?item=<id> page the scan box uses
@@ -2476,6 +2519,7 @@ function showBarcodeModal(id) {
 }
 
 function closeBarcodeModal() {
+    bcOpenId = null;
     document.getElementById('barcodeOverlay').classList.remove('open');
 }
 
@@ -2490,14 +2534,18 @@ function printLabels() {
         list = list.slice(0, MAX);
     }
     const sheet = document.getElementById('labelSheet');
+    let fallbacks = 0;
     sheet.innerHTML = list.map(() => '<div class="lbl"><div class="lbl-name"></div><svg></svg><div class="lbl-loc"></div></div>').join('');
     sheet.querySelectorAll('.lbl').forEach((el, i) => {
         const item = list[i];
         el.querySelector('.lbl-name').textContent = item.name;
         el.querySelector('.lbl-loc').textContent  = item.location ? 'Location: ' + item.location : '';
         const svg = el.querySelector('svg');
-        if (!drawBarcode(svg, item.sku, { height: 50, fontSize: 14 })) svg.replaceWith(document.createTextNode(item.sku + ' (no barcode possible)'));
+        const drawn = drawBarcode(svg, item.sku, { height: 50, fontSize: 14 });
+        if (!drawn) svg.replaceWith(document.createTextNode(item.sku + ' (no barcode possible)'));
+        else if (drawn === 'fallback') fallbacks++;
     });
+    if (fallbacks) alert(`${fallbacks} label${fallbacks === 1 ? ' has' : 's have'} a standard barcode, because ${fallbacks === 1 ? 'its code has' : 'their codes have'} a character Code 39 can't hold.`);
     document.body.classList.add('printing-labels');
     window.print();
 }
@@ -2516,7 +2564,12 @@ window.addEventListener('afterprint', () => {
 function normSku(v) { return String(v === null || v === undefined ? '' : v).trim().toLowerCase(); }
 function findBySku(code) {
     const c = normSku(code);
-    return c ? stock.find(i => normSku(i.sku) === c) : null;
+    if (!c) return null;
+    const hit = stock.find(i => normSku(i.sku) === c);
+    if (hit) return hit;
+    // A Code 39 barcode has a * at each end; some guns send them along with the code, so *HB-1* means HB-1.
+    const bare = c.length > 2 && c.startsWith('*') && c.endsWith('*') ? c.slice(1, -1).trim() : '';
+    return bare ? stock.find(i => normSku(i.sku) === bare) || null : null;
 }
 
 let pendingScanCode = '';
