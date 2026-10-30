@@ -37,7 +37,7 @@ const PRODUCT_ID = 'stock-control';
 // Stamped onto the QR code's link (&v=…). A phone may keep a saved copy of this page for 10 minutes
 // without checking for a newer one; a link it hasn't seen before is always fetched fresh, so scanning
 // a QR code opens the newest version. Change it (MMDD + a letter) each time an update is published.
-const APP_VERSION = '1030c';
+const APP_VERSION = '1030d';
 </script>
 
 <style>
@@ -945,6 +945,11 @@ td.mono { color: #3a4470; }
 .action-cards .st-card-actions { margin-top: auto; }
 .st-ico.reorder { background: #fff3d9; color: #b86e00; }
 .st-ico.stillage { background: #e0f2fe; color: #0b6fa4; }
+#lowStockCard { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+#lowStockCard:hover, #lowStockCard:focus-visible { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(196,42,65,0.20); outline: none; }
+#lowStockCard:focus-visible { box-shadow: 0 0 0 3px rgba(196,42,65,0.35); }
+.stat-hint { font-size: 11.5px; font-weight: 700; color: #c42a41; margin-top: 2px; }
+.low-table td, .low-table th { vertical-align: middle; }
 .action-cards #stillageCard { grid-column: 1 / -1; } /* the fourth tile sits on its own, full width, under the three */
 .action-cards #stillageCard .st-card-row { flex-direction: row; align-items: center; gap: 16px; }
 .action-cards #stillageCard .st-card-actions { margin-top: 0; }
@@ -1191,11 +1196,13 @@ td.mono { color: #3a4470; }
                     <div class="stat-value" id="stockValue">£0.00</div>
                 </div>
             </div>
-            <div class="stat-card low">
+            <div class="stat-card low" id="lowStockCard" role="button" tabindex="0" title="Click to see which parts are low"
+                 onclick="openLowStock()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLowStock()}">
                 <div class="stat-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.2M12 17.4v.1"/></svg></div>
                 <div>
                     <div class="stat-label">Low stock</div>
                     <div class="stat-value" id="lowStock">0</div>
+                    <div class="stat-hint">Click to see which</div>
                 </div>
             </div>
         </div>
@@ -1561,6 +1568,11 @@ td.mono { color: #3a4470; }
             </div>
         </div>
     </div>
+</div>
+
+<!-- ═══ LOW STOCK LIST ═══ -->
+<div id="lowOverlay" class="bc-overlay">
+    <div class="bc-box wide" id="lowBody" style="max-width:720px;"></div>
 </div>
 
 <!-- ═══ STILLAGES & CUSTOMER ORDERS ═══ -->
@@ -2005,7 +2017,7 @@ async function doLogout() {
     hasStillageDb = true; stillages = []; slByPart = new Map(); ordersOpen = []; reservedBy = new Map(); coDetail = null; coDraft = null; coBusy = false; slBusy = false; slPart = null;
     document.getElementById('poOverlay').classList.remove('open');
     ['stockTakeScreen', 'sellScreen', 'salesScreen', 'reorderScreen', 'ordersScreen'].forEach(id => { document.getElementById(id).style.display = 'none'; });
-    ['stockTakeOverlay', 'sellOverlay', 'slOverlay', 'orderOverlay'].forEach(id => document.getElementById(id).classList.remove('open'));
+    ['stockTakeOverlay', 'sellOverlay', 'slOverlay', 'orderOverlay', 'lowOverlay'].forEach(id => document.getElementById(id).classList.remove('open'));
     document.getElementById('appScreen').style.display  = 'none';
     document.getElementById('billingScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
@@ -4826,6 +4838,49 @@ async function finishStockTakeDone() {
     await loadData(); // pick up the corrected quantities before the dashboard is shown
     document.getElementById('stockTakeOverlay').classList.remove('open');
     leaveStockTake();
+}
+
+// ═══ LOW STOCK LIST ═══
+// The Low stock tile opens this: every part at or below its reorder level (5 or fewer if it has no level), most urgent first.
+// Stock set aside for customer orders does not count (isLowStock uses free stock). Clicking a part finds it in the stock list.
+function lowParts() {
+    const gap = i => freeQty(i) - (rdLevel(i) ?? 5);
+    return stock.filter(isLowStock).sort((a, b) => gap(a) - gap(b) || collator.compare(a.name, b.name));
+}
+
+function openLowStock() {
+    const list = lowParts(), CAP = 300, shown = list.slice(0, CAP);
+    const anyReserved = list.some(i => reservedBy.get(i.id));
+    const rows = shown.map(i => {
+        const level = rdLevel(i), res = reservedBy.get(i.id) || 0, due = hasPoDb ? rdOnOrder(i) : 0;
+        return `<tr style="cursor:pointer" onclick="lowFind('${i.id}')" title="Find it in the stock list">
+            <td>${escapeHtml(i.name)}<br><span class="sl-sub">${escapeHtml(i.sku)}${i.location ? ' · ' + escapeHtml(i.location) : ''}</span></td>
+            <td><span class="qty-badge low">${stQty(i.qty)}</span>${res ? `<div class="sl-sub">${stQty(res)} reserved</div>` : ''}</td>
+            <td class="mono">${level === null ? '5 <span class="sl-sub">(standard)</span>' : stQty(level)}</td>
+            <td class="mono">${due ? stQty(due) : '—'}</td></tr>`;
+    }).join('');
+    document.getElementById('lowBody').innerHTML = `
+        <h3>Low stock${list.length ? ' — ' + list.length + ' part' + (list.length === 1 ? '' : 's') : ''}</h3>
+        ${list.length ? `<p class="imp-note">These parts are at or below their reorder level (or 5 or fewer, where no level is set), most urgent first.${anyReserved ? ' Stock reserved for customer orders does not count.' : ''} Click a part to find it in the stock list.</p>
+            <div class="table-scroll"><table class="imp-preview low-table"><thead><tr><th>Part</th><th>In stock</th><th>Level</th><th>On order</th></tr></thead><tbody>${rows}</tbody></table></div>
+            ${list.length > CAP ? `<p class="imp-note">Showing the first ${CAP} of ${list.length}.</p>` : ''}`
+        : '<div class="imp-summary">Nothing is low — every part is above its reorder level.</div>'}
+        <div class="imp-actions">
+            <button class="btn btn-ghost" onclick="closeLowStock()">Close</button>
+            ${hasReorderCols && list.length ? '<button class="btn btn-primary" onclick="closeLowStock(); openReorder()">See what to order</button>' : ''}
+        </div>`;
+    document.getElementById('lowOverlay').classList.add('open');
+}
+function closeLowStock() { document.getElementById('lowOverlay').classList.remove('open'); }
+
+// Jump to a part: the stock list's search box is filled in with its code and the list scrolled into view.
+function lowFind(id) {
+    const it = sellItem(id); if (!it) return;
+    closeLowStock();
+    const box = document.getElementById('stockSearch');
+    box.value = it.sku; stockSearch = it.sku;
+    renderStock();
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ═══ STILLAGES & CUSTOMER ORDERS ═══
