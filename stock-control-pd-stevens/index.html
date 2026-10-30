@@ -37,7 +37,7 @@ const PRODUCT_ID = 'stock-control';
 // Stamped onto the QR code's link (&v=…). A phone may keep a saved copy of this page for 10 minutes
 // without checking for a newer one; a link it hasn't seen before is always fetched fresh, so scanning
 // a QR code opens the newest version. Change it (MMDD + a letter) each time an update is published.
-const APP_VERSION = '1029f';
+const APP_VERSION = '1030a';
 </script>
 
 <style>
@@ -57,7 +57,7 @@ const APP_VERSION = '1029f';
     --mono:      'IBM Plex Mono', monospace;
     --sans:      'Plus Jakarta Sans', 'IBM Plex Sans', sans-serif;
     --grad:      linear-gradient(135deg, #165DFF 0%, #5b3df5 100%);
-    --hero:      linear-gradient(115deg, #0d3bd0 0%, #165DFF 40%, #6a45ff 100%);
+    --hero:      linear-gradient(115deg, #0b2d74 0%, #1f66c9 45%, #4a9ded 100%); /* dark blue to light blue, taken from the PD Stevens logo */
     --shadow-sm: 0 1px 2px rgba(23,28,58,0.05), 0 4px 14px rgba(23,28,58,0.05);
     --shadow-md: 0 2px 4px rgba(23,28,58,0.04), 0 14px 36px rgba(23,28,58,0.09);
     --shadow-lg: 0 30px 80px rgba(23,28,80,0.22);
@@ -129,7 +129,7 @@ body {
     position: absolute; inset: 0;
     background:
         radial-gradient(420px 300px at 100% 0%, rgba(255,255,255,0.22), transparent 65%),
-        radial-gradient(380px 320px at 0% 105%, rgba(0,212,170,0.38), transparent 65%);
+        radial-gradient(380px 320px at 0% 105%, rgba(96,176,255,0.36), transparent 65%);
     pointer-events: none;
 }
 .auth-aside::after {
@@ -363,7 +363,7 @@ body {
     padding: 32px 34px 82px;
     color: #fff;
     background: var(--hero);
-    box-shadow: 0 22px 54px rgba(22,93,255,0.30);
+    box-shadow: 0 22px 54px rgba(31,102,201,0.30);
     animation: slideUp 0.45s ease;
 }
 .hero::before {
@@ -371,7 +371,7 @@ body {
     position: absolute; inset: 0;
     background:
         radial-gradient(520px 280px at 92% -10%, rgba(255,255,255,0.24), transparent 65%),
-        radial-gradient(460px 280px at 0% 125%, rgba(0,212,170,0.36), transparent 65%);
+        radial-gradient(460px 280px at 0% 125%, rgba(96,176,255,0.34), transparent 65%);
     pointer-events: none;
 }
 .hero::after {
