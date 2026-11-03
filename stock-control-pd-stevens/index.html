@@ -37,7 +37,7 @@ const PRODUCT_ID = 'stock-control';
 // Stamped onto the QR code's link (&v=…). A phone may keep a saved copy of this page for 10 minutes
 // without checking for a newer one; a link it hasn't seen before is always fetched fresh, so scanning
 // a QR code opens the newest version. Change it (MMDD + a letter) each time an update is published.
-const APP_VERSION = '1030d';
+const APP_VERSION = '1102a';
 </script>
 
 <style>
@@ -141,6 +141,9 @@ body {
     pointer-events: none;
 }
 .auth-aside > * { position: relative; z-index: 1; }
+/* the PD Stevens logo sits on a white plate so it reads on the blue panel */
+.logo-plate { align-self: flex-start; background: #fff; border-radius: 18px; padding: 14px 22px; margin-bottom: 30px; box-shadow: 0 14px 34px rgba(5,20,60,0.28); }
+.logo-plate .brand-logo { height: 54px; }
 .auth-aside .brand-mark { background: rgba(255,255,255,0.18); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35); backdrop-filter: blur(6px); margin-bottom: 26px; }
 .aside-co { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85; margin-bottom: 10px; }
 .auth-aside h2 { font-size: 30px; line-height: 1.18; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 22px; }
@@ -989,6 +992,8 @@ td.mono { color: #3a4470; }
     .auth-aside::after { height: 46px; }
     .auth-aside h2 { font-size: 22px; margin-bottom: 14px; }
     .auth-aside .brand-mark { margin-bottom: 16px; }
+    .logo-plate { margin-bottom: 16px; padding: 10px 16px; border-radius: 14px; }
+    .logo-plate .brand-logo { height: 38px; }
     .aside-points, .aside-foot { display: none; }
     .auth-shell .auth-box { padding: 30px 28px 34px; }
 }
@@ -1072,8 +1077,7 @@ td.mono { color: #3a4470; }
 <div id="authScreen">
   <div class="auth-shell">
     <aside class="auth-aside">
-        <div class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="2" height="14" rx=".5"/><rect x="7" y="5" width="1" height="14"/><rect x="10" y="5" width="3" height="14"/><rect x="15" y="5" width="1" height="14"/><rect x="18" y="5" width="3" height="14" rx=".5"/></svg></div>
-        <div class="aside-co">PD Stevens &amp; Sons Ltd</div>
+        <div class="logo-plate"><span class="brand-logo" role="img" aria-label="PD Stevens &amp; Sons Ltd"></span></div>
         <h2>Know exactly what's on the shelf.</h2>
         <ul class="aside-points">
             <li><span class="tick"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Scan parts with a handheld scanner or your phone's camera</li>
