@@ -1,0 +1,8 @@
+{
+  "name": "ask-assistant-local-preview-sdk",
+  "private": true,
+  "description": "Only used by local-preview.mjs when a real Anthropic key is present. Not deployed.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.5.0"
+  }
+}

@@ -1,0 +1,116 @@
+/* ==========================================================================
+   Website assistant — the chat bubble in the corner of the page.
+   Uses the colours from style.css (with fallbacks so it also works on its own).
+   Everything is prefixed "btx-" so it can't clash with the rest of the site.
+   ========================================================================== */
+
+.btx-launcher {
+  position: fixed; right: 1.1rem; bottom: 1.1rem; z-index: 900;
+  display: inline-flex; align-items: center; gap: .55rem;
+  background: var(--accent, #f97316); color: #14161d;
+  border: 0; border-radius: 999px; padding: .75rem 1.15rem .75rem 1rem;
+  font-weight: 700; font-size: .95rem; line-height: 1; cursor: pointer;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .08) inset;
+  transition: background .15s, transform .15s;
+}
+.btx-launcher:hover { background: var(--accent-hover, #fb8a3c); transform: translateY(-1px); }
+.btx-launcher:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.btx-launcher svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btx-open .btx-launcher { display: none; }
+
+.btx-panel {
+  position: fixed; right: 1.1rem; bottom: 1.1rem; z-index: 900;
+  width: 380px; max-width: calc(100vw - 2.2rem);
+  height: min(620px, calc(100dvh - 2.2rem));
+  display: none; flex-direction: column; overflow: hidden;
+  background: var(--bg2, #171a22); color: var(--text, #f3f4f8);
+  border: 1px solid var(--border2, rgba(255, 255, 255, .16)); border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: .95rem; line-height: 1.5;
+}
+.btx-open .btx-panel { display: flex; }
+
+.btx-head {
+  display: flex; align-items: center; gap: .7rem; padding: .85rem .9rem .85rem 1.1rem;
+  background: var(--bg3, #1e222c); border-bottom: 1px solid var(--border, rgba(255, 255, 255, .08));
+}
+.btx-head-text { flex: 1; min-width: 0; }
+.btx-title { font-family: 'Space Grotesk', 'DM Sans', sans-serif; font-weight: 700; font-size: 1rem; }
+.btx-sub { color: var(--text3, #7c839b); font-size: .78rem; }
+.btx-iconbtn {
+  background: transparent; border: 0; color: var(--text2, #9ba1b5); cursor: pointer;
+  width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; font-size: 1.4rem; line-height: 1;
+}
+.btx-iconbtn:hover { background: rgba(255, 255, 255, .08); color: var(--text, #f3f4f8); }
+.btx-iconbtn:focus-visible { outline: 2px solid var(--accent, #f97316); }
+.btx-newchat { font-size: .78rem; width: auto; padding: 0 .6rem; }
+
+.btx-log {
+  flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .7rem;
+  overscroll-behavior: contain; scroll-behavior: smooth;
+  scrollbar-width: thin; scrollbar-color: #3a4152 transparent;
+}
+.btx-msg {
+  max-width: 88%; padding: .6rem .85rem; border-radius: 14px;
+  white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word;
+}
+.btx-bot { align-self: flex-start; background: var(--bg4, #262c39); border-bottom-left-radius: 4px; }
+.btx-me { align-self: flex-end; background: var(--accent, #f97316); color: #14161d; border-bottom-right-radius: 4px; font-weight: 500; }
+.btx-note { align-self: stretch; max-width: none; text-align: center; font-size: .85rem; color: var(--text2, #9ba1b5); background: transparent; border: 1px dashed var(--border2, rgba(255, 255, 255, .16)); }
+.btx-msg a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.btx-bot a { color: var(--accent-hover, #fb8a3c); }
+
+.btx-chips { display: flex; flex-wrap: wrap; gap: .45rem; }
+.btx-chip {
+  background: transparent; color: var(--text, #f3f4f8); cursor: pointer;
+  border: 1px solid var(--accent-border, rgba(249, 115, 22, .4)); border-radius: 999px;
+  padding: .4rem .8rem; font-size: .85rem;
+}
+.btx-chip:hover { background: var(--accent-dim, rgba(249, 115, 22, .14)); }
+.btx-chip:focus-visible { outline: 2px solid var(--accent, #f97316); }
+
+.btx-typing { display: inline-flex; gap: 4px; align-items: center; padding: .85rem .9rem; }
+.btx-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--text3, #7c839b); animation: btx-bounce 1.2s infinite ease-in-out; }
+.btx-typing span:nth-child(2) { animation-delay: .15s; }
+.btx-typing span:nth-child(3) { animation-delay: .3s; }
+.btx-typing .btx-wait { font-style: normal; font-size: .8rem; color: var(--text3, #7c839b); margin-left: .5rem; white-space: nowrap; }
+@keyframes btx-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-5px); opacity: 1; } }
+
+.btx-form {
+  display: flex; gap: .5rem; align-items: flex-end; padding: .7rem .8rem;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, .08)); background: var(--bg2, #171a22);
+}
+.btx-input {
+  flex: 1; resize: none; max-height: 7.5rem; min-height: 2.6rem;
+  background: var(--bg, #0f1115); color: var(--text, #f3f4f8);
+  border: 1px solid var(--border2, rgba(255, 255, 255, .16)); border-radius: 12px;
+  padding: .6rem .8rem; font-size: 16px; /* 16px stops iPhones zooming in */ line-height: 1.4;
+  overflow-y: hidden; scrollbar-width: thin; scrollbar-color: #3a4152 transparent;
+}
+.btx-input::placeholder { color: var(--text3, #7c839b); }
+.btx-input:focus { outline: 2px solid var(--accent, #f97316); outline-offset: 0; border-color: transparent; }
+.btx-send {
+  flex-shrink: 0; width: 2.6rem; height: 2.6rem; border: 0; border-radius: 12px; cursor: pointer;
+  background: var(--accent, #f97316); color: #14161d; display: grid; place-items: center;
+}
+.btx-send:hover { background: var(--accent-hover, #fb8a3c); }
+.btx-send:disabled { opacity: .45; cursor: not-allowed; }
+.btx-send:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.btx-send svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.btx-foot { padding: .5rem 1rem .7rem; font-size: .74rem; color: var(--text3, #7c839b); line-height: 1.4; background: var(--bg2, #171a22); }
+.btx-foot a { color: var(--text2, #9ba1b5); }
+
+.btx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Phones: the chat fills most of the screen */
+@media (max-width: 520px) {
+  .btx-panel { right: .6rem; left: .6rem; bottom: .6rem; width: auto; max-width: none; height: min(82dvh, calc(100dvh - 1.2rem)); }
+  .btx-launcher { right: .8rem; bottom: .8rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btx-log { scroll-behavior: auto; }
+  .btx-typing span { animation: none; opacity: .7; }
+  .btx-launcher { transition: none; }
+}
+@media print { .btx-launcher, .btx-panel { display: none !important; } }

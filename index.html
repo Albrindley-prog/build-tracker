@@ -12,6 +12,7 @@
   <link rel="canonical" href="https://build-tracker.co.uk/">
 
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="assistant/assistant.css?v=1">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- Google Analytics -->
@@ -1151,6 +1152,11 @@ function hideAppStrip() {
   document.getElementById(ios ? 'app-ios' : /android/i.test(ua) ? 'app-android' : 'app-desktop').classList.add('this-device');
 })();
 </script>
+
+<!-- Website assistant: chat bubble that answers questions about our software.
+     Talks to the ask-assistant Supabase function (the AI key lives there, not here).
+     To switch it off on the site, delete this one line. -->
+<script src="assistant/assistant.js?v=1" defer></script>
 
 </body>
 </html>
