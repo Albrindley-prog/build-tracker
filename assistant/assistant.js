@@ -138,7 +138,11 @@
   form.appendChild(sendBtn);
 
   var foot = el('div', 'btx-foot');
-  foot.appendChild(document.createTextNode('AI assistant. Chats are saved so we can improve it, so please don’t share card or password details. Prefer a person? '));
+  foot.appendChild(document.createTextNode('AI assistant. Chats are saved so we can improve it, so please don’t share card or password details. '));
+  var priv = el('a', null, 'Privacy notice');
+  priv.href = '/privacy.html';
+  foot.appendChild(priv);
+  foot.appendChild(document.createTextNode('. Prefer a person? '));
   var mail = el('a', null, 'Email us');
   mail.href = 'mailto:' + EMAIL + '?subject=Question%20from%20the%20website';
   foot.appendChild(mail);

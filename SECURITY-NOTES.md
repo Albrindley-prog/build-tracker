@@ -1,6 +1,6 @@
 # Security notes — build-tracker.co.uk
 
-Last updated: 2026-11-15 (Videos page). Nothing here says the site is "secure". It lists what was
+Last updated: 2026-11-15 (Videos page, privacy notice, analytics removed). Nothing here says the site is "secure". It lists what was
 looked at, what was not, and what the owner still needs to do.
 
 ## 1. Videos page (`videos.html`, `videos/`) — added 2026-11-15
@@ -72,10 +72,10 @@ had no independent review.**
 
 ## 3. Owner actions (things only the owner can do)
 
-1. **Privacy notice.** The site has no privacy policy page. Because chats are saved (and
-   questions may contain personal details), add a short privacy notice (what is saved, why, how
-   long, who sees it: Supabase and Google) and link it from the footer. UK GDPR / Data
-   Protection Act 2018 duty.
+1. **Privacy notice.** `privacy.html` is drafted (branch `feature/privacy-notice`, linked from
+   the home page and Videos page footers and from the chat panel). Read it, confirm the items
+   in section 3a, then it can be published. Until it is published the site still has no
+   privacy notice (UK GDPR / Data Protection Act 2018 duty, because chats are saved).
 2. **Chat log retention.** Decide how long to keep chats and run the delete command regularly
    (Supabase → SQL Editor), or ask for it to be scheduled.
 3. **Notepad copy of the Gemini key.** If you saved the key in a Notepad file, check where it
@@ -86,6 +86,37 @@ had no independent review.**
    caught early.
 5. **Watch the videos** (see section 1) and tell me if any frame shows something private.
 6. **Optional:** add a favicon (the site currently returns 404 for `/favicon.ico`).
+
+### 3a. Things to confirm before the privacy notice goes live
+
+The notice makes promises, so each one must be true. Please check:
+- **Chats kept up to 90 days.** True only if the delete command in `migration-assistant.sql`
+  is run (it is manual today). Run it regularly, or ask me to set up automatic deletion.
+- **Enquiries kept up to 2 years; payment records about 6 years.** My suggested periods. Check
+  the 6 years with your accountant.
+- **"Close my account and we delete it."** Confirm you are able and willing to do that.
+- **"We store your customers' data for you and use it for nothing of our own."** Confirm.
+- **Data protection fee / ICO registration.** Most businesses that handle personal data must pay
+  the ICO's annual fee unless exempt. Check at ico.org.uk ("Do I need to pay?"). The notice
+  does not quote a registration number.
+- **Business address.** The notice says "Cheshire East, UK" only. If you sell to the public,
+  UK e-commerce rules may also want a full geographic address on the site. Check.
+- **Overseas providers.** The notice says safeguards apply when information goes outside the UK.
+  I did not verify each provider's current legal mechanism.
+- **Chat browser ID.** The chat stores a random ID in the visitor's browser to group
+  questions. It is not strictly necessary (the scrambled-address limit does the real work), so
+  it arguably needs consent. Simplest fix: remove it. Say if you want that done.
+- **The contact form and "send me the guide" box** only open the visitor's own email program,
+  but the pop-ups say "Message sent successfully!" and "we've sent the guide straight to you!".
+  Neither is true until the visitor presses send. Not a privacy problem, but misleading.
+
+### 3b. Analytics removed (2026-11-15)
+
+The home page loaded Google Analytics (it sets cookies) with no consent prompt, which UK
+cookie rules (PECR) require. The owner chose to remove it. It was removed from `index.html` on
+branch `feature/privacy-notice` (not live until that branch is published). A search of every
+page found no other analytics or tracking code. If statistics are wanted again later, use a
+cookie-free counter or add a consent banner first.
 
 ## 4. Not reviewed in this pass
 
