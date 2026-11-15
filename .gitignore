@@ -2,3 +2,7 @@
 .env.*
 !.env.example
 node_modules/
+
+# Private notes: this repo is public and the website serves every file in it,
+# so security notes are kept outside it. Never commit them.
+SECURITY-NOTES.md
