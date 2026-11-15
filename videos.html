@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Videos | Build Tracker Solutions</title>
+  <meta name="description" content="Watch short walkthroughs of Build Tracker Solutions software, and early looks at what we're building next.">
+  <link rel="canonical" href="https://build-tracker.co.uk/videos.html">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Videos page */
+    nav a.here { color:var(--accent); }
+    .vgrid { display:flex; flex-wrap:wrap; justify-content:center; gap:1.25rem; max-width:1160px; margin:0 auto; }
+    .vcard { flex:0 0 calc((100% - 2.5rem) / 3); display:flex; flex-direction:column; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; margin:0; }
+    .vcard:hover, .vcard:focus-visible { border-color:var(--accent-border); transform:translateY(-2px); color:var(--text); }
+    .vcard:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+    .vthumb { position:relative; display:block; aspect-ratio:16 / 9; background:#0b0d12; overflow:hidden; }
+    .vthumb img { width:100%; height:100%; display:block; object-fit:cover; }
+    .vthumb.tall img, .vthumb.square img { object-fit:contain; }
+    .vplay { position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%; background:rgba(249,115,22,.94); display:grid; place-items:center; box-shadow:0 6px 22px rgba(0,0,0,.45); transition:transform .15s, background .15s; }
+    .vplay svg { width:26px; height:26px; fill:#14161d; margin-left:3px; }
+    .vcard:hover .vplay, .vcard:focus-visible .vplay { transform:scale(1.08); background:var(--accent-hover); }
+    .vdur { position:absolute; right:.6rem; bottom:.55rem; background:rgba(8,9,12,.82); color:#fff; font-size:.78rem; font-weight:600; padding:.12rem .5rem; border-radius:6px; }
+    .vbody { display:block; padding:1rem 1.1rem 1.2rem; }
+    .vtitle { display:block; font-family:'Space Grotesk','DM Sans',sans-serif; font-weight:600; font-size:1.05rem; margin-bottom:.3rem; }
+    .vblurb { display:block; color:var(--text2); font-size:.92rem; line-height:1.5; }
+    .vsr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+    /* the pop-up player */
+    #vplayer { border:1px solid var(--border2); border-radius:var(--radius); background:#0b0d12; color:var(--text); padding:0; width:min(92vw, 1100px); max-height:92vh; overflow:hidden; }
+    #vplayer::backdrop { background:rgba(5,6,9,.82); }
+    #vplayer.tall { width:min(92vw, 420px); }
+    .vp-bar { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.7rem 1rem; border-bottom:1px solid var(--border); }
+    .vp-bar span { font-weight:600; font-size:.95rem; }
+    .vp-close { background:transparent; border:1px solid var(--border2); color:var(--text); width:36px; height:36px; border-radius:8px; font-size:1.4rem; line-height:1; cursor:pointer; }
+    .vp-close:hover { border-color:var(--accent); color:var(--accent); }
+    #vpVideo { display:block; width:100%; max-height:78vh; background:#000; }
+    .note { max-width:640px; margin:2.5rem auto 0; text-align:center; color:var(--text3); font-size:.88rem; }
+    @media (max-width:980px) { .vcard { flex-basis:calc((100% - 1.25rem) / 2); } }
+    @media (max-width:640px) { .vcard { flex-basis:100%; } }
+    @media (prefers-reduced-motion:reduce) { .vcard, .vplay { transition:none; } .vcard:hover { transform:none; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="logo" aria-label="Build Tracker home">
+    <svg width="320" height="100" viewBox="0 0 320 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 60 L30 30 L40 30 L40 60 Z" fill="#64748B"/>
+      <path d="M20 60 L20 45 L30 45 L30 60 Z" fill="#94A3B8"/>
+      <path d="M40 60 L40 20 L55 20 L55 60 Z" fill="#F97316"/>
+      <rect x="42" y="26" width="11" height="4" fill="#14161d"/>
+      <rect x="42" y="34" width="11" height="4" fill="#14161d"/>
+      <rect x="42" y="42" width="11" height="4" fill="#14161d"/>
+      <rect x="42" y="50" width="11" height="4" fill="#14161d"/>
+      <text x="75" y="58" font-family="'Space Grotesk', Arial, sans-serif" font-size="42" font-weight="700" fill="#F3F4F8">Build</text>
+      <text x="175" y="58" font-family="'Space Grotesk', Arial, sans-serif" font-size="42" font-weight="500" fill="#9BA1B5">Tracker</text>
+      <text x="298" y="38" font-family="Arial, sans-serif" font-size="12" fill="#9BA1B5">™</text>
+    </svg>
+  </a>
+
+  <button type="button" class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+    <svg class="icon" viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  </button>
+
+  <div class="nav-right" id="mainNav">
+    <a href="index.html">Home</a>
+    <a href="index.html#features">Features</a>
+    <a href="index.html#pricing">Pricing</a>
+    <a href="videos.html" aria-current="page" class="here">Videos</a>
+    <a href="index.html#about">About</a>
+    <a href="index.html#contact">Contact</a>
+    <div class="dropdown">
+      <button type="button" class="dropbtn" aria-haspopup="true">Open Software ▾</button>
+      <div class="dropdown-content">
+        <a href="build-tracker/index.html">Build Tracker</a>
+        <a href="body-shop-pro/index.html">Body Shop Pro</a>
+        <a href="workshop-scheduler-diary/index.html">Workshop Scheduler &amp; Diary</a>
+        <a href="electronics-repair/index.html">Electronics Repair</a>
+        <a href="stock-control/index.html">Stock Control</a>
+        <a href="supplier-purchase-order-system/index.html">Supplier &amp; Purchase Order System</a>
+        <a href="job-card-workshop-log-system/index.html">Job Card &amp; Workshop Log System</a>
+        <a href="quoting-tool/quotebuilder.html">Quote Builder</a>
+        <a href="courtesy-car-manager/index.html">Courtesy Car Manager</a>
+        <a href="https://bms-system.onrender.com" target="_blank" rel="noopener">Workshop Tracker</a>
+        <a href="https://buildos-saas.vercel.app" target="_blank" rel="noopener">BuildOS (Payroll, Invoicing &amp; HR)</a>
+        <a href="https://build-tracker-cloud.onrender.com" target="_blank" rel="noopener">Cloud Storage</a>
+      </div>
+    </div>
+    <div class="dropdown apps-dd">
+      <button type="button" class="dropbtn"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg>Apps ▾</button>
+      <div class="dropdown-content">
+        <a class="app-dd-item" href="courtesy-car-manager/?install"><img src="courtesy-car-manager/icons/icon-192.png" alt="" width="34" height="34"><span><strong>Courtesy Car Manager</strong><small>Download to your phone or computer</small></span></a>
+        <a class="app-dd-item" href="voice-notes/"><img src="voice-notes/icon-192.png" alt="" width="34" height="34"><span><strong>Voice Notes</strong><small>Speak, and your words are typed for you</small></span></a>
+        <a class="app-dd-foot" href="index.html#get-the-app">How to install our apps →</a>
+      </div>
+    </div>
+  </div>
+  </nav>
+<div class="header-divider"></div>
+
+<section class="hero">
+  <div class="hero-inner">
+    <h1>Videos</h1>
+    <h2>See what we&rsquo;re building. Short walkthroughs of our software, and early looks at what&rsquo;s coming next.</h2>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="g0">
+  <div class="section-head"><h2 id="g0">Stock Control</h2><p>Scan it. Store it. Sell it. Reorder it.</p></div>
+  <div class="vgrid">
+      <a class="vcard" href="videos/stock-control.mp4" data-title="Stock Control: the full walkthrough" data-w="1280" data-h="720">
+        <span class="vthumb wide"><img src="videos/posters/stock-control.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">4:27</span></span>
+        <span class="vbody"><span class="vtitle">Stock Control: the full walkthrough</span><span class="vblurb">Scan parts in, keep track of stock, sell at the counter, do a stock take and reorder. Shown on sample parts.</span><span class="vsr">Play video, 4:27</span></span>
+      </a>
+  </div>
+</section>
+
+<section class="section bg-alt" aria-labelledby="g1">
+  <div class="section-head"><h2 id="g1">Build Tracker</h2><p>Car build and restoration tracking, with cloud storage for the paperwork and photos.</p></div>
+  <div class="vgrid">
+      <a class="vcard" href="videos/build-tracker.mp4" data-title="Build Tracker: the demo" data-w="1920" data-h="1080">
+        <span class="vthumb wide"><img src="videos/posters/build-tracker.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">3:13</span></span>
+        <span class="vbody"><span class="vtitle">Build Tracker: the demo</span><span class="vblurb">A walkthrough of Build Tracker, including creating job cards.</span><span class="vsr">Play video, 3:13</span></span>
+      </a>
+      <a class="vcard" href="videos/build-tracker-cloud.mp4" data-title="Build Tracker Cloud" data-w="1080" data-h="1080">
+        <span class="vthumb square"><img src="videos/posters/build-tracker-cloud.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">0:40</span></span>
+        <span class="vbody"><span class="vtitle">Build Tracker Cloud</span><span class="vblurb">Secure cloud storage for plans, photos and job records.</span><span class="vsr">Play video, 0:40</span></span>
+      </a>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="g2">
+  <div class="section-head"><h2 id="g2">Courtesy Car Manager</h2><p>Loan cars made simple for UK garages.</p></div>
+  <div class="vgrid">
+      <a class="vcard" href="videos/ccm-desktop.mp4" data-title="Courtesy Car Manager on your computer" data-w="1440" data-h="900">
+        <span class="vthumb wide"><img src="videos/posters/ccm-desktop.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">0:44</span></span>
+        <span class="vbody"><span class="vtitle">Courtesy Car Manager on your computer</span><span class="vblurb">Keep track of loan cars, hand-overs and returns.</span><span class="vsr">Play video, 0:44</span></span>
+      </a>
+      <a class="vcard" href="videos/ccm-phone.mp4" data-title="Courtesy Car Manager on your phone" data-w="780" data-h="1688">
+        <span class="vthumb tall"><img src="videos/posters/ccm-phone.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">0:44</span></span>
+        <span class="vbody"><span class="vtitle">Courtesy Car Manager on your phone</span><span class="vblurb">The same, from your phone, with photos and signatures.</span><span class="vsr">Play video, 0:44</span></span>
+      </a>
+  </div>
+</section>
+
+<section class="section bg-alt" aria-labelledby="g3">
+  <div class="section-head"><h2 id="g3">BuildOS</h2><p>Payroll, invoicing, expenses and HR admin for small UK businesses.</p></div>
+  <div class="vgrid">
+      <a class="vcard" href="videos/buildos-2min.mp4" data-title="BuildOS in two minutes" data-w="1280" data-h="720">
+        <span class="vthumb wide"><img src="videos/posters/buildos-2min.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">2:00</span></span>
+        <span class="vbody"><span class="vtitle">BuildOS in two minutes</span><span class="vblurb">A quick look at what BuildOS does.</span><span class="vsr">Play video, 2:00</span></span>
+      </a>
+      <a class="vcard" href="videos/buildos-walkthrough.mp4" data-title="BuildOS: the walkthrough" data-w="1280" data-h="720">
+        <span class="vthumb wide"><img src="videos/posters/buildos-walkthrough.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">2:58</span></span>
+        <span class="vbody"><span class="vtitle">BuildOS: the walkthrough</span><span class="vblurb">A longer walkthrough of BuildOS.</span><span class="vsr">Play video, 2:58</span></span>
+      </a>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="g4">
+  <div class="section-head"><h2 id="g4">What we’re working on</h2><p>Early looks at new software we’re building.</p></div>
+  <div class="vgrid">
+      <a class="vcard" href="videos/rota.mp4" data-title="Build Tracker Rota" data-w="780" data-h="1688">
+        <span class="vthumb tall"><img src="videos/posters/rota.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">1:30</span></span>
+        <span class="vbody"><span class="vtitle">Build Tracker Rota</span><span class="vblurb">A walkthrough of our staff rota app.</span><span class="vsr">Play video, 1:30</span></span>
+      </a>
+      <a class="vcard" href="videos/sitecrew-how.mp4" data-title="Site Crew Pro: how it works" data-w="1280" data-h="720">
+        <span class="vthumb wide"><img src="videos/posters/sitecrew-how.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">1:38</span></span>
+        <span class="vbody"><span class="vtitle">Site Crew Pro: how it works</span><span class="vblurb">The big picture of Site Crew Pro.</span><span class="vsr">Play video, 1:38</span></span>
+      </a>
+      <a class="vcard" href="videos/sitecrew-send.mp4" data-title="Site Crew Pro: sending jobs" data-w="1280" data-h="720">
+        <span class="vthumb wide"><img src="videos/posters/sitecrew-send.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">1:14</span></span>
+        <span class="vbody"><span class="vtitle">Site Crew Pro: sending jobs</span><span class="vblurb">How jobs get sent out to your crew.</span><span class="vsr">Play video, 1:14</span></span>
+      </a>
+      <a class="vcard" href="videos/sitecrew-signup.mp4" data-title="Site Crew Pro: signing up" data-w="1280" data-h="720">
+        <span class="vthumb wide"><img src="videos/posters/sitecrew-signup.jpg" alt="" loading="lazy" width="960" height="540"><span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="vdur">1:05</span></span>
+        <span class="vbody"><span class="vtitle">Site Crew Pro: signing up</span><span class="vblurb">Starting a company and getting going.</span><span class="vsr">Play video, 1:05</span></span>
+      </a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><h2>Want to see something else?</h2><p>Tell us what you&rsquo;d like to see, or ask whether we can tailor our software to suit your business.</p></div>
+  <p style="text-align:center"><a class="mkt-btn mkt-btn-blue mkt-btn-lg" href="index.html#contact">Get in touch</a></p>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <strong>Build Tracker Solutions</strong>
+      <p>UK‑built workshop and business software from Cheshire East.</p>
+    </div>
+    <div class="footer-links">
+      <a href="index.html#features">Tools</a>
+      <a href="index.html#pricing">Pricing</a>
+      <a href="index.html#guides">Guides</a>
+      <a href="videos.html">Videos</a>
+      <a href="index.html#contact">Contact</a>
+    </div>
+    <div class="footer-links">
+      <a href="mailto:info@build-tracker.co.uk">info@build-tracker.co.uk</a>
+      <a href="tel:07931095631">07931095631</a>
+      <span>Cheshire East, UK</span>
+    </div>
+  </div>
+  <p class="footer-copy">© 2026 Build Tracker Solutions — Alan Brindley. All rights reserved.</p>
+</footer>
+
+<dialog id="vplayer" aria-label="Video player">
+  <div class="vp-bar"><span id="vpTitle"></span><button type="button" class="vp-close" aria-label="Close video">&times;</button></div>
+  <video id="vpVideo" controls playsinline preload="none"></video>
+</dialog>
+
+<script>
+// Phone menu and dropdowns (same behaviour as the homepage)
+(function () {
+  const nav = document.querySelector('nav');
+  const toggle = document.getElementById('navToggle');
+  const mainNav = document.getElementById('mainNav');
+  toggle.addEventListener('click', () => {
+    const open = nav.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open);
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  });
+  document.querySelectorAll('.dropdown').forEach(dd => {
+    dd.querySelector('.dropbtn').addEventListener('click', e => { e.stopPropagation(); dd.classList.toggle('open'); });
+  });
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.dropdown.open').forEach(dd => { if (!dd.contains(e.target)) dd.classList.remove('open'); });
+  });
+  mainNav.addEventListener('click', e => { if (e.target.closest('a')) nav.classList.remove('open'); });
+})();
+
+// Videos load only when someone clicks one, so the page stays quick
+(function () {
+  const dlg = document.getElementById('vplayer'), vid = document.getElementById('vpVideo'), title = document.getElementById('vpTitle');
+  let opener = null;
+  document.querySelectorAll('a.vcard').forEach(a => a.addEventListener('click', e => {
+    if (!dlg.showModal) return;             // very old browsers just follow the link to the video
+    e.preventDefault();
+    opener = a;
+    title.textContent = a.dataset.title;
+    dlg.classList.toggle('tall', +a.dataset.h > +a.dataset.w);
+    vid.src = a.getAttribute('href');
+    dlg.showModal();
+    vid.play().catch(() => {});
+  }));
+  dlg.addEventListener('close', () => { vid.pause(); vid.removeAttribute('src'); vid.load(); if (opener) opener.focus(); });
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+  dlg.querySelector('.vp-close').addEventListener('click', () => dlg.close());
+})();
+</script>
+</body>
+</html>
