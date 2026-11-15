@@ -106,8 +106,9 @@ limits below stop it running away, but it's why the limits exist.
 To remove the bubble from the site entirely, delete the one `assistant.js` line at the bottom of `index.html`.
 
 **See what people ask** — Table Editor → `bt_assistant_chats`. Good for spotting questions the
-FAQ should answer. To clear out old chats, there's a one-line delete at the bottom of
-`migration-assistant.sql` (older than 90 days).
+FAQ should answer. Old chats are cleared out automatically: run `migration-assistant-autodelete.sql` once
+(SQL Editor) and a daily job deletes chats older than about 90 days, as the privacy notice promises.
+Check it with `select * from cron.job_run_details order by start_time desc limit 5;`.
 
 **Speed** — answers appear word by word as they're written (like someone typing), so the
 first words show in about a second with Claude rather than after the whole answer. Keeping the

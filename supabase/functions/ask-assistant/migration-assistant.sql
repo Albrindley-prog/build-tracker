@@ -32,5 +32,6 @@ create index if not exists bt_assistant_chats_ip_idx
 -- uses the service key) and you (in the dashboard Table Editor) can.
 alter table public.bt_assistant_chats enable row level security;
 
--- Optional tidy-up, run now and then: delete chats older than 90 days.
+-- Tidy-up: chats are deleted automatically after 90 days by migration-assistant-autodelete.sql
+-- (run that file once after this one). To delete by hand instead:
 -- delete from public.bt_assistant_chats where created_at < now() - interval '90 days';
