@@ -32,7 +32,7 @@
       "@type": "Offer",
       "price": "32.00",
       "priceCurrency": "GBP",
-      "description": "Tools from £3.99 per month. Main tools: 30-day free trial, then £32 per tool per month"
+      "description": "Tools from £3.99 per month. Main tools: 30-day free trial, then £32 per tool per month (Stock Control £99 per month)"
     },
     "featureList": "Car build tracking, workshop job logs, restoration progress, garage management, stock control, quotes"
   }
@@ -437,6 +437,7 @@
       <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
       <h3>Stock Control</h3>
       <p>Inventory, reorder levels, suppliers and costs for all your parts.</p>
+      <p style="margin-top:.4rem;font-size:.85em;opacity:.85;">Need it set up and tailored to your business? From £300 a month — info@build-tracker.co.uk or 07931 095631.</p>
     </a>
     <a class="mkt-card tool-link" href="supplier-purchase-order-system/index.html">
       <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
@@ -563,7 +564,7 @@
 <section id="pricing" class="section">
   <div class="section-head">
     <h2>Simple Pricing</h2>
-    <p>Our tools start from £3.99 a month. Our main tools are £32 a month with a 30‑day free trial; smaller tools cost less and may have a shorter free trial — each one shows its own.</p>
+    <p>Our tools start from £3.99 a month. Most of our main tools are £32 a month with a 30‑day free trial, and Stock Control, our fullest tool, is £99 a month with the same trial; smaller tools cost less and may have a shorter free trial — each one shows its own.</p>
   </div>
 
   <div class="pricing-grid">
@@ -572,7 +573,7 @@
       <div class="price">£32.00</div>
       <div class="price-period">per tool, per month <span class="usd">(approx. $43 USD)</span></div>
       <ul>
-        <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Choose the tools you need — £32/month each</li>
+        <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Choose the tools you need — £32/month each (Stock Control is £99/month)</li>
         <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Unlimited jobs &amp; customers</li>
         <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Access from any device</li>
         <li><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cancel anytime</li>
@@ -580,6 +581,8 @@
       <button class="mkt-btn mkt-btn-green mkt-btn-lg" onclick="openSelection()">Start Your Free Trial</button>
       <p class="price-note">All payments are processed in GBP. USD prices shown are for guidance and may differ slightly from your bank's exchange rate.</p>
     </div>
+
+    <p class="price-note" style="max-width:640px;margin:1rem auto 0;text-align:center;">Stock Control is £99 a month <span class="usd">(approx. $133 USD)</span> with the same 30‑day free trial. Want it set up and tailored for your business? From £300 a month: <a href="mailto:info@build-tracker.co.uk">email us</a> or call <a href="tel:07931095631">07931 095631</a>.</p>
 
     <div class="addon-prices">
       <h3>Smaller tools — from £3.99/month</h3>
@@ -665,7 +668,7 @@
     </details>
     <details>
       <summary>How does the free trial work?</summary>
-      <p>Full access for 30 days completely free on our main tools. Pay only £32/month per tool <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span> if you want to continue. Smaller tools start from £3.99/month and may have a shorter free trial — each one shows its own price and trial length.</p>
+      <p>Full access for 30 days completely free on our main tools. Pay only £32/month per tool <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span> if you want to continue (Stock Control is £99/month <span style="color:var(--text3);font-size:.9em;">(approx. $133 USD)</span>). Smaller tools start from £3.99/month and may have a shorter free trial — each one shows its own price and trial length.</p>
     </details>
     <details>
       <summary>Can I add more tools later?</summary>
@@ -732,7 +735,7 @@
     <h2>Create Your Account</h2>
     <input type="email" id="signupEmail" placeholder="Email Address">
     <input type="password" id="signupPass" placeholder="Create Password">
-    <p style="margin:.8rem 0; font-size:.9rem;">Start your <strong style="color:var(--text)">30 day free trial</strong>. After that, £32 per month <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span>.</p>
+    <p style="margin:.8rem 0; font-size:.9rem;">Start your <strong style="color:var(--text)">30 day free trial</strong>. After that, £32 per month per tool <span style="color:var(--text3);font-size:.9em;">(approx. $43 USD)</span> (Stock Control is £99 per month).</p>
     <button class="mkt-btn mkt-btn-blue" style="width:100%;" onclick="signup()">Create Account</button>
   </div>
 </section>
@@ -864,7 +867,7 @@
     </div>
     <div class="option-item" onclick="selectSoftware('Stock Control')">
       <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg></div>
-      <div><strong>Stock Control</strong><small>Inventory & suppliers — £32/month <span class="usd">(approx. $43)</span></small></div>
+      <div><strong>Stock Control</strong><small>Inventory & suppliers — £99/month <span class="usd">(approx. $133)</span></small></div>
     </div>
     <div class="option-item" onclick="selectSoftware('Purchase Order System')">
       <div class="card-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/></svg></div>
@@ -931,7 +934,13 @@ function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function openSelection() { openModal('selectionModal'); }
 function closeSelection() { closeModal('selectionModal'); }
-function selectSoftware(name) { closeSelection(); alert(`You selected: ${name}\nYou will be taken to payment for £32.00 per month.`); startPayment(name); }
+function selectSoftware(name) {
+  closeSelection();
+  // Stock Control is £99 and is started on its own page (free trial and Subscribe are there). The shared Payment Link used by startPayment() is the £32 one, so it must never be used for Stock Control.
+  if (name === 'Stock Control') { location.href = 'stock-control/index.html'; return; }
+  alert(`You selected: ${name}\nYou will be taken to payment for £32.00 per month.`);
+  startPayment(name);
+}
 
 // Lead Magnet
 function sendGuide() {
