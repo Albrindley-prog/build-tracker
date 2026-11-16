@@ -17,6 +17,7 @@ const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers
 // daysAgo: when they signed up; subscription: an active bt_subscriptions row; role; checkout: how the function answers
 async function run(browser, { daysAgo, subscription = false, role = 'owner', checkout = { status: 200, body: { url: 'https://checkout.stripe.test/pay' } }, viewport = { width: 1280, height: 860 }, login = true }) {
   const mock = createMock();
+  const state = { subscription }; // the test can flip this while the page is open (the payment being recorded)
   const context = await browser.newContext({ viewport, locale: 'en-GB' });
   const signup = new Date(Date.now() - daysAgo * 864e5).toISOString();
   const calls = [];
@@ -30,7 +31,7 @@ async function run(browser, { daysAgo, subscription = false, role = 'owner', che
     }
     if (p.endsWith('/rest/v1/users')) { const row = { id: mock.OWNER, email: 'owner@example.com', signup_date: signup }; return route.fulfill({ status: 200, headers: CORS, body: JSON.stringify(obj ? row : [row]) }); }
     if (p.endsWith('/rest/v1/bt_subscriptions')) {
-      if (subscription) return route.fulfill({ status: 200, headers: CORS, body: JSON.stringify(obj ? { status: 'active' } : [{ status: 'active' }]) });
+      if (state.subscription) return route.fulfill({ status: 200, headers: CORS, body: JSON.stringify(obj ? { status: 'active' } : [{ status: 'active' }]) });
       return route.fulfill({ status: 406, headers: CORS, body: JSON.stringify({ code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned', details: 'The result contains 0 rows' }) });
     }
     if (p.endsWith('/rest/v1/sc_team_members') && role === 'staff') return route.fulfill({ status: 200, headers: CORS, body: JSON.stringify([{ role: 'staff' }]) });
@@ -49,7 +50,7 @@ async function run(browser, { daysAgo, subscription = false, role = 'owner', che
     await page.fill('#loginEmail', 'owner@example.com'); await page.fill('#loginPass', 'x'); await page.click('#loginForm .auth-btn');
     await sleep(1800);
   }
-  return { context, page, errors, calls, signInText, overflowSignIn };
+  return { context, page, errors, calls, signInText, overflowSignIn, state };
 }
 const visible = (page, id) => page.locator(id).isVisible();
 const text = async (page, sel) => ((await page.textContent(sel)) || '').replace(/\s+/g, ' ').trim();
@@ -88,6 +89,38 @@ const overflow = page => page.evaluate(() => document.documentElement.scrollWidt
   check('the success and cancel addresses come back to the Stock Control page', /\/stock-control\/.*payment=success/.test(c.body.success_url) && /payment=cancel/.test(c.body.cancel_url), JSON.stringify([c.body.success_url, c.body.cancel_url]));
   check('then the browser goes to the address the function returned', /checkout\.stripe\.test\/pay/.test(t.page.url()), t.page.url());
   await t.context.close();
+
+  console.log('\n— back from Stripe before the payment has been recorded —');
+  {
+    t = await run(browser, { daysAgo: 40 });
+    await t.page.locator('#billingScreen').waitFor({ state: 'visible' });
+    await t.page.clock.install();
+    await t.page.goto(HOST + PAGE_PATH + 'index.html?payment=success', { waitUntil: 'load' });
+    await t.page.clock.runFor(4000); await sleep(700);
+    const waiting = await text(t.page, '#billingScreen');
+    check('back from Stripe, not recorded yet: says the payment was received and Subscribe is hidden (no second payment)', /Payment received/.test(waiting) && !(await visible(t.page, '#subscribeBtn')) && await visible(t.page, '#billingScreen'), waiting);
+    check('the ?payment=success part is removed from the address', !/payment=/.test(t.page.url()), t.page.url());
+    t.state.subscription = true; // the webhook has now written the active row
+    await t.page.clock.runFor(4000); await sleep(900);
+    check('as soon as the payment is recorded the app opens by itself and says Subscribed', await visible(t.page, '#appScreen') && !(await visible(t.page, '#billingScreen')) && /Subscribed/.test(await text(t.page, '#trialBadge')), await text(t.page, '#trialBadge'));
+    check('no checkout request was made on the return trip, and no page errors', t.calls.length === 0 && t.errors.length === 0, t.errors.join(' | '));
+    await t.context.close();
+
+    t = await run(browser, { daysAgo: 40 });
+    await t.page.locator('#billingScreen').waitFor({ state: 'visible' });
+    await t.page.clock.install();
+    await t.page.goto(HOST + PAGE_PATH + 'index.html?payment=success', { waitUntil: 'load' });
+    for (let i = 0; i < 25; i++) { await t.page.clock.runFor(3000); await sleep(120); } // 75 seconds and the payment is never recorded
+    const slow = await text(t.page, '#billingScreen');
+    check('still nothing after a minute: tells them not to pay again, and Subscribe stays hidden', /don.t pay again/i.test(slow) && /info@build-tracker\.co\.uk/.test(slow) && !(await visible(t.page, '#subscribeBtn')), slow);
+    await t.context.close();
+
+    t = await run(browser, { daysAgo: 40 });
+    await t.page.locator('#billingScreen').waitFor({ state: 'visible' });
+    await t.page.goto(HOST + PAGE_PATH + 'index.html?payment=cancel', { waitUntil: 'load' }); await sleep(2500);
+    check('back from Stripe without paying (cancel): Subscribe is there as before', await visible(t.page, '#subscribeBtn') && !/Payment received/.test(await text(t.page, '#billingScreen')) && !/payment=/.test(t.page.url()), await text(t.page, '#billingScreen'));
+    await t.context.close();
+  }
 
   console.log('\n— checkout failing —');
   t = await run(browser, { daysAgo: 40, checkout: { status: 400, body: { error: "That price isn't available for this product." } } });

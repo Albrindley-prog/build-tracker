@@ -67,7 +67,7 @@ test('only the intended lines differ from the master', () => {
   const sa = new Set(a), sb = new Set(b);
   const changed = a.filter(l => !sb.has(l)).length + b.filter(l => !sa.has(l)).length;
   assert.ok(changed > 20, `suspiciously few changes (${changed}): was anything replaced?`);
-  assert.ok(changed < 150, `too many changed lines (${changed}): a replacement ran away`);
+  assert.ok(changed < 200, `too many changed lines (${changed}): a replacement ran away`);
 });
 
 test('generation is repeatable', () => {
@@ -83,4 +83,23 @@ test('a master that has changed shape makes the build fail loudly instead of ski
   assert.throws(() => buildWebsitePage('<html><title>x</title></html>', OPTS), /not found/);
   assert.throws(() => buildWebsitePage(master.replace('const TRIAL_DAYS = 30;', 'const TRIAL_DAYS = 31;'), OPTS), /not found/);
   assert.throws(() => buildWebsitePage(master.replace('<div class="brand-name">Sales</div>', '<div class="brand-title">Sales</div>'), OPTS), /not found/);
+});
+
+test('problems() also catches any name spelt with "stevens", any picture other than a small drawn one, and any <img> tag', () => {
+  assert.ok(problems(page + '\nSTEVENS').length > 0, 'stevens (any case) not flagged');
+  assert.ok(problems(page + '\n<p>Stevens Bodyworks</p>').length > 0, 'a different spelling not flagged');
+  assert.ok(problems(page + '\n<img src="x.png">').length > 0, '<img> not flagged');
+  assert.ok(problems(page + '\n<IMG src="x.png">').length > 0, '<IMG> not flagged');
+  assert.ok(problems(page + '\nurl(data:image/jpeg;base64,AAAA)').length > 0, 'jpeg data not flagged');
+  assert.ok(problems(page + '\nurl(data:image/webp;base64,AAAA)').length > 0, 'webp data not flagged');
+  assert.ok(problems(page + '\nurl(data:image/gif;base64,AAAA)').length > 0, 'gif data not flagged');
+  assert.deepEqual(problems(page), [], 'the real page must still be clean (it keeps its small drawn barcode pictures)');
+});
+
+test('the page saved in the repo is exactly what the script builds today (nobody edited it by hand, and it is not behind the master)', () => {
+  const saved = readFileSync(path.join(here, '..', '..', 'stock-control', 'index.html'), 'utf8').replace(/\r\n/g, '\n');
+  const version = saved.match(/const APP_VERSION = '([^']*)';/)?.[1];
+  assert.ok(version, 'no version stamp in the saved page');
+  const fresh = buildWebsitePage(master, { ...OPTS, version }).replace(/\r\n/g, '\n');
+  assert.equal(saved === fresh, true, 'stock-control/index.html is out of date: run  node tools/make-stock-control-website.mjs ' + version);
 });

@@ -109,6 +109,17 @@ const SUBSCRIPTIONS_TABLE = 'bt_subscriptions';`, 'billing config');
         msgEl.innerHTML = \`<p style="color:var(--danger);margin-bottom:16px;">❌ This workspace's free trial has ended.<br>Ask \${escapeHtml(userData?.email || 'the workspace owner')} to subscribe to continue.</p>\`;
         return;
     }
+    // Back from Stripe: the payment has been taken, but the confirmation that
+    // records it here can take a few seconds (now and then longer). Say so and
+    // keep Subscribe out of reach, so nobody pays twice. handlePaymentResult()
+    // below keeps checking and opens the app as soon as the payment shows up.
+    if (paymentCheck) {
+        subscribeBtn.style.display = 'none';
+        msgEl.innerHTML = paymentCheck === 'slow'
+            ? \`<p style="color:var(--danger);margin-bottom:16px;">Your payment is going through, but we have not had the confirmation yet. Please don't pay again. Wait a minute and refresh this page. If it still doesn't open, email info@build-tracker.co.uk.</p>\`
+            : \`<p style="color:var(--accent2);margin-bottom:16px;">✅ Payment received. Opening your account…</p>\`;
+        return;
+    }
     subscribeBtn.style.display = '';
 
     if(days > 0) {
@@ -152,6 +163,44 @@ async function startSubscription() {
 }
 `, 'showBilling and startSubscription');
 
+  // Coming back from Stripe (?payment=success): wait for the payment to be recorded instead of showing Subscribe again.
+  t = swap(t,
+`// Checks for ?payment=success/cancel on the URL after redirect back from Stripe.
+async function handlePaymentResult() {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('payment');
+    if(!result) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    if(result === 'success') {
+        // Webhook may take a moment to write the active row; brief delay then re-check.
+        setTimeout(() => { checkAccess(); }, 1500);
+    }
+}
+`,
+`// 'checking' while we wait for a payment made at Stripe to be recorded, then 'slow' if it takes over a minute.
+let paymentCheck = null;
+
+// Checks for ?payment=success/cancel on the URL after redirect back from Stripe.
+async function handlePaymentResult() {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('payment');
+    if(!result) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    if(result !== 'success' || !currentUser) return;
+    // Stripe has taken the payment, but the confirmation that records it can take a few seconds (now and then longer).
+    // Until it lands the sign-in check still sees an unpaid account, so keep Subscribe hidden (nobody should pay twice)
+    // and check again every 3 seconds for about a minute.
+    paymentCheck = 'checking';
+    for(let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, i === 0 ? 1500 : 3000));
+        try { await checkAccess(); } catch(e) { console.error('Re-check after payment failed:', e.message); }
+        if(document.getElementById('billingScreen').style.display === 'none') { paymentCheck = null; return; }
+    }
+    paymentCheck = 'slow';
+    showBilling();
+}
+`, 'payment return');
+
   return t;
 }
 
@@ -159,9 +208,12 @@ async function startSubscription() {
 export function problems(page) {
   const out = [];
   if (/PD Stevens/i.test(page)) out.push('mentions PD Stevens');
+  if (/stevens/i.test(page)) out.push('mentions a Stevens name');
   if (/pd-stevens/i.test(page)) out.push('contains a pd-stevens address');
   if (/logo-plate|\.brand-logo/.test(page)) out.push('still has the logo styles');
-  if (/data:image\/png/.test(page)) out.push('contains embedded image data (the logo)');
+  // the small drawn barcode pictures are data:image/svg+xml and are expected; any other embedded picture could be a logo
+  if (/data:image\/(?!svg\+xml)/i.test(page)) out.push('contains embedded picture data (a logo?)');
+  if (/<img\b/i.test(page)) out.push('contains an <img> picture');
   if (!/create-checkout-session/.test(page)) out.push('the checkout call is missing');
   if (!/const STRIPE_PRICE_ID = 'price_[A-Za-z0-9]+';/.test(page)) out.push('the Stripe price id is missing');
   if (!/const PRODUCT_ID = 'stock-control';/.test(page)) out.push("the product id is not 'stock-control'");
