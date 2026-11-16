@@ -166,8 +166,8 @@
     .banner { background: var(--amber-dim); border: 1px solid var(--amber); color: var(--amber); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px; font-size: 14px; }
 
     /* toast */
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(120px); background: var(--bg3); border: 1px solid var(--mint); color: var(--mint); padding: 10px 20px; border-radius: 999px; transition: transform 0.25s; z-index: 9999; box-shadow: var(--shadow); max-width: calc(100vw - 32px); font-size: 14px; text-align: center; }
-    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; visibility: hidden; pointer-events: none; background: var(--bg3); border: 1px solid var(--mint); color: var(--mint); padding: 10px 20px; border-radius: 999px; transition: transform 0.25s, opacity 0.25s, visibility 0.25s; z-index: 9999; box-shadow: var(--shadow); max-width: calc(100vw - 32px); font-size: 14px; text-align: center; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
     .toast.error { border-color: var(--red); color: var(--red); }
 
     /* printed purchase order */
@@ -197,7 +197,7 @@
       .two-col { grid-template-columns: 1fr; }
       .item-row { grid-template-columns: 1fr 1fr 1fr; }
       .item-row > div:first-child { grid-column: 1 / -1; }
-      .item-row .item-remove { margin-top: 23px; width: 100%; }
+      .item-row .item-remove { grid-column: 1 / -1; margin-top: 0; width: 100%; padding: 7px 0; }
     }
     @media (max-width: 720px) {
       body { padding: 12px; }

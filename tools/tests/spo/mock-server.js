@@ -125,6 +125,8 @@ async function startMock({ port = 0, seed = 'empty', demo = false } = {}) {
   async function handle(req, res) {
     const u = new URL(req.url, origin);
     const p = u.pathname, method = req.method;
+    // the page may be opened as localhost:PORT or 127.0.0.1:PORT; answer with whichever was used so everything stays same-origin
+    const here = /^(localhost|127\.0\.0\.1):\d+$/.test(req.headers.host || '') ? 'http://' + req.headers.host : origin;
     const send = (status, body, headers) => {
       const isBuf = Buffer.isBuffer(body), isStr = typeof body === 'string';
       const h = Object.assign({ 'cache-control': 'no-store' }, headers || {});
@@ -149,7 +151,7 @@ async function startMock({ port = 0, seed = 'empty', demo = false } = {}) {
       let body = fs.readFileSync(file, 'utf8');
       if (rel === 'app.js') {
         if (!body.includes(REAL_SUPABASE)) return send(500, 'app.js does not contain the expected Supabase address');
-        body = body.split(REAL_SUPABASE).join(origin);
+        body = body.split(REAL_SUPABASE).join(here);
       }
       if (rel === 'index.html' && state.demo) body = body.replace('</body>', '<script src="/__demo/demo.js" defer></script>\n</body>');
       return send(200, body, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' });
@@ -190,7 +192,7 @@ async function startMock({ port = 0, seed = 'empty', demo = false } = {}) {
       return send(200, [{ trial_start: state.trialStart[user.id] }]);
     }
     if (p === '/functions/v1/create-checkout-session' && method === 'POST') {
-      return send(200, { url: origin + APP_PATH + '?payment=cancel' });       // never leaves this computer
+      return send(200, { url: here + APP_PATH + '?payment=cancel' });       // never leaves this computer
     }
 
     const tm = /^\/rest\/v1\/([a-z_]+)$/.exec(p);
