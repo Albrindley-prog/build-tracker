@@ -36,6 +36,27 @@
     if (value === null || value === undefined) return '';
     return String(value).replace(/[&<>"']/g, ch => HTML_ESCAPES[ch]);
   }
+  // html`<td>${value}</td>` — every ${value} is escaped unless it is itself the result of html``.
+  // The screens only ever put html`` results into the page, so text from the database (or typed
+  // by a user) can never become markup. A plain object cannot pretend to be trusted: the check
+  // is "was it made by this class", which data loaded as JSON can never be.
+  class SafeHtml {
+    constructor(s) { this.s = s; }
+    toString() { return this.s; }
+  }
+  function htmlPart(v) {
+    if (v instanceof SafeHtml) return v.s;
+    if (Array.isArray(v)) return v.map(htmlPart).join('');
+    if (v === false) return '';
+    return escapeHtml(v);
+  }
+  function html(strings) {
+    let out = strings[0];
+    for (let i = 1; i < arguments.length; i++) out += htmlPart(arguments[i]) + strings[i];
+    return new SafeHtml(out);
+  }
+  const isSafeHtml = v => v instanceof SafeHtml;
+
   // One-line text: control characters removed, any whitespace run becomes one space.
   function cleanLine(value, max) {
     if (value === null || value === undefined) return '';
@@ -462,6 +483,8 @@
   function orderFromRow(p, itemRows) {
     const total = Number(p.total) || 0;
     const items = (itemRows || []).map(itemFromRow).map((it, i) => ({ it, i })).sort((a, b) => a.it.position - b.it.position || a.i - b.i).map(x => x.it);
+    // An order marked fully delivered the old way (one dropdown for the whole order) has, by definition, had every line arrive.
+    if (p.goods_in === 'yes') items.forEach(it => { if (it.qtyReceived < it.qty) it.qtyReceived = it.qty; });
     return {
       id: p.id, supplierId: p.supplier_id || null, ref: txt(p.ref), date: txt(p.order_date), dueDate: txt(p.due_date),
       paymentTerms: Number(p.payment_terms_days === null || p.payment_terms_days === undefined ? 30 : p.payment_terms_days),
@@ -491,7 +514,7 @@
 
   return {
     VAT_RATES, STATUSES, STATUS_LABELS, GOODS_IN_LABELS, RETURN_STATUSES, RETURN_STATUS_LABELS, RETURN_REASONS, LIMITS, CHASE_DAYS,
-    escapeHtml, cleanLine, cleanText, num, money, lineTotals, orderTotals,
+    escapeHtml, html, isSafeHtml, cleanLine, cleanText, num, money, lineTotals, orderTotals,
     isISODate, todayISO, addDays, addMonths, daysBetween, expectedDate, formatDate, poRef,
     receivedSummary, deliveryState, applyReceipt, isOpen, isOverdue,
     filterOrders, filterReturns, returnFlag,

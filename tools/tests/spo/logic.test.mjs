@@ -22,6 +22,20 @@ test('escapeHtml neutralises markup and quotes', () => {
   assert.equal(L.escapeHtml('17" tyre'), '17&quot; tyre');
 });
 
+test('html`` escapes every value unless it was built by html`` itself', () => {
+  const name = '<img src=x onerror=alert(1)>';
+  assert.equal(String(L.html`<td>${name}</td>`), '<td>&lt;img src=x onerror=alert(1)&gt;</td>');
+  assert.equal(String(L.html`<ul>${['a<', 'b'].map(x => L.html`<li>${x}</li>`)}</ul>`), '<ul><li>a&lt;</li><li>b</li></ul>');
+  assert.equal(String(L.html`<a title="${'" onmouseover="x'}">`), '<a title="&quot; onmouseover=&quot;x">');
+  assert.equal(String(L.html`${null}${undefined}${false}${0}`), '0');
+  assert.equal(String(L.html`${'' && L.html`<b>never</b>`}|`), '|');
+  // something that merely looks like trusted HTML is still escaped
+  assert.equal(String(L.html`${{ s: '<b>', toString() { return '<b>'; } }}`), '&lt;b&gt;');
+  assert.equal(L.isSafeHtml(L.html`x`), true);
+  assert.equal(L.isSafeHtml({ s: 'x' }), false);
+  assert.equal(L.isSafeHtml('x'), false);
+});
+
 test('cleanLine strips control characters and newlines and cuts to length', () => {
   assert.equal(L.cleanLine('  a\u0000b\r\nc\t d  ', 200), 'ab c d');
   assert.equal(L.cleanLine('x'.repeat(500), 200).length, 200);
@@ -370,6 +384,16 @@ test('orderFromRow copes with rows saved before the upgrade', () => {
   assert.equal(o.dueDate, '');
   assert.equal(o.items.length, 2);
   assert.deepEqual(o.items[0], { id: 'i2', name: 'B', jobRef: '', qty: 1, price: 5.5, vatRate: 0, qtyReceived: 0, notes: '', position: 0 });
+});
+
+test('orderFromRow treats an order marked fully delivered the old way as having every line in', () => {
+  const o = L.orderFromRow({ id: 'o1', ref: 'R', status: 'delivered', goods_in: 'yes', total: 10 }, [{ id: 'i1', name: 'A', qty: 2, price: 5, qty_received: 0 }]);
+  assert.equal(o.items[0].qtyReceived, 2);
+  assert.equal(L.deliveryState(o.items), 'yes');
+  const hostile = L.orderFromRow({ id: 'o2', ref: 'R', status: '"><img src=x>', goods_in: 'x" onmouseover="1', total: 'abc' }, []);
+  assert.equal(hostile.status, 'draft');
+  assert.equal(hostile.goodsIn, 'no');
+  assert.equal(hostile.total, 0);
 });
 
 test('orderFromRow sorts lines by position and reads the new columns', () => {
