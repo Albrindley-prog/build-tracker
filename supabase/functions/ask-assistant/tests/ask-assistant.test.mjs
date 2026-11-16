@@ -339,6 +339,22 @@ test("custom work: the fact sheet says yes, quotes no price, and it isn't listed
   assert.match(unknown, /prices or timescales for custom work/);
 });
 
+test("Stock Control is 99 pounds, the other main tools stay 32, and the tailored service starts from 300", () => {
+  assert.match(FACT_SHEET, /MAIN TOOLS - 32 pounds per tool, per month/);
+  assert.match(FACT_SHEET, /Stock Control[^\n]*99 pounds/);
+  assert.match(FACT_SHEET, /about \$43 for 32 pounds, about \$133 for 99 pounds/);
+  assert.doesNotMatch(FACT_SHEET, /The main tools are 32 pounds a month with a 30-day trial;/); // the old blanket claim
+  const sc = FACT_SHEET.split("\nSTOCK CONTROL IN DETAIL\n")[1].split("SMALLER TOOLS AND ADD-ONS")[0];
+  assert.match(sc, /99 pounds per month/);
+  assert.match(sc, /30-day free trial/);
+  assert.match(sc, /from 300 pounds a month/);
+  assert.match(sc, /never promise/); // no promised changes or timescales
+  assert.match(sc, /info@build-tracker\.co\.uk/);
+  assert.match(sc, /07931 095631/);
+  assert.match(SYSTEM_PROMPT, /Stock Control is 99 pounds/); // the quoting rule knows the exception
+  assert.match(SYSTEM_PROMPT_OPEN, /Stock Control is 99 pounds/);
+});
+
 /* ---------- streaming: words arrive as they are written ---------- */
 
 const askStream = (q) => ({ ...ask(q), stream: true });

@@ -68,7 +68,7 @@ Supabase → **Edge Functions** → **Secrets** → add `ANTHROPIC_API_KEY` (Cla
 ### 5. Try it
 With the site running on your own computer (`http://localhost:…`), open the homepage, click
 **Ask us a question**, and ask a few things:
-- "What does Stock Control cost?" → should say £32 a month per tool, 30-day free trial.
+- "What does Stock Control cost?" → should say £99 a month with a 30-day free trial (the other main tools are £32), and mention the tailored service from £300 a month by email or phone if they ask about set-up.
 - "Does it connect to Xero?" → should say it doesn't know and give your email and phone (that isn't in the fact sheet). **It must never make this up.**
 - "Would you modify the software to suit our company?" → should say yes, warmly, and invite them to email or phone (it must not quote a price or promise a date).
 - "What's the capital of Australia?" → should kindly say it's here for questions about Build Tracker.

@@ -58,7 +58,7 @@ function pretend(question) {
   } else if (has("which", "recommend", "start", "should i", "garage", "workshop", "restor", "body")) {
     text = "It depends what you do day to day. Is it mostly repairs and estimates, scheduling jobs, tracking a restoration, or stock and parts? Tell me and I'll point you to the right tool.";
   } else if (has("stock")) {
-    text = "Stock Control handles inventory, reorder levels, suppliers and costs for all your parts. It's 32 pounds a month with a 30-day free trial.";
+    text = "Stock Control handles inventory, reorder levels, suppliers and costs for all your parts. It's 99 pounds a month with a 30-day free trial.";
   } else if (has("contact", "email", "phone", "call", "human", "person", "speak", "talk")) {
     text = "You can email info@build-tracker.co.uk or phone 07931 095631. We're based in Cheshire East.";
   } else if (has("hello", "hi ", "hey", "thanks", "thank")) {
