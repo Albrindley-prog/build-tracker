@@ -38,7 +38,9 @@ They need Google Chrome installed (Playwright uses the system Chrome).
 | `lowtest.js` | the Low stock list |
 | `qrtest.js` | QR codes on the barcode pop-up |
 | `billingtest.js` | PD Stevens page only: no price, 30-day lock, contact text |
-| `website-billing.test.js` | website page only: £99 price, Subscribe, checkout failures, trial lock, staff, bank-transfer subscribers |
+| `website-billing.test.js` | website page only: £99 price, Subscribe, checkout failures, trial lock, staff, bank-transfer subscribers, coming back from Stripe before the payment is recorded |
+| `homepage-layout.test.js` | homepage (no PAGE needed): prices, the tailored offer, phone layout, Stock Control goes to its own page |
+| `homepage-manage.test.js` | homepage (no PAGE needed): a Stock Control subscriber is not locked out and can Manage / Cancel |
 
 `mock.js` is the pretend Supabase. `page-config.js` picks the page.
 Screenshots go to `tools/tests/browser/shots2/` (not committed).

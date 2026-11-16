@@ -77,3 +77,16 @@ test('the shared Payment Link is still only opened from startPayment', () => {
   assert.equal(uses.length, 1, 'expected the one Payment Link used by startPayment');
   assert.match(html, /async function startPayment[\s\S]*?buy\.stripe\.com/);
 });
+
+test('a paying Stock Control customer can manage and cancel from the dashboard, like every other paid tool', () => {
+  const managed = html.match(/const MANAGED_PRODUCTS = \[([^\]]*)\];/);
+  assert.ok(managed, 'MANAGED_PRODUCTS not found');
+  assert.match(managed[1], /'stock-control'/, "'stock-control' must be in MANAGED_PRODUCTS (Manage button, Cancel list and the dashboard lock all read it)");
+  assert.match(html, /'stock-control': 'Stock Control'/, 'the Cancel list needs a readable name for Stock Control');
+  // the dashboard card (the second one: the first is the sales card higher up the page)
+  const at = html.indexOf('<h3>Stock Control</h3>', html.indexOf('Your Dashboard</h2>'));
+  assert.ok(at > 0, 'dashboard Stock Control card not found');
+  const card = html.slice(at, html.indexOf('</div>', at));
+  assert.match(card, /id="ms-btn-stock-control" class="mkt-btn mkt-btn-manage hidden" onclick="openBillingPortal\('stock-control'\)">Manage Subscription<\/button>/);
+  assert.match(card, /<a href="stock-control\/index\.html" class="mkt-btn mkt-btn-blue">Open<\/a>/, 'Open stays');
+});
