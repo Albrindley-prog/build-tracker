@@ -98,6 +98,7 @@ group('csp', async browser => {
   const csp = (/http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(htmlSrc) || [])[1] || '';
   const scriptSrc = (/script-src ([^;]+)/.exec(csp) || [])[1] || '';
   check('csp: page declares a Content-Security-Policy', csp.includes("default-src 'none'"));
+  check('csp: the CDN is allowed for exactly one file', /^https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@\d+\.\d+\.\d+\/dist\/umd\/supabase\.js$/.test(scriptSrc.trim().split(/\s+/).pop()), scriptSrc);
   check('csp: inline script is not allowed', scriptSrc !== '' && !scriptSrc.includes('unsafe-inline') && !scriptSrc.includes('unsafe-eval'), scriptSrc);
   check('csp: no inline event handlers in the page', !/<[^>]+\son[a-z]+\s*=/i.test(htmlSrc));
   check('csp: no inline <script> blocks', !/<script(?![^>]*\ssrc=)[^>]*>/i.test(htmlSrc));
@@ -119,6 +120,20 @@ group('csp', async browser => {
   });
   check('csp: an injected inline script does not run', ran.inline === undefined);
   check('csp: an injected inline handler does not run', ran.handler === undefined);
+  const blocked = await page.evaluate(() => new Promise(resolve => {
+    const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js';
+    s.onload = () => resolve(false); s.onerror = () => resolve(true); document.head.appendChild(s);
+  }));
+  check('csp: no other script from the CDN can be loaded, only the one pinned library file', blocked === true);
+  check('csp: the pinned library itself did load', await page.evaluate(() => typeof window.supabase === 'object' && typeof window.supabase.createClient === 'function'));
+
+  // another site putting this page inside a frame
+  const framer = await context.newPage();
+  await framer.setContent('<iframe id="f" width="900" height="600" src="' + mock.url + '"></iframe>');
+  const inside = framer.frameLocator('#f');
+  await inside.locator('a[target="_top"]').waitFor();
+  check('csp: inside a frame on another site, the page shows only a link to the real page', await inside.locator('#login-email, #app-screen, #auth-screen').count() === 0);
+  await framer.close();
   await context.close(); await mock.close();
 });
 

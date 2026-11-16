@@ -28,6 +28,7 @@
   const REORDER_MONTHS = 3;
   const TOP_SUPPLIER_DAYS = 90;
   const EMAIL_MAX_LINES = 25;
+  const dict = () => Object.create(null);   // a plain lookup table with no inherited keys
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   // ── text safety ───────────────────────────────────────────────
@@ -260,7 +261,7 @@
   }
   function topSuppliers(orders, today, days, limit) {
     const since = addDays(today, -(days || TOP_SUPPLIER_DAYS));
-    const by = {};
+    const by = dict();
     (orders || []).forEach(po => {
       if (po.status === 'draft' || !po.supplierId || !(po.date >= since)) return;
       const e = by[po.supplierId] || (by[po.supplierId] = { supplierId: po.supplierId, spend: 0, count: 0 });
@@ -270,7 +271,7 @@
       .sort((a, b) => b.spend - a.spend).slice(0, limit || 5);
   }
   function supplierStats(orders, today) {
-    const since = addDays(today, -365), by = {};
+    const since = addDays(today, -365), by = dict();
     (orders || []).forEach(po => {
       if (!po.supplierId) return;
       const e = by[po.supplierId] || (by[po.supplierId] = { orderCount: 0, openCount: 0, spend12m: 0 });
@@ -311,7 +312,7 @@
   function cheaperElsewhere(history, supplierId, name, price) {
     const ref = num(price);
     if (ref <= 0 || !key(name)) return null;
-    const k = key(name), others = {};
+    const k = key(name), others = dict();
     (history || []).forEach(h => { if (h.supplierId && h.supplierId !== supplierId && key(h.name) === k) others[h.supplierId] = true; });
     let best = null;
     Object.keys(others).forEach(sid => {
@@ -329,7 +330,7 @@
     return { diff, pct: Math.round(diff / p * 1000) / 10 };
   }
   function priceRowsToLog(history, supplierId, lines, date) {
-    const seen = {}, rows = [];
+    const seen = dict(), rows = [];
     (lines || []).forEach(l => {
       const k = key(l.name), price = num(l.price);
       if (!k || price <= 0 || seen[k]) return;
@@ -340,7 +341,7 @@
     return rows;
   }
   function historyWithChange(history) {
-    const last = {};
+    const last = dict();
     const asc = (history || []).map((h, i) => ({ h, i })).sort((a, b) => (a.h.date || '').localeCompare(b.h.date || '') || a.i - b.i);
     const out = asc.map(x => {
       const k = x.h.supplierId + '|' + key(x.h.name);
@@ -352,10 +353,10 @@
   }
   function reorderGroups(orders, today, months) {
     const since = addMonths(today, -(months || REORDER_MONTHS));
-    const groups = {}, order = [];
+    const groups = dict(), order = [];
     (orders || []).forEach(po => {
       if (!po.supplierId || !(po.date >= since)) return;
-      if (!groups[po.supplierId]) { groups[po.supplierId] = {}; order.push(po.supplierId); }
+      if (!groups[po.supplierId]) { groups[po.supplierId] = dict(); order.push(po.supplierId); }
       (po.items || []).forEach(i => {
         const k = key(i.name);
         if (!k) return;

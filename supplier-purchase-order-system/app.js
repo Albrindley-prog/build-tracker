@@ -6,6 +6,23 @@
 (function () {
   'use strict';
 
+  // This site cannot send the "never show me inside another site's page" header, so the page checks for itself.
+  // If a different site has put this page in a frame (a trick used to get people to click things they cannot
+  // see properly), it shows nothing except a link that opens the real page.
+  let framedByAnotherSite = false;
+  try { framedByAnotherSite = window.top !== window.self && window.top.location.origin !== window.location.origin; }
+  catch (err) { framedByAnotherSite = true; }
+  if (framedByAnotherSite) {
+    document.body.textContent = '';
+    const link = document.createElement('a');
+    link.href = window.location.origin + window.location.pathname;
+    link.target = '_top';
+    link.rel = 'noopener';
+    link.textContent = 'Open Supplier & Purchase Orders in its own window';
+    document.body.appendChild(link);
+    return;
+  }
+
   const L = window.SPOLogic;
   const html = L.html;
 
@@ -273,7 +290,7 @@
     state.loadProblem = problems.length > 0;
 
     state.suppliers = (sup.data || []).map(L.supplierFromRow);
-    const byOrder = {};
+    const byOrder = Object.create(null);
     (items.data || []).forEach(it => { (byOrder[it.purchase_order_id] = byOrder[it.purchase_order_id] || []).push(it); });
     state.orders = (po.data || []).map(p => L.orderFromRow(p, byOrder[p.id]));
     state.history = (hist.data || []).map(L.priceFromRow);
@@ -462,7 +479,7 @@
     setHTML(row.querySelector('.item-hint'), html`${parts.map((p, i) => html`${i ? ' · ' : ''}${p}`)}`);
   }
   function refreshItemNames() {
-    const seen = {}, names = [];
+    const seen = Object.create(null), names = [];
     const add = n => { const k = String(n || '').trim().toLowerCase(); if (k && !seen[k] && names.length < 400) { seen[k] = true; names.push(String(n).trim()); } };
     const supplierId = $('po-supplier').value;
     state.history.filter(h => h.supplierId === supplierId).forEach(h => add(h.name));
@@ -510,7 +527,7 @@
   }
   function readOrderForm() {
     const existing = state.editOrderId ? orderById(state.editOrderId) : null;
-    const known = {};
+    const known = Object.create(null);
     if (existing) existing.items.forEach(i => { known[i.id] = i; });
     const lines = Array.from(document.querySelectorAll('#po-items .item-row')).map(row => {
       const v = rowValues(row);
@@ -553,7 +570,7 @@
       return fail('save the order', saved.error);
     }
     if (existing) {
-      const keep = {}; lineRows.forEach(l => { keep[l.id] = true; });
+      const keep = Object.create(null); lineRows.forEach(l => { keep[l.id] = true; });
       const removed = existing.items.filter(i => !keep[i.id]).map(i => i.id);
       if (removed.length) {
         const gone = await db.from('spo_purchase_order_items').delete().in('id', removed);
@@ -684,7 +701,7 @@
   async function saveReceipt() {
     const po = orderById(state.receiveOrderId);
     if (!po) return;
-    const arrived = {};
+    const arrived = Object.create(null);
     document.querySelectorAll('#receive-lines .receive-row').forEach(row => { const input = row.querySelector('.receive-now'); if (input) arrived[row.dataset.itemId] = input.value; });
     const r = L.applyReceipt(po.items, arrived);
     if (!r.ok) return toast(r.errors[0].message, 'error');
