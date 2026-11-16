@@ -1,0 +1,15 @@
+{
+  "name": "supplier-po-tests",
+  "private": true,
+  "description": "Tests for supplier-purchase-order-system. Run from the repo root — see README.md in this folder.",
+  "scripts": {
+    "test:logic": "node --test logic.test.mjs",
+    "test:migration": "node --test migration.test.mjs",
+    "test:browser": "node browser.test.js",
+    "preview": "node mock-server.js --port 8092 --seed demo"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.13",
+    "playwright-core": "1.49.1"
+  }
+}
