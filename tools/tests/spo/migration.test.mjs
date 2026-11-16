@@ -239,3 +239,55 @@ test('deleting the account removes everything it owned', async () => {
   await db.query(`delete from auth.users where id = $1`, [A]);
   for (const table of ALL_TABLES) assert.equal(await count(`select count(*) n from ${table} where user_id = '${A}'`), 0, table);
 });
+
+// ───────────── the upgrade file itself ─────────────
+const sqlWithoutComments = SQL2.split('\n').filter(line => !line.trim().startsWith('--')).join('\n');
+
+test('the upgrade is one single command, so it is applied completely or not at all', () => {
+  assert.match(sqlWithoutComments, /^\s*do \$upgrade\$[\s\S]*\$upgrade\$;\s*$/);
+  assert.equal((sqlWithoutComments.match(/\$upgrade\$/g) || []).length, 2);
+});
+
+test('the upgrade removes nothing: no drop, truncate or delete statements', () => {
+  const withoutForeignKeyRules = sqlWithoutComments.replace(/on delete (cascade|set null)/gi, '');
+  assert.doesNotMatch(withoutForeignKeyRules, /\b(drop|truncate|delete)\b/i);
+});
+
+test('if a step fails part-way, nothing at all is changed', async () => {
+  const other = new PGlite();
+  await other.exec(`
+    create schema auth;
+    create table auth.users (id uuid primary key);
+    create role authenticated nologin;
+    create role anon nologin;
+    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  `);
+  await other.exec(SQL1);
+  // make a late step fail: the guard for this table is created near the end of the upgrade
+  await other.exec(`alter table spo_counters rename to spo_counters_renamed`);
+  await assert.rejects(other.exec(SQL2), /spo_counters/);
+  const n = async sql => Number((await other.query(sql)).rows[0].n);
+  assert.equal(await n(`select count(*) n from information_schema.columns where table_name in ('spo_purchase_order_items', 'spo_purchase_orders') and column_name in ('job_ref', 'vat_rate', 'qty_received', 'position', 'subtotal', 'vat_total', 'delivered_date')`), 0, 'no new columns were kept');
+  assert.equal(await n(`select count(*) n from information_schema.tables where table_name in ('spo_settings', 'spo_returns')`), 0, 'no new tables were kept');
+  assert.equal(await n(`select count(*) n from pg_proc where proname like 'spo_%_guard'`), 0, 'no guard functions were kept');
+  assert.equal(await n(`select count(*) n from pg_trigger where tgname like 'spo_%_guard_trg'`), 0, 'no guards were kept');
+  // and once the cause is fixed, the same file goes in cleanly
+  await other.exec(`alter table spo_counters_renamed rename to spo_counters`);
+  await other.exec(SQL2);
+  assert.equal(await n(`select count(*) n from pg_trigger where tgname like 'spo_%_guard_trg'`), 5);
+  assert.equal(await n(`select count(*) n from pg_policies where tablename in ('spo_settings', 'spo_returns')`), 2);
+  await other.close();
+});
+
+test('after the upgrade: 7 new columns, 2 new tables, 5 guards, and every table locked to its owner', async () => {
+  const check = (await db.query(`
+    select
+      (select count(*) from information_schema.columns where table_schema = 'public' and table_name in ('spo_purchase_order_items', 'spo_purchase_orders')
+         and column_name in ('job_ref', 'vat_rate', 'qty_received', 'position', 'subtotal', 'vat_total', 'delivered_date')) as new_columns,
+      (select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('spo_settings', 'spo_returns')) as new_tables,
+      (select count(*) from pg_trigger where tgname like 'spo_%_guard_trg') as guards,
+      (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname like 'spo_%' and c.relkind = 'r' and c.relrowsecurity) as tables_locked_to_owner
+  `)).rows[0];
+  assert.deepEqual({ new_columns: Number(check.new_columns), new_tables: Number(check.new_tables), guards: Number(check.guards), tables_locked_to_owner: Number(check.tables_locked_to_owner) },
+    { new_columns: 7, new_tables: 2, guards: 5, tables_locked_to_owner: 7 });
+});
